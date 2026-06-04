@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { GROUPS } from '../lib/groups';
+import { ANNEX_C } from '../lib/annex_c';
 
 // ─── Bracket constants (official FIFA 2026 Annex C) ─────────────────────────
 
@@ -410,7 +411,30 @@ export default function Home() {
 
   // ─── Bracket computation ──────────────────────────────────────────────────
 
-  const thirdAssignment = useMemo(() => assign3rdPlace(thirdPlacePicks), [thirdPlacePicks]);
+  // Assign 3rd-place teams to bracket slots using official FIFA Annex C table.
+  // Falls back to backtracking (valid but not guaranteed to match exact FIFA
+  // assignment) for the 113 combinations not yet in our partial table.
+  const thirdAssignment = useMemo(() => {
+    const key = [...thirdPlacePicks].sort().join('');
+    const scenario = ANNEX_C[key];
+    if (scenario) return scenario;
+
+    // Backtracking fallback for combinations outside the partial table
+    const result = {};
+    function backtrack(slotIdx, used) {
+      if (slotIdx === 8) return true;
+      for (const g of SLOT_ELIGIBLE[slotIdx]) {
+        if (thirdPlacePicks.includes(g) && !used.has(g)) {
+          used.add(g); result[slotIdx] = g;
+          if (backtrack(slotIdx + 1, used)) return true;
+          used.delete(g); delete result[slotIdx];
+        }
+      }
+      return false;
+    }
+    backtrack(0, new Set());
+    return result;
+  }, [thirdPlacePicks]);
 
   const r32Matchups = useMemo(() => {
     return R32_DEFS.map(([homeDef, awayDef]) => ({
