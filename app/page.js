@@ -83,12 +83,23 @@ const SLOT_ELIGIBLE = [
 ];
 
 function assign3rdPlace(thirdPlacePicks) {
-  const used = new Set();
   const result = {};
-  SLOT_ELIGIBLE.forEach((eligible, slotIdx) => {
-    const match = eligible.find(g => thirdPlacePicks.includes(g) && !used.has(g));
-    if (match) { result[slotIdx] = match; used.add(match); }
-  });
+
+  function backtrack(slotIdx, used) {
+    if (slotIdx === 8) return true;
+    for (const g of SLOT_ELIGIBLE[slotIdx]) {
+      if (thirdPlacePicks.includes(g) && !used.has(g)) {
+        used.add(g);
+        result[slotIdx] = g;
+        if (backtrack(slotIdx + 1, used)) return true;
+        used.delete(g);
+        delete result[slotIdx];
+      }
+    }
+    return false;
+  }
+
+  backtrack(0, new Set());
   return result;
 }
 
