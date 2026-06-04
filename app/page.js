@@ -105,31 +105,9 @@ function assign3rdPlace(thirdPlacePicks) {
   return result;
 }
 
-// Teams split for visual hero (Groups A-F left, G-L right) — kept for reference
+// Teams split for the visual hero banner (Groups A-F left, G-L right)
 const LEFT_TEAMS = GROUPS.slice(0, 6).flatMap(g => g.teams);
 const RIGHT_TEAMS = GROUPS.slice(6).flatMap(g => g.teams);
-
-// All 72 group-stage fixtures (round-robin within each group)
-const ALL_GROUP_FIXTURES = GROUPS.flatMap(g => {
-  const pairs = [];
-  for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++)
-    pairs.push({ hf: g.teams[i].flag, af: g.teams[j].flag });
-  return pairs;
-});
-
-// All 32 knockout fixture slot labels (R32 through Final)
-const KO_SLOTS = [
-  ['2A','2B'],['1E','3ABCDF'],['1F','2C'],['1C','2F'],
-  ['1I','3CDFGH'],['2E','2I'],['1A','3CEFHI'],['1L','3EHIJK'],
-  ['1D','3BEFIJ'],['1G','3AEHIJ'],['2K','2L'],['1H','2J'],
-  ['1B','3EFGIJ'],['1J','2H'],['1K','3DEIJL'],['2D','2G'],
-  ['W74','W77'],['W73','W75'],['W76','W78'],['W79','W80'],
-  ['W83','W84'],['W81','W82'],['W86','W88'],['W85','W87'],
-  ['W89','W90'],['W93','W94'],['W91','W92'],['W95','W96'],
-  ['W97','W98'],['W99','W100'],
-  null, // bronze placeholder
-  null, // final placeholder
-];
 
 // Visual bracket column ordering (matches the official FIFA bracket tree structure)
 const BRACKET_L = { r32:[1,4,0,2,10,11,8,9], r16:[0,1,4,5], qf:[0,1], sf:[0] };
@@ -707,66 +685,42 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Hero — 104 Matches */}
-      <section className="bg-black w-full overflow-hidden">
-        <div className="mx-auto max-w-7xl px-6 py-7 flex items-center gap-8">
+      {/* Visual hero banner */}
+      <section
+        className="relative overflow-hidden w-full"
+        style={{ background: 'linear-gradient(108deg, #06b6d4 0%, #06b6d4 49%, #ea580c 51%, #ea580c 100%)' }}
+      >
+        <div className="mx-auto max-w-6xl px-4 py-8 flex items-center gap-2">
 
-          {/* Left: big number */}
-          <div className="shrink-0 select-none">
-            <div className="text-white font-black leading-none" style={{ fontSize: '108px', letterSpacing: '-4px' }}>
-              104
-            </div>
-            <div className="text-white font-black tracking-[.18em]" style={{ fontSize: '30px', marginTop: '-8px' }}>
-              MATCHES
-            </div>
-            <div className="mt-4 space-y-1">
-              <div className="text-[10px] font-bold tracking-[.22em] text-stone-400">FIFA WORLD CUP 2026™</div>
-              <div className="text-[10px] text-stone-600">Jun 11 – Jul 19 · USA · CAN · MEX</div>
+          {/* Left flags: Groups A-F */}
+          <div className="hidden md:grid grid-cols-6 gap-1.5 flex-1">
+            {LEFT_TEAMS.map((team, i) => (
+              <div key={i} title={team.name}
+                className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center text-xl shadow-md border border-white/30 hover:scale-110 transition-transform cursor-default">
+                {team.flag}
+              </div>
+            ))}
+          </div>
+
+          {/* Center: trophy + branding */}
+          <div className="flex-shrink-0 text-center text-white px-6 md:px-10 mx-auto md:mx-0">
+            <div className="text-6xl md:text-7xl mb-1">🏆</div>
+            <div className="text-[10px] font-bold tracking-[0.3em] opacity-90 uppercase">FIFA World Cup</div>
+            <div className="text-5xl md:text-6xl font-black tracking-tighter leading-none">2026</div>
+            <div className="text-[10px] opacity-70 mt-1 tracking-widest">USA · CANADA · MEXICO</div>
+            <div className="mt-3 text-xs font-semibold bg-white/20 rounded-full px-4 py-1 inline-block border border-white/30">
+              AI Predictor
             </div>
           </div>
 
-          {/* Right: fixture grid */}
-          <div className="flex-1 min-w-0 rounded-2xl border border-stone-800 bg-stone-900/40 p-2.5 overflow-hidden">
-            <div className="flex gap-2">
-
-              {/* Group stage: 3 cols × 24 rows = 72 */}
-              <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(3, 1fr)', flex: 3 }}>
-                {ALL_GROUP_FIXTURES.map((m, i) => (
-                  <div key={i} className="flex items-center justify-center gap-1 bg-stone-800 rounded px-1.5 py-1">
-                    <span style={{ fontSize: '13px' }}>{m.hf}</span>
-                    <span className="text-stone-600 font-bold" style={{ fontSize: '8px' }}>v</span>
-                    <span style={{ fontSize: '13px' }}>{m.af}</span>
-                  </div>
-                ))}
+          {/* Right flags: Groups G-L */}
+          <div className="hidden md:grid grid-cols-6 gap-1.5 flex-1">
+            {RIGHT_TEAMS.map((team, i) => (
+              <div key={i} title={team.name}
+                className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center text-xl shadow-md border border-white/30 hover:scale-110 transition-transform cursor-default">
+                {team.flag}
               </div>
-
-              {/* Divider */}
-              <div className="w-px bg-stone-800 self-stretch mx-0.5" />
-
-              {/* Knockout: 2 cols × 16 rows = 32 */}
-              <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(2, 1fr)', flex: 2 }}>
-                {KO_SLOTS.map((slot, i) => {
-                  if (slot === null) {
-                    const isFinal = i === 31;
-                    return (
-                      <div key={i} className={`flex items-center justify-center rounded px-1 py-1 ${isFinal ? 'bg-amber-900/60 border border-amber-700/50' : 'bg-stone-700/60 border border-stone-600/50'}`}>
-                        <span className={`font-black tracking-wider ${isFinal ? 'text-amber-400' : 'text-stone-400'}`} style={{ fontSize: '8px' }}>
-                          {isFinal ? 'FINAL' : 'BRONZE'}
-                        </span>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div key={i} className="flex items-center justify-center gap-0.5 bg-stone-800 rounded px-1 py-1">
-                      <span className="text-stone-300 font-mono truncate" style={{ fontSize: '7.5px' }}>{slot[0]}</span>
-                      <span className="text-stone-600 font-bold" style={{ fontSize: '7px' }}>v</span>
-                      <span className="text-stone-300 font-mono truncate" style={{ fontSize: '7.5px' }}>{slot[1]}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-            </div>
+            ))}
           </div>
         </div>
       </section>
