@@ -6,28 +6,41 @@ export async function POST(req) {
   try {
     const { groupId, teams } = await req.json();
 
+    // Inject today's exact date so the model knows what "already played" means
+    const today = new Date().toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const prompt = `You are the most respected international football analyst in the world, writing a pre-tournament briefing for the 2026 FIFA World Cup. Kickoff is June 11, 2026. Today is early June 2026.
+    const prompt = `You are the most respected international football analyst in the world, writing a pre-tournament briefing for the 2026 FIFA World Cup. Kickoff is June 11, 2026.
+
+TODAY'S DATE: ${today}. This is the only date that matters for determining what has already happened.
+
+CRITICAL RULE — READ BEFORE SEARCHING:
+Only cite match results where the date of the match is on or before ${today}.
+Any match dated AFTER ${today} has NOT been played. It is a future scheduled fixture.
+Do NOT report a future fixture as a result under any circumstances.
+If you are uncertain whether a match was played or is upcoming, do not cite it. Skip it entirely.
+Always double-check the date of every result before including it.
 
 GROUP ${groupId}. Teams: ${teams.join(', ')}.
 
-SEARCH STRATEGY — follow this order exactly:
+SEARCH STRATEGY — follow this order:
 
-1. FIRST search: "${teams.join(', ')} June 2026 match results"
-   This is your most critical search. You must find the most recent match result for each of these four teams, including any June 2026 warm-up friendlies played in the last 7 days. A result from last week beats any data from March.
+1. FIRST search: "${teams.join(', ')} match results June 2026"
+   Find only matches already played on or before ${today}. Ignore any fixtures scheduled after today.
 
 2. SECOND search: "${teams.join(', ')} World Cup 2026 squad injuries"
-   Find the confirmed 26-man squads (announced June 2, 2026) and any significant injuries, absences, or late call-ups.
+   Confirmed 26-man squads and any injuries or absences.
 
-3. THIRD search: "${teams.join(', ')} 2026 World Cup qualifying record FIFA ranking"
-   Get qualifying records, goal differences, and current FIFA rankings.
+3. THIRD search: "${teams.join(', ')} 2026 World Cup qualifying FIFA ranking"
+   Qualifying records and current FIFA rankings.
 
-4. FOURTH search (if needed): dig deeper on any surprising recent result from search 1 that changes your assessment.
+4. FOURTH search (optional): follow up on any surprising recent result that changes your assessment.
 
 ANALYSIS RULES:
-- Any result from June 2026 overrides older form data. If a team just lost to a supposed minnow, say so directly.
-- Be specific: cite actual scorelines, goalscorers if known, and dates.
+- Cite actual past scorelines with confirmed dates. If you cannot confirm a result was played before ${today}, omit it.
 - Injured or missing key players must be flagged by name.
 - Be decisive and opinionated. No hedging.
 
@@ -35,13 +48,13 @@ Use these EXACT team names: ${teams.join(', ')}.
 
 OUTPUT: After all searches, output ONLY a JSON object (no markdown fences, no text before or after):
 {
-  "summary": "one sharp sentence on the group's overall shape, referencing the most recent notable result",
+  "summary": "one sharp sentence on the group's overall shape, referencing the most notable confirmed recent result",
   "teams": [
-    { "name": "<exact team name>", "rank": 1, "note": "max 22 words: most recent result + key player status + one decisive differentiator" }
+    { "name": "<exact team name>", "rank": 1, "note": "max 22 words: most recent confirmed result + key player status + one decisive differentiator" }
   ],
   "advance": ["<team>", "<team>"],
   "thirdPlaceShot": "short note on the 3rd team's best-third wildcard chances, or empty string",
-  "upset": "one short sentence naming the most likely upset, grounded in recent evidence",
+  "upset": "one short sentence naming the most likely upset, grounded in confirmed recent evidence",
   "confidence": "High"
 }
 
