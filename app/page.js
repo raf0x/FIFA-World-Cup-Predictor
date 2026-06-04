@@ -92,6 +92,10 @@ function assign3rdPlace(thirdPlacePicks) {
   return result;
 }
 
+// Teams split for the visual hero banner (Groups A-F left, G-L right)
+const LEFT_TEAMS = GROUPS.slice(0, 6).flatMap(g => g.teams);
+const RIGHT_TEAMS = GROUPS.slice(6).flatMap(g => g.teams);
+
 function resolveDesc(desc, picks, thirdAssignment) {
   if (desc.type === 'group') {
     const name = getTeamByRank(picks, desc.group, desc.rank);
@@ -431,16 +435,65 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Hero */}
-      <section className="mx-auto max-w-6xl px-4 pt-10 pb-8">
-        <p className="text-xs font-semibold tracking-widest text-emerald-700 mb-2">
-          JUNE 11 TO JULY 19, 2026 · USA · CANADA · MEXICO
-        </p>
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
+      {/* Visual hero banner */}
+      <section
+        className="relative overflow-hidden w-full"
+        style={{ background: 'linear-gradient(108deg, #06b6d4 0%, #06b6d4 49%, #ea580c 51%, #ea580c 100%)' }}
+      >
+        <div className="mx-auto max-w-6xl px-4 py-8 flex items-center gap-2">
+
+          {/* Left flags: Groups A-F */}
+          <div className="hidden md:grid grid-cols-6 gap-1.5 flex-1">
+            {LEFT_TEAMS.map((team, i) => (
+              <div
+                key={i}
+                title={team.name}
+                className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center text-xl shadow-md border border-white/30 hover:scale-110 transition-transform cursor-default"
+              >
+                {team.flag}
+              </div>
+            ))}
+          </div>
+
+          {/* Center: trophy + branding */}
+          <div className="flex-shrink-0 text-center text-white px-6 md:px-10 mx-auto md:mx-0">
+            <div className="text-6xl md:text-7xl mb-1">🏆</div>
+            <div className="text-[10px] font-bold tracking-[0.3em] opacity-90 uppercase">
+              FIFA World Cup
+            </div>
+            <div className="text-5xl md:text-6xl font-black tracking-tighter leading-none">
+              2026
+            </div>
+            <div className="text-[10px] opacity-70 mt-1 tracking-widest">
+              USA · CANADA · MEXICO
+            </div>
+            <div className="mt-3 text-xs font-semibold bg-white/20 rounded-full px-4 py-1 inline-block border border-white/30">
+              AI Predictor
+            </div>
+          </div>
+
+          {/* Right flags: Groups G-L */}
+          <div className="hidden md:grid grid-cols-6 gap-1.5 flex-1">
+            {RIGHT_TEAMS.map((team, i) => (
+              <div
+                key={i}
+                title={team.name}
+                className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center text-xl shadow-md border border-white/30 hover:scale-110 transition-transform cursor-default"
+              >
+                {team.flag}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Page title */}
+      <section className="mx-auto max-w-6xl px-4 pt-8 pb-6">
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
           World Cup 2026 Predictor
         </h1>
-        <p className="text-stone-600 max-w-2xl">
-          Rank each group with AI analysis to back your picks, select the 8 best third-place
+        <p className="text-stone-600 max-w-2xl text-sm">
+          Use AI analysis to pick group winners and runners-up, select the 8 best third-place
           teams, then build your full bracket from Round of 32 through the Final.
         </p>
       </section>
