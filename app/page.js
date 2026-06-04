@@ -134,7 +134,7 @@ function MatchCard({ matchNum, home, away, picked, onPick }) {
       <div className="divide-y divide-stone-100">
         {[home, away].map((team, i) => {
           const isHome = i === 0;
-          const isPicked = picked === team.name;
+          const isPicked = team.name !== null && picked === team.name;
           const isOther = picked && picked !== team.name;
           return (
             <button
