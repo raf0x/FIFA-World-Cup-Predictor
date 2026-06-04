@@ -110,15 +110,15 @@ const GROUP_COLORS = {
 function resolveDesc(desc, picks, thirdAssignment) {
   if (desc.type === 'group') {
     const name = getTeamByRank(picks, desc.group, desc.rank);
-    if (!name) return { name: null, flag: null, display: `Group ${desc.group} ${RANK_LABELS[desc.rank]}` };
+    if (!name) return { name: null, flag: null, display: `${desc.rank}${desc.group}` };
     const obj = getTeamObj(desc.group, name);
     return { name, flag: obj?.flag || '', display: name };
   }
   // type: 'third'
   const groupId = thirdAssignment[desc.slotIdx];
-  if (!groupId) return { name: null, flag: null, display: `Best 3rd (${desc.eligible.join('/')})` };
+  if (!groupId) return { name: null, flag: null, display: `3 ${desc.eligible.join('')}` };
   const name = getTeamByRank(picks, groupId, 3);
-  if (!name) return { name: null, flag: null, display: `Group ${groupId} 3rd` };
+  if (!name) return { name: null, flag: null, display: `3 ${groupId}` };
   const obj = getTeamObj(groupId, name);
   return { name, flag: obj?.flag || '', display: name };
 }
@@ -256,7 +256,46 @@ function BracketSlot({ matchup, picked, onPick }) {
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// SVG connector lines drawn over the bracket columns.
+// Positions calculated from: justify-around in 544px, 110px slots, 6px gaps, 60px group boxes.
+// Match center y formula: i*68 + 34 (R32), i*136 + 68 (R16), i*272 + 136 (QF), 272 (SF)
+function BracketLines() {
+  const s = '#52525b'; // stone-600
+  const w = 2;
+  const lines = [
+    // Left R32 → R16  (vertical bracket at x=176, horizontal to x=182)
+    [176,34,176,102],[176,68,182,68],
+    [176,170,176,238],[176,204,182,204],
+    [176,306,176,374],[176,340,182,340],
+    [176,442,176,510],[176,476,182,476],
+    // Left R16 → QF  (x=292 → x=298)
+    [292,68,292,204],[292,136,298,136],
+    [292,340,292,476],[292,408,298,408],
+    // Left QF → SF  (x=408 → x=414)
+    [408,136,408,408],[408,272,414,272],
+    // Left SF → Center  (x=524 → x=530)
+    [524,272,530,272],
+    // Right R32 → R16  (vertical at x=1076, horizontal to x=1070)
+    [1076,34,1076,102],[1070,68,1076,68],
+    [1076,170,1076,238],[1070,204,1076,204],
+    [1076,306,1076,374],[1070,340,1076,340],
+    [1076,442,1076,510],[1070,476,1076,476],
+    // Right R16 → QF  (x=960 → x=954)
+    [960,68,960,204],[954,136,960,136],
+    [960,340,960,476],[954,408,960,408],
+    // Right QF → SF  (x=844 → x=838)
+    [844,136,844,408],[838,272,844,272],
+    // Right SF → Center  (x=728 → x=722)
+    [728,272,722,272],
+  ];
+  return (
+    <svg width="1252" height="544" className="absolute top-0 left-0 pointer-events-none" style={{ minWidth: 1252 }}>
+      {lines.map(([x1,y1,x2,y2], i) => (
+        <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={s} strokeWidth={w} />
+      ))}
+    </svg>
+  );
+}
 
 export default function Home() {
   const [picks, setPicks] = useState({});
@@ -754,7 +793,8 @@ export default function Home() {
             <>
               {/* ── Visual bracket tree (desktop xl+) ── */}
               <div className="hidden xl:block overflow-x-auto pb-4">
-                <div className="flex items-stretch gap-1.5" style={{ height: '544px', minWidth: '1280px' }}>
+                <div className="relative flex items-stretch gap-1.5" style={{ height: '544px', minWidth: '1252px' }}>
+                  <BracketLines />
 
                   {/* Group boxes — left */}
                   <div className="flex flex-col justify-around gap-0" style={{ height: '544px' }}>
@@ -788,7 +828,7 @@ export default function Home() {
                   </div>
 
                   {/* Center — Final, 3rd, Champion */}
-                  <div className="flex flex-col items-center justify-center gap-3 flex-1 px-3" style={{ height: '544px', minWidth: '148px' }}>
+                  <div className="flex flex-col items-center justify-center gap-3 px-3" style={{ height: '544px', width: '192px', minWidth: '192px' }}>
                     <div className="text-4xl">🏆</div>
                     {champion ? (
                       <div className="text-center">
@@ -844,7 +884,7 @@ export default function Home() {
                 </div>
 
                 {/* Round labels */}
-                <div className="flex items-center gap-1.5 mt-2 text-stone-600 uppercase" style={{ minWidth: '1280px', fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em' }}>
+                <div className="flex items-center gap-1.5 mt-2 text-stone-600 uppercase" style={{ minWidth: '1252px', fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em' }}>
                   <div style={{ width: '60px' }} />
                   <div className="text-center" style={{ width: '110px' }}>Round of 32</div>
                   <div className="text-center" style={{ width: '110px' }}>Round of 16</div>
