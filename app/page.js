@@ -111,7 +111,7 @@ const RIGHT_TEAMS = GROUPS.slice(6).flatMap(g => g.teams);
 
 // Visual bracket column ordering (matches the official FIFA bracket tree structure)
 const BRACKET_L = { r32:[1,4,0,2,10,11,8,9], r16:[0,1,4,5], qf:[0,1], sf:[0] };
-const BRACKET_R = { r32:[3,5,6,7,12,13,14,15], r16:[2,3,6,7], qf:[2,3], sf:[1] };
+const BRACKET_R = { r32:[3,5,6,7,12,14,13,15], r16:[2,3,7,6], qf:[2,3], sf:[1] };
 
 // Group box colors for the bracket
 const GROUP_COLORS = {
