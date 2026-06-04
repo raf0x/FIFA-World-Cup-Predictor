@@ -96,6 +96,17 @@ function assign3rdPlace(thirdPlacePicks) {
 const LEFT_TEAMS = GROUPS.slice(0, 6).flatMap(g => g.teams);
 const RIGHT_TEAMS = GROUPS.slice(6).flatMap(g => g.teams);
 
+// Visual bracket column ordering (matches the official FIFA bracket tree structure)
+const BRACKET_L = { r32:[1,4,0,2,10,11,8,9], r16:[0,1,4,5], qf:[0,1], sf:[0] };
+const BRACKET_R = { r32:[3,5,6,7,12,13,14,15], r16:[2,3,6,7], qf:[2,3], sf:[1] };
+
+// Group box colors for the bracket
+const GROUP_COLORS = {
+  A:'#22c55e',B:'#ef4444',C:'#f97316',D:'#3b82f6',
+  E:'#a855f7',F:'#06b6d4',G:'#ec4899',H:'#14b8a6',
+  I:'#8b5cf6',J:'#eab308',K:'#f97316',L:'#0ea5e9',
+};
+
 function resolveDesc(desc, picks, thirdAssignment) {
   if (desc.type === 'group') {
     const name = getTeamByRank(picks, desc.group, desc.rank);
@@ -192,6 +203,55 @@ function RoundSection({ title, subtitle, matchups, picks, onPick, matchNumStart,
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+// Colored group box (used in visual bracket sides)
+function GroupBox({ group }) {
+  return (
+    <div className="rounded-lg p-1.5 flex-shrink-0" style={{ backgroundColor: GROUP_COLORS[group.id], width: '60px' }}>
+      <div className="grid grid-cols-2 gap-0.5 mb-1">
+        {group.teams.map((t, i) => (
+          <div key={i} className="flex items-center justify-center bg-black/20 rounded-sm" style={{ height: '22px', fontSize: '13px' }}>
+            {t.flag}
+          </div>
+        ))}
+      </div>
+      <div className="text-white text-center font-black uppercase" style={{ fontSize: '7px', letterSpacing: '0.08em' }}>
+        Group {group.id}
+      </div>
+    </div>
+  );
+}
+
+// Compact interactive match slot for the visual bracket tree
+function BracketSlot({ matchup, picked, onPick }) {
+  const { home, away } = matchup;
+  const bothKnown = home.name && away.name;
+  return (
+    <div className="rounded overflow-hidden border border-stone-700 bg-stone-800 flex-shrink-0" style={{ width: '110px' }}>
+      {[home, away].map((team, i) => {
+        const isPicked = team.name !== null && picked === team.name;
+        const isOther = picked && picked !== team.name;
+        return (
+          <button
+            key={i}
+            onClick={() => bothKnown && team.name && onPick(isPicked ? null : team.name)}
+            disabled={!bothKnown || !team.name}
+            className={`w-full flex items-center gap-1 px-1.5 py-1.5 border-t first:border-t-0 border-stone-700 transition text-left ${
+              isPicked ? 'bg-emerald-700 text-white' :
+              isOther ? 'text-stone-600' :
+              bothKnown && team.name ? 'hover:bg-stone-700 text-stone-300' :
+              'text-stone-600 cursor-default'
+            }`}
+            style={{ fontSize: '10px' }}
+          >
+            <span className="shrink-0" style={{ fontSize: '11px' }}>{team.flag || ''}</span>
+            <span className="truncate">{team.name || team.display}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -677,102 +737,156 @@ export default function Home() {
       </section>
 
       {/* Bracket */}
-      <section ref={bracketRef} className="border-t border-stone-200 bg-stone-50">
-        <div className="mx-auto max-w-6xl px-4 py-12 space-y-12">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold mb-1">Knockout Bracket</h2>
-            <p className="text-stone-500 text-sm">
-              Click a team in each match to pick the winner. Picks update downstream rounds automatically.
+      <section ref={bracketRef} className="border-t border-stone-800 bg-stone-950">
+        <div className="mx-auto max-w-[1500px] px-4 py-10">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-white">Knockout Bracket</h2>
+            <p className="text-stone-500 text-sm mt-1">
+              Click a team to advance them. Each pick updates all downstream rounds.
             </p>
           </div>
 
-          {/* R32 */}
-          <div>
-            <RoundSection
-              title="Round of 32"
-              subtitle="June 28 to July 3"
-              matchups={r32Matchups}
-              picks={bracketPicks.r32}
-              onPick={(i, name) => pickBracket('r32', i, name)}
-              matchNumStart={73}
-              locked={!thirdPlaceDone}
-              lockedMsg="Select your 8 third-place teams to unlock the bracket."
-            />
-          </div>
-
-          {/* R16 */}
-          <div>
-            <RoundSection
-              title="Round of 16"
-              subtitle="July 4 to July 7"
-              matchups={r16Matchups}
-              picks={bracketPicks.r16}
-              onPick={(i, name) => pickBracket('r16', i, name)}
-              matchNumStart={89}
-              locked={!r32Done}
-              lockedMsg="Complete the Round of 32 first."
-            />
-          </div>
-
-          {/* QF */}
-          <div>
-            <RoundSection
-              title="Quarterfinals"
-              subtitle="July 9 to July 11"
-              matchups={qfMatchups}
-              picks={bracketPicks.qf}
-              onPick={(i, name) => pickBracket('qf', i, name)}
-              matchNumStart={97}
-              locked={!r16Done}
-              lockedMsg="Complete the Round of 16 first."
-            />
-          </div>
-
-          {/* SF */}
-          <div>
-            <RoundSection
-              title="Semifinals"
-              subtitle="July 14 to July 15"
-              matchups={sfMatchups}
-              picks={bracketPicks.sf}
-              onPick={(i, name) => pickBracket('sf', i, name)}
-              locked={!qfDone}
-              lockedMsg="Complete the Quarterfinals first."
-            />
-          </div>
-
-          {/* 3rd place + Final */}
-          {sfDone && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-bold mb-3">3rd Place Match</h3>
-                <p className="text-xs text-stone-500 mb-3">July 18, Hard Rock Stadium, Miami</p>
-                <MatchCard
-                  home={thirdPlaceMatchup.home}
-                  away={thirdPlaceMatchup.away}
-                  picked={bracketPicks.thirdPlace}
-                  onPick={(name) => pickBracket('thirdPlace', 0, name)}
-                />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold mb-3">World Cup Final</h3>
-                <p className="text-xs text-stone-500 mb-3">July 19, MetLife Stadium, New Jersey</p>
-                <MatchCard
-                  home={finalMatchup.home}
-                  away={finalMatchup.away}
-                  picked={bracketPicks.final}
-                  onPick={(name) => pickBracket('final', 0, name)}
-                />
-              </div>
+          {!thirdPlaceDone ? (
+            <div className="rounded-lg border border-dashed border-stone-700 p-10 text-center text-stone-500">
+              Select your 8 third-place teams above to unlock the bracket.
             </div>
+          ) : (
+            <>
+              {/* ── Visual bracket tree (desktop xl+) ── */}
+              <div className="hidden xl:block overflow-x-auto pb-4">
+                <div className="flex items-stretch gap-1.5" style={{ height: '544px', minWidth: '1280px' }}>
+
+                  {/* Group boxes — left */}
+                  <div className="flex flex-col justify-around gap-0" style={{ height: '544px' }}>
+                    {GROUPS.slice(0, 6).map(g => <GroupBox key={g.id} group={g} />)}
+                  </div>
+
+                  {/* R32 left */}
+                  <div className="flex flex-col justify-around" style={{ height: '544px' }}>
+                    {BRACKET_L.r32.map(idx => (
+                      <BracketSlot key={idx} matchup={r32Matchups[idx]} picked={bracketPicks.r32[idx]} onPick={n => pickBracket('r32', idx, n)} />
+                    ))}
+                  </div>
+
+                  {/* R16 left */}
+                  <div className="flex flex-col justify-around" style={{ height: '544px' }}>
+                    {BRACKET_L.r16.map(idx => (
+                      <BracketSlot key={idx} matchup={r16Matchups[idx]} picked={bracketPicks.r16[idx]} onPick={n => pickBracket('r16', idx, n)} />
+                    ))}
+                  </div>
+
+                  {/* QF left */}
+                  <div className="flex flex-col justify-around" style={{ height: '544px' }}>
+                    {BRACKET_L.qf.map(idx => (
+                      <BracketSlot key={idx} matchup={qfMatchups[idx]} picked={bracketPicks.qf[idx]} onPick={n => pickBracket('qf', idx, n)} />
+                    ))}
+                  </div>
+
+                  {/* SF left */}
+                  <div className="flex flex-col justify-around" style={{ height: '544px' }}>
+                    <BracketSlot matchup={sfMatchups[0]} picked={bracketPicks.sf[0]} onPick={n => pickBracket('sf', 0, n)} />
+                  </div>
+
+                  {/* Center — Final, 3rd, Champion */}
+                  <div className="flex flex-col items-center justify-center gap-3 flex-1 px-3" style={{ height: '544px', minWidth: '148px' }}>
+                    <div className="text-4xl">🏆</div>
+                    {champion ? (
+                      <div className="text-center">
+                        <div className="text-[8px] font-bold tracking-widest text-amber-500 uppercase mb-1">World Champion</div>
+                        <div className="text-sm font-bold text-amber-400">{championObj?.flag} {champion}</div>
+                      </div>
+                    ) : (
+                      <div className="text-[9px] text-stone-600 font-bold tracking-widest uppercase">Champion</div>
+                    )}
+                    <div className="w-px h-4 bg-stone-700" />
+                    <div>
+                      <div className="text-[8px] font-bold tracking-widest text-stone-500 uppercase text-center mb-1">Final · Jul 19</div>
+                      <BracketSlot matchup={finalMatchup} picked={bracketPicks.final} onPick={n => pickBracket('final', 0, n)} />
+                    </div>
+                    <div className="w-px h-4 bg-stone-700" />
+                    <div>
+                      <div className="text-[8px] font-bold tracking-widest text-stone-500 uppercase text-center mb-1">3rd Place · Jul 18</div>
+                      <BracketSlot matchup={thirdPlaceMatchup} picked={bracketPicks.thirdPlace} onPick={n => pickBracket('thirdPlace', 0, n)} />
+                    </div>
+                  </div>
+
+                  {/* SF right */}
+                  <div className="flex flex-col justify-around" style={{ height: '544px' }}>
+                    <BracketSlot matchup={sfMatchups[1]} picked={bracketPicks.sf[1]} onPick={n => pickBracket('sf', 1, n)} />
+                  </div>
+
+                  {/* QF right */}
+                  <div className="flex flex-col justify-around" style={{ height: '544px' }}>
+                    {BRACKET_R.qf.map(idx => (
+                      <BracketSlot key={idx} matchup={qfMatchups[idx]} picked={bracketPicks.qf[idx]} onPick={n => pickBracket('qf', idx, n)} />
+                    ))}
+                  </div>
+
+                  {/* R16 right */}
+                  <div className="flex flex-col justify-around" style={{ height: '544px' }}>
+                    {BRACKET_R.r16.map(idx => (
+                      <BracketSlot key={idx} matchup={r16Matchups[idx]} picked={bracketPicks.r16[idx]} onPick={n => pickBracket('r16', idx, n)} />
+                    ))}
+                  </div>
+
+                  {/* R32 right */}
+                  <div className="flex flex-col justify-around" style={{ height: '544px' }}>
+                    {BRACKET_R.r32.map(idx => (
+                      <BracketSlot key={idx} matchup={r32Matchups[idx]} picked={bracketPicks.r32[idx]} onPick={n => pickBracket('r32', idx, n)} />
+                    ))}
+                  </div>
+
+                  {/* Group boxes — right */}
+                  <div className="flex flex-col justify-around" style={{ height: '544px' }}>
+                    {GROUPS.slice(6).map(g => <GroupBox key={g.id} group={g} />)}
+                  </div>
+
+                </div>
+
+                {/* Round labels */}
+                <div className="flex items-center gap-1.5 mt-2 text-stone-600 uppercase" style={{ minWidth: '1280px', fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em' }}>
+                  <div style={{ width: '60px' }} />
+                  <div className="text-center" style={{ width: '110px' }}>Round of 32</div>
+                  <div className="text-center" style={{ width: '110px' }}>Round of 16</div>
+                  <div className="text-center" style={{ width: '110px' }}>Quarterfinals</div>
+                  <div className="text-center" style={{ width: '110px' }}>Semifinals</div>
+                  <div className="text-center flex-1">Final</div>
+                  <div className="text-center" style={{ width: '110px' }}>Semifinals</div>
+                  <div className="text-center" style={{ width: '110px' }}>Quarterfinals</div>
+                  <div className="text-center" style={{ width: '110px' }}>Round of 16</div>
+                  <div className="text-center" style={{ width: '110px' }}>Round of 32</div>
+                  <div style={{ width: '60px' }} />
+                </div>
+              </div>
+
+              {/* ── Mobile: card-based rounds ── */}
+              <div className="xl:hidden space-y-10">
+                <RoundSection title="Round of 32" subtitle="June 28 to July 3" matchups={r32Matchups} picks={bracketPicks.r32} onPick={(i,n) => pickBracket('r32',i,n)} matchNumStart={73} locked={false} />
+                <RoundSection title="Round of 16" subtitle="July 4 to July 7" matchups={r16Matchups} picks={bracketPicks.r16} onPick={(i,n) => pickBracket('r16',i,n)} matchNumStart={89} locked={!r32Done} lockedMsg="Complete the Round of 32 first." />
+                <RoundSection title="Quarterfinals" subtitle="July 9 to July 11" matchups={qfMatchups} picks={bracketPicks.qf} onPick={(i,n) => pickBracket('qf',i,n)} matchNumStart={97} locked={!r16Done} lockedMsg="Complete the Round of 16 first." />
+                <RoundSection title="Semifinals" subtitle="July 14 to July 15" matchups={sfMatchups} picks={bracketPicks.sf} onPick={(i,n) => pickBracket('sf',i,n)} locked={!qfDone} lockedMsg="Complete the Quarterfinals first." />
+                {sfDone && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-white mb-2">3rd Place · July 18, Miami</h3>
+                      <MatchCard home={thirdPlaceMatchup.home} away={thirdPlaceMatchup.away} picked={bracketPicks.thirdPlace} onPick={n => pickBracket('thirdPlace',0,n)} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white mb-2">Final · July 19, New Jersey</h3>
+                      <MatchCard home={finalMatchup.home} away={finalMatchup.away} picked={bracketPicks.final} onPick={n => pickBracket('final',0,n)} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
-          {/* Champion */}
+          {/* Champion card — mobile only (desktop shows in bracket center) */}
           {champion && (
-            <div className="rounded-2xl border border-amber-300 bg-amber-50 p-8 text-center">
+            <div className="mt-10 xl:hidden rounded-2xl border border-amber-500/30 bg-amber-500/10 p-8 text-center">
               <div className="text-4xl mb-3">{championObj?.flag || '🏆'}</div>
-              <div className="text-xs font-bold tracking-widest text-amber-700 mb-1">2026 WORLD CHAMPION</div>
-              <div className="text-3xl font-bold">{champion}</div>
+              <div className="text-xs font-bold tracking-widest text-amber-500 mb-1">2026 WORLD CHAMPION</div>
+              <div className="text-3xl font-bold text-white">{champion}</div>
             </div>
           )}
         </div>
