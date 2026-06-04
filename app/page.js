@@ -686,42 +686,42 @@ export default function Home() {
       </div>
 
       {/* Visual hero banner */}
-      <section
-        className="relative overflow-hidden w-full"
-        style={{ background: 'linear-gradient(108deg, #06b6d4 0%, #06b6d4 49%, #ea580c 51%, #ea580c 100%)' }}
-      >
-        <div className="mx-auto max-w-6xl px-4 py-8 flex items-center gap-2">
+      <section className="w-full bg-stone-950">
+        {/* Thin rainbow accent bar — FIFA 2026 branding colors */}
+        <div className="h-1 w-full" style={{ background: 'linear-gradient(to right, #06b6d4, #a855f7, #ef4444, #f97316, #eab308, #22c55e)' }} />
 
-          {/* Left flags: Groups A-F */}
-          <div className="hidden md:grid grid-cols-6 gap-1.5 flex-1">
-            {LEFT_TEAMS.map((team, i) => (
-              <div key={i} title={team.name}
-                className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center text-xl shadow-md border border-white/30 hover:scale-110 transition-transform cursor-default">
-                {team.flag}
-              </div>
-            ))}
-          </div>
+        <div className="mx-auto max-w-6xl px-6 py-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8">
 
-          {/* Center: trophy + branding */}
-          <div className="flex-shrink-0 text-center text-white px-6 md:px-10 mx-auto md:mx-0">
-            <div className="text-6xl md:text-7xl mb-1">🏆</div>
-            <div className="text-[10px] font-bold tracking-[0.3em] opacity-90 uppercase">FIFA World Cup</div>
-            <div className="text-5xl md:text-6xl font-black tracking-tighter leading-none">2026</div>
-            <div className="text-[10px] opacity-70 mt-1 tracking-widest">USA · CANADA · MEXICO</div>
-            <div className="mt-3 text-xs font-semibold bg-white/20 rounded-full px-4 py-1 inline-block border border-white/30">
-              AI Predictor
+          {/* Left: title */}
+          <div>
+            <div className="text-[11px] font-bold tracking-[.25em] text-stone-500 uppercase mb-3">
+              FIFA World Cup 2026™
             </div>
+            <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight leading-none mb-2">
+              AI Predictor
+            </h1>
+            <p className="text-stone-400 text-sm max-w-sm">
+              Pick your groups, select the best third-place teams, and predict the full bracket through the Final.
+            </p>
           </div>
 
-          {/* Right flags: Groups G-L */}
-          <div className="hidden md:grid grid-cols-6 gap-1.5 flex-1">
-            {RIGHT_TEAMS.map((team, i) => (
-              <div key={i} title={team.name}
-                className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center text-xl shadow-md border border-white/30 hover:scale-110 transition-transform cursor-default">
-                {team.flag}
+          {/* Right: tournament stats */}
+          <div className="grid grid-cols-3 gap-px bg-stone-800 rounded-2xl overflow-hidden shrink-0 border border-stone-800">
+            {[
+              { n: '48', label: 'Teams' },
+              { n: '12', label: 'Groups' },
+              { n: '104', label: 'Matches' },
+              { n: '3', label: 'Countries' },
+              { n: '16', label: 'Venues' },
+              { n: '39', label: 'Days' },
+            ].map(({ n, label }) => (
+              <div key={label} className="bg-stone-900 px-5 py-4 text-center">
+                <div className="text-2xl font-black text-white leading-none">{n}</div>
+                <div className="text-[10px] text-stone-500 mt-1 tracking-wider uppercase">{label}</div>
               </div>
             ))}
           </div>
+
         </div>
       </section>
 
