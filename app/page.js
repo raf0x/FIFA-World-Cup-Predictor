@@ -245,11 +245,10 @@ function BracketSlot({ matchup, picked, onPick, matchNum }) {
   const info = matchNum ? MATCH_SCHEDULE[matchNum] : null;
   return (
     <div className="flex-shrink-0" style={{ width: '110px' }}>
-      {info && (
-        <div className="text-stone-600 px-1 mb-0.5 leading-tight" style={{ fontSize: '7px' }}>
-          {info.date} · {info.venue}
-        </div>
-      )}
+      {/* Always reserve the same height for date info — keeps justify-around alignment exact */}
+      <div className="text-stone-400 px-1 mb-0.5 leading-tight truncate" style={{ fontSize: '8px', height: '11px' }}>
+        {info ? `${info.date} · ${info.venue}` : ''}
+      </div>
       <div className="rounded overflow-hidden border border-stone-700 bg-stone-800">
         {[home, away].map((team, i) => {
           const isPicked = team.name !== null && picked === team.name;
