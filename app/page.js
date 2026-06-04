@@ -527,6 +527,119 @@ export default function Home() {
 
   const scrollTo = (ref) => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
+  const downloadPredictions = () => {
+    const teamOf = (groupId, rank) => {
+      const name = getTeamByRank(picks, groupId, rank);
+      const obj = name ? getTeamObj(groupId, name) : null;
+      return name ? `${obj?.flag || ''} ${name}` : '—';
+    };
+
+    const roundName = { r32: 'Round of 32', r16: 'Round of 16', qf: 'Quarterfinals', sf: 'Semifinals' };
+
+    const bracketRow = (matchup, winner, label) => {
+      if (!matchup.home.name && !matchup.away.name) return '';
+      const home = matchup.home.name ? `${matchup.home.flag} ${matchup.home.name}` : matchup.home.display;
+      const away = matchup.away.name ? `${matchup.away.flag} ${matchup.away.name}` : matchup.away.display;
+      const w = winner ? `<span style="color:#6ee7b7;font-weight:700">${winner}</span>` : '<span style="color:#6b7280">TBD</span>';
+      return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #1c1917">
+        <span style="color:#a8a29e;font-size:11px;min-width:130px">${label}</span>
+        <span style="flex:1;font-size:13px">${home} <span style="color:#57534e">vs</span> ${away}</span>
+        <span style="font-size:12px">${w}</span>
+      </div>`;
+    };
+
+    const allMatchups = [
+      ...r32Matchups.map((m,i) => ({ matchup: m, winner: bracketPicks.r32[i], label: `R32 M${73+i}` })),
+      ...r16Matchups.map((m,i) => ({ matchup: m, winner: bracketPicks.r16[i], label: `R16 M${89+i}` })),
+      ...qfMatchups.map((m,i) => ({ matchup: m, winner: bracketPicks.qf[i], label: `QF M${97+i}` })),
+      ...sfMatchups.map((m,i) => ({ matchup: m, winner: bracketPicks.sf[i], label: `SF M${101+i}` })),
+      { matchup: finalMatchup, winner: bracketPicks.final, label: 'Final M104' },
+      { matchup: thirdPlaceMatchup, winner: bracketPicks.thirdPlace, label: '3rd Place M103' },
+    ];
+
+    const groupRows = GROUPS.map(g => `
+      <div style="background:#1c1917;border:1px solid #292524;border-radius:10px;padding:14px">
+        <div style="font-size:11px;font-weight:700;color:#6b7280;letter-spacing:.08em;margin-bottom:10px">GROUP ${g.id}</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="font-size:12px"><span style="color:#fbbf24">🥇</span> ${teamOf(g.id,1)}</div>
+          <div style="font-size:12px"><span style="color:#94a3b8">🥈</span> ${teamOf(g.id,2)}</div>
+          <div style="font-size:12px"><span style="color:#cd7f32">🥉</span> ${teamOf(g.id,3)}</div>
+        </div>
+      </div>`).join('');
+
+    const thirdRows = thirdPlacePicks.map(gid => {
+      const name = getTeamByRank(picks, gid, 3);
+      const obj = name ? getTeamObj(gid, name) : null;
+      return `<span style="background:#1c1917;border:1px solid #292524;border-radius:6px;padding:5px 10px;font-size:12px">${obj?.flag || ''} ${name || gid}</span>`;
+    }).join('');
+
+    const championSection = champion ? `
+      <div style="text-align:center;margin:32px 0 40px;padding:32px;background:linear-gradient(135deg,#451a03,#78350f);border:1px solid #92400e;border-radius:16px">
+        <div style="font-size:56px;margin-bottom:8px">${championObj?.flag || '🏆'}</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.2em;color:#fcd34d;margin-bottom:6px">2026 WORLD CHAMPION</div>
+        <div style="font-size:36px;font-weight:900;color:#fef3c7">${champion}</div>
+      </div>` : `<div style="text-align:center;margin:24px 0;color:#6b7280;font-size:14px">Bracket in progress...</div>`;
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My 2026 World Cup Predictions</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0c0a09;color:#e7e5e4;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;padding:0}
+  @media print{body{background:#0c0a09;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div style="background:linear-gradient(108deg,#06b6d4 0%,#06b6d4 49%,#ea580c 51%,#ea580c 100%);padding:28px 40px;display:flex;align-items:center;gap:16px">
+  <span style="font-size:40px">🏆</span>
+  <div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.2em;color:rgba(255,255,255,.8)">FIFA WORLD CUP 2026</div>
+    <div style="font-size:26px;font-weight:900;color:white">My Predictions</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.65);margin-top:2px">Generated ${new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})}</div>
+  </div>
+</div>
+
+<div style="max-width:1100px;margin:0 auto;padding:32px 24px">
+
+  ${championSection}
+
+  <h2 style="font-size:18px;font-weight:700;color:#e7e5e4;margin-bottom:16px">Group Stage Picks</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:40px">
+    ${groupRows}
+  </div>
+
+  ${thirdPlacePicks.length > 0 ? `
+  <h2 style="font-size:18px;font-weight:700;color:#e7e5e4;margin-bottom:12px">Best 8 Third-Place Teams</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:40px">${thirdRows}</div>` : ''}
+
+  <h2 style="font-size:18px;font-weight:700;color:#e7e5e4;margin-bottom:4px">Knockout Bracket</h2>
+  <p style="font-size:12px;color:#6b7280;margin-bottom:16px">Green = my pick to advance</p>
+  <div style="background:#111827;border:1px solid #1c1917;border-radius:12px;padding:16px">
+    ${allMatchups.filter(({matchup}) => matchup.home.name || matchup.away.name)
+      .map(({matchup, winner, label}) => bracketRow(matchup, winner, label)).join('')}
+  </div>
+
+</div>
+<div style="text-align:center;padding:20px;font-size:11px;color:#44403c;border-top:1px solid #1c1917;margin-top:24px">
+  fifa-world-cup-predictor.vercel.app · Not affiliated with FIFA
+</div>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'WC2026-My-Predictions.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <main className="min-h-screen bg-stone-50 text-stone-900">
 
@@ -636,14 +749,13 @@ export default function Home() {
               teams, then build your full bracket from Round of 32 through the Final.
             </p>
           </div>
-          <a
-            href="/schedule.pdf"
-            download="FWC2026_Match_Schedule.pdf"
-            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg border border-stone-300 text-stone-700 text-sm hover:bg-stone-100 transition"
+          <button
+            onClick={downloadPredictions}
+            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg bg-stone-900 text-white text-sm hover:bg-stone-700 transition font-medium"
           >
-            <span>📄</span>
-            <span className="font-medium">Official Schedule</span>
-          </a>
+            <span>⬇</span>
+            <span>Download My Bracket</span>
+          </button>
         </div>
       </section>
 
