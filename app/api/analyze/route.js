@@ -8,41 +8,49 @@ export async function POST(req) {
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const prompt = `You are the most respected international football analyst in the world, preparing a pre-tournament read for the 2026 FIFA World Cup. Kickoff is June 11, 2026. Current data beats reputation.
+    const prompt = `You are the most respected international football analyst in the world, writing a pre-tournament briefing for the 2026 FIFA World Cup. Kickoff is June 11, 2026. Today is early June 2026.
 
-GROUP ${groupId}. Use these EXACT team names: ${teams.join(', ')}.
+GROUP ${groupId}. Teams: ${teams.join(', ')}.
 
-STEP 1 — RESEARCH FIRST (use web search before writing):
-- Latest 2026 FIFA World Ranking for each team
-- 2026 qualifying record and goal difference
-- Last 5-6 results, including June 2026 warm-up friendlies
-- Final 26-man squads (confirmed June 2, 2026) and key injuries or absences
-- 2025-26 club form of each team's most important player
-- Manager, tactical system, and any venue factor (altitude, heat)
+SEARCH STRATEGY — follow this order exactly:
 
-STEP 2 — OUTPUT:
-After researching, output ONLY a JSON object. No markdown fences, no text before or after it. Exact shape:
+1. FIRST search: "${teams.join(', ')} June 2026 match results"
+   This is your most critical search. You must find the most recent match result for each of these four teams, including any June 2026 warm-up friendlies played in the last 7 days. A result from last week beats any data from March.
+
+2. SECOND search: "${teams.join(', ')} World Cup 2026 squad injuries"
+   Find the confirmed 26-man squads (announced June 2, 2026) and any significant injuries, absences, or late call-ups.
+
+3. THIRD search: "${teams.join(', ')} 2026 World Cup qualifying record FIFA ranking"
+   Get qualifying records, goal differences, and current FIFA rankings.
+
+4. FOURTH search (if needed): dig deeper on any surprising recent result from search 1 that changes your assessment.
+
+ANALYSIS RULES:
+- Any result from June 2026 overrides older form data. If a team just lost to a supposed minnow, say so directly.
+- Be specific: cite actual scorelines, goalscorers if known, and dates.
+- Injured or missing key players must be flagged by name.
+- Be decisive and opinionated. No hedging.
+
+Use these EXACT team names: ${teams.join(', ')}.
+
+OUTPUT: After all searches, output ONLY a JSON object (no markdown fences, no text before or after):
 {
-  "summary": "one sharp sentence on the group's overall shape or difficulty",
+  "summary": "one sharp sentence on the group's overall shape, referencing the most recent notable result",
   "teams": [
-    { "name": "<exact team name>", "rank": 1, "note": "max 20 words: current form + key player + one differentiator, grounded in June 2026 reality" }
+    { "name": "<exact team name>", "rank": 1, "note": "max 22 words: most recent result + key player status + one decisive differentiator" }
   ],
   "advance": ["<team>", "<team>"],
-  "thirdPlaceShot": "short note on whether the 3rd-place team can grab a best-third wildcard, or an empty string",
-  "upset": "one short sentence naming the most likely upset",
+  "thirdPlaceShot": "short note on the 3rd team's best-third wildcard chances, or empty string",
+  "upset": "one short sentence naming the most likely upset, grounded in recent evidence",
   "confidence": "High"
 }
 
-Rules:
-- Be search-efficient: use at most 3 searches total. Batch queries to cover the whole group at once rather than one search per team.
-- Include all four teams in "teams", ranked 1 through 4 by predicted finish.
-- "confidence" must be exactly "High", "Medium", or "Low" (your confidence in the top-two call).
-- Every note must be tight, specific, and cite real current form. No filler, no hedging.`;
+Include all four teams ranked 1-4. "confidence" must be exactly High, Medium, or Low.`;
 
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1600,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
       messages: [{ role: 'user', content: prompt }],
     });
 
