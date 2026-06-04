@@ -38,6 +38,12 @@ const QF_PAIRS = [[0,1],[4,5],[2,3],[6,7]];
 const SF_PAIRS = [[0,1],[2,3]];
 
 const RANK_LABELS = { 1: '1st', 2: '2nd', 3: '3rd' };
+const FINISH_BADGE = {
+  1: 'bg-amber-200 text-amber-900',
+  2: 'bg-slate-200 text-slate-700',
+  3: 'bg-orange-200 text-orange-900',
+  4: 'bg-stone-200 text-stone-500',
+};
 const RANK_COLORS = {
   1: 'bg-amber-50 ring-amber-300 text-amber-900',
   2: 'bg-slate-50 ring-slate-300 text-slate-700',
@@ -280,9 +286,9 @@ export default function Home() {
         body: JSON.stringify({ groupId, teams }),
       });
       const data = await res.json();
-      setAnalyses(prev => ({ ...prev, [groupId]: data.analysis }));
+      setAnalyses(prev => ({ ...prev, [groupId]: data.result }));
     } catch {
-      setAnalyses(prev => ({ ...prev, [groupId]: 'Analysis unavailable. Check your API key in Vercel settings.' }));
+      setAnalyses(prev => ({ ...prev, [groupId]: { summary: 'Analysis unavailable. Try again.', teams: [] } }));
     } finally {
       setLoadingAnalysis(prev => ({ ...prev, [groupId]: false }));
     }
@@ -480,11 +486,43 @@ export default function Home() {
                 {isOpen && (
                   <div className="mb-4 rounded-lg bg-stone-50 border border-stone-200 p-3 text-xs text-stone-700 leading-relaxed">
                     {loading ? (
-                      <div className="flex items-center gap-2 text-stone-500">
-                        <span className="animate-pulse">Analyzing group...</span>
+                      <div className="text-stone-500 animate-pulse">
+                        Researching live data... (15-40s)
                       </div>
-                    ) : analysis ? (
-                      <p className="whitespace-pre-wrap">{analysis}</p>
+                    ) : analysis && analysis.teams && analysis.teams.length ? (
+                      <div className="space-y-3">
+                        {analysis.summary && (
+                          <p className="text-stone-600 italic">{analysis.summary}</p>
+                        )}
+                        <div className="space-y-1.5">
+                          {[...analysis.teams].sort((a, b) => a.rank - b.rank).map(t => (
+                            <div key={t.name} className="flex gap-2 items-start">
+                              <span className={`shrink-0 w-5 h-5 rounded flex items-center justify-center font-bold ${FINISH_BADGE[t.rank] || FINISH_BADGE[4]}`}>
+                                {t.rank}
+                              </span>
+                              <p className="flex-1">
+                                <span className="font-semibold text-stone-900">{t.name}.</span> {t.note}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="border-t border-stone-200 pt-2 space-y-1 text-stone-500">
+                          {analysis.advance && analysis.advance.length > 0 && (
+                            <div><span className="font-medium text-emerald-700">Advance:</span> {analysis.advance.join(', ')}</div>
+                          )}
+                          {analysis.thirdPlaceShot && (
+                            <div><span className="font-medium">Wildcard:</span> {analysis.thirdPlaceShot}</div>
+                          )}
+                          {analysis.upset && (
+                            <div><span className="font-medium">Upset risk:</span> {analysis.upset}</div>
+                          )}
+                          {analysis.confidence && (
+                            <div><span className="font-medium">Confidence:</span> {analysis.confidence}</div>
+                          )}
+                        </div>
+                      </div>
+                    ) : analysis && analysis.summary ? (
+                      <p>{analysis.summary}</p>
                     ) : (
                       <p className="text-stone-500 italic">No analysis yet.</p>
                     )}
