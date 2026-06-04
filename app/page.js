@@ -243,35 +243,30 @@ function BracketSlot({ matchup, picked, onPick, matchNum }) {
   const { home, away } = matchup;
   const bothKnown = home.name && away.name;
   const info = matchNum ? MATCH_SCHEDULE[matchNum] : null;
+  const title = info ? `M${matchNum} · ${info.date} · ${info.time} · ${info.venue}` : undefined;
   return (
-    <div className="flex-shrink-0" style={{ width: '110px' }}>
-      {/* Always reserve the same height for date info — keeps justify-around alignment exact */}
-      <div className="text-stone-400 px-1 mb-0.5 leading-tight truncate" style={{ fontSize: '8px', height: '11px' }}>
-        {info ? `${info.date} · ${info.venue}` : ''}
-      </div>
-      <div className="rounded overflow-hidden border border-stone-700 bg-stone-800">
-        {[home, away].map((team, i) => {
-          const isPicked = team.name !== null && picked === team.name;
-          const isOther = picked && picked !== team.name;
-          return (
-            <button
-              key={i}
-              onClick={() => bothKnown && team.name && onPick(isPicked ? null : team.name)}
-              disabled={!bothKnown || !team.name}
-              className={`w-full flex items-center gap-1 px-1.5 py-1.5 border-t first:border-t-0 border-stone-700 transition text-left ${
-                isPicked ? 'bg-emerald-700 text-white' :
-                isOther ? 'text-stone-600' :
-                bothKnown && team.name ? 'hover:bg-stone-700 text-stone-300' :
-                'text-stone-600 cursor-default'
-              }`}
-              style={{ fontSize: '10px' }}
-            >
-              <span className="shrink-0" style={{ fontSize: '11px' }}>{team.flag || ''}</span>
-              <span className="truncate">{team.name || team.display}</span>
-            </button>
-          );
-        })}
-      </div>
+    <div className="flex-shrink-0 rounded overflow-hidden border border-stone-700 bg-stone-800" style={{ width: '110px' }} title={title}>
+      {[home, away].map((team, i) => {
+        const isPicked = team.name !== null && picked === team.name;
+        const isOther = picked && picked !== team.name;
+        return (
+          <button
+            key={i}
+            onClick={() => bothKnown && team.name && onPick(isPicked ? null : team.name)}
+            disabled={!bothKnown || !team.name}
+            className={`w-full flex items-center gap-1 px-1.5 py-1.5 border-t first:border-t-0 border-stone-700 transition text-left ${
+              isPicked ? 'bg-emerald-700 text-white' :
+              isOther ? 'text-stone-600' :
+              bothKnown && team.name ? 'hover:bg-stone-700 text-stone-300' :
+              'text-stone-600 cursor-default'
+            }`}
+            style={{ fontSize: '10px' }}
+          >
+            <span className="shrink-0" style={{ fontSize: '11px' }}>{team.flag || ''}</span>
+            <span className="truncate">{team.name || team.display}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
