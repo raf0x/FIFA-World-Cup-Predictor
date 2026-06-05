@@ -471,9 +471,14 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
           <div className="tree-col">
             <BracketSlot matchup={sfMatchups[0]} picked={bracketPicks.sf[0]} onPick={n=>pickBracket('sf',0,n)} matchNum={101} />
           </div>
-          <ChampionReveal champion={champion} championObj={championObj}
-            finalMatchup={finalMatchup} thirdMatchup={thirdMatchup}
-            bracketPicks={bracketPicks} />
+          <ChampionReveal
+  champion={champion}
+  championObj={championObj}
+  finalMatchup={finalMatchup}
+  thirdMatchup={thirdMatchup}
+  bracketPicks={bracketPicks}
+  pickBracket={pickBracket}
+/>
           <div className="tree-col">
             <BracketSlot matchup={sfMatchups[1]} picked={bracketPicks.sf[1]} onPick={n=>pickBracket('sf',1,n)} matchNum={102} />
           </div>
