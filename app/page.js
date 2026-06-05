@@ -802,43 +802,111 @@ export default function Home() {
   const scrollTo = (ref) => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const downloadPredictions = () => {
+    const fl = t => {
+      if (!t?.flag) return '';
+      return /^[a-z]{2,3}$/.test(t.flag) ? t.flag.toUpperCase() : t.flag;
+    };
     const teamOf = (gid, rank) => {
       const name = getTeamByRank(picks, gid, rank);
-      const obj = name ? getTeamObj(gid, name) : null;
-      const fl = obj?.flag && !/^[a-z]{2,3}$/.test(obj.flag) ? obj.flag : (obj?.flag ? obj.flag.toUpperCase() : '');
-      return name ? `${fl} ${name}` : '—';
+      const obj  = name ? getTeamObj(gid, name) : null;
+      return name ? `${fl(obj)} ${name}` : '—';
     };
+    const matchRow = (matchup, pick, matchNum) => {
+      const h = matchup.home, a = matchup.away;
+      const info = MATCH_SCHEDULE[matchNum];
+      const hWon = pick && pick === h.name;
+      const aWon = pick && pick === a.name;
+      const ts = (won, hasName) =>
+        `color:${won ? '#4ade80' : hasName ? '#e2e8f0' : '#3d3d5c'};font-weight:${won ? 700 : 400}`;
+      return `
+        <div style="display:grid;grid-template-columns:52px 1fr 110px;align-items:center;gap:12px;padding:10px 14px;background:#0d0d1a;border-radius:8px;margin-bottom:5px">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#3d3d5c;letter-spacing:.04em">M${matchNum}</div>
+            ${info ? `<div style="font-size:9px;color:#2a2a40;margin-top:2px">${info.venue}</div>` : ''}
+          </div>
+          <div style="font-size:13px">
+            <span style="${ts(hWon, !!h.name)}">${fl(h)} ${h.name || h.display}</span>
+            <span style="color:#1e1e30;margin:0 8px">vs</span>
+            <span style="${ts(aWon, !!a.name)}">${fl(a)} ${a.name || a.display}</span>
+          </div>
+          <div style="text-align:right;font-size:12px;font-weight:700;color:${pick ? '#4ade80' : '#1e1e30'}">
+            ${pick ? `✓ ${pick}` : '—'}
+          </div>
+        </div>`;
+    };
+    const roundSection = (title, sub, rows) => `
+      <div style="margin:28px 0 0">
+        <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:10px">
+          <span style="font-size:10px;font-weight:800;letter-spacing:.18em;color:#6b7280;text-transform:uppercase">${title}</span>
+          <span style="font-size:10px;color:#3d3d5c">${sub}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:0 16px">${rows}</div>
+      </div>`;
+    const r32rows = r32Matchups.map((m,i) => matchRow(m, bracketPicks.r32[i], 73+i)).join('');
+    const r16rows = r16Matchups.map((m,i) => matchRow(m, bracketPicks.r16[i], 89+i)).join('');
+    const qfrows  = qfMatchups.map((m,i)  => matchRow(m, bracketPicks.qf[i],  97+i)).join('');
+    const sfrows  = sfMatchups.map((m,i)  => matchRow(m, bracketPicks.sf[i],  101+i)).join('');
+    const champBlock = champion ? `
+      <div style="text-align:center;padding:40px 24px;margin-bottom:36px;background:radial-gradient(120% 140% at 50% 0,rgba(245,193,66,.15),transparent),#12121a;border:1px solid rgba(245,193,66,.4);border-radius:20px">
+        <div style="font-size:60px;margin-bottom:10px">🏆</div>
+        <div style="font-size:10px;font-weight:800;letter-spacing:.28em;color:#f5c142;margin-bottom:8px">2026 WORLD CHAMPION</div>
+        <div style="font-size:36px;font-weight:900;color:#fff">${fl(championObj)} ${champion}</div>
+      </div>` : '';
     const groupRows = GROUPS.map(g => `
-      <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:14px">
-        <div style="font-size:11px;font-weight:800;color:${GROUP_COLORS[g.id]};letter-spacing:.1em;margin-bottom:10px">GROUP ${g.id}</div>
-        <div style="display:grid;gap:6px">
-          <div style="font-size:13px;color:#f5c142">1 ${teamOf(g.id,1)}</div>
-          <div style="font-size:13px;color:#c2cad6">2 ${teamOf(g.id,2)}</div>
-          <div style="font-size:13px;color:#cf8a4f">3 ${teamOf(g.id,3)}</div>
+      <div style="background:#0d0d1a;border:1px solid #1e1e2e;border-radius:12px;padding:14px">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:${GROUP_COLORS[g.id]};margin-bottom:10px">GROUP ${g.id}</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="font-size:13px;color:#f5c142">🥇 ${teamOf(g.id,1)}</div>
+          <div style="font-size:13px;color:#c2cad6">🥈 ${teamOf(g.id,2)}</div>
+          <div style="font-size:13px;color:#cf8a4f">🥉 ${teamOf(g.id,3)}</div>
         </div>
       </div>`).join('');
-    const champBlock = champion ? `
-      <div style="text-align:center;margin:0 0 36px;padding:36px;background:radial-gradient(120% 140% at 50% 0,rgba(245,193,66,.18),transparent),#12121a;border:1px solid rgba(245,193,66,.4);border-radius:20px">
-        <div style="font-size:64px">🏆</div>
-        <div style="font-size:11px;font-weight:800;letter-spacing:.25em;color:#f5c142;margin:8px 0 4px">2026 WORLD CHAMPION</div>
-        <div style="font-size:40px;font-weight:900;color:#fff">${champion}</div>
-      </div>` : '';
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>My WC2026 Predictions</title>
-      <style>*{margin:0;box-sizing:border-box}body{background:#0a0a12;color:#fff;font-family:ui-sans-serif,system-ui,sans-serif;padding:0}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head>
-      <body><div style="height:5px;background:linear-gradient(90deg,#39ff14,#06b6d4,#a78bfa,#f5c142,#fb7185)"></div>
-      <div style="max-width:1040px;margin:0 auto;padding:40px 28px">
-      <div style="font-size:11px;font-weight:800;letter-spacing:.25em;color:#8b8ba7">FIFA WORLD CUP 2026 · MY PREDICTIONS</div>
-      <div style="font-size:34px;font-weight:900;margin:6px 0 30px">Tournament Bracket</div>
-      ${champBlock}
-      <div style="font-size:13px;font-weight:800;letter-spacing:.1em;color:#8b8ba7;margin-bottom:14px">GROUP STAGE</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px">${groupRows}</div>
-      <div style="text-align:center;color:#3d3d5c;font-size:11px;margin-top:36px">Generated ${new Date().toLocaleDateString()} · Not affiliated with FIFA</div>
-      </div></body></html>`;
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const thirdPills = thirdPlacePicks.map(gid => {
+      const name = getTeamByRank(picks, gid, 3);
+      const obj  = name ? getTeamObj(gid, name) : null;
+      return `<span style="background:#12121a;border:1px solid #1e1e2e;border-radius:6px;padding:4px 10px;font-size:12px;color:#e2e8f0">${fl(obj)} ${name || gid}</span>`;
+    }).join('');
+    const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My WC2026 Predictions</title>
+<style>*{margin:0;box-sizing:border-box}body{background:#0a0a12;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
+</head><body>
+<div style="height:4px;background:linear-gradient(90deg,#4ade80,#06b6d4,#a78bfa,#f5c142,#fb7185)"></div>
+<div style="max-width:1080px;margin:0 auto;padding:40px 28px">
+  <div style="font-size:10px;font-weight:800;letter-spacing:.28em;color:#6b7280;text-transform:uppercase">FIFA World Cup 2026 · My Predictions</div>
+  <div style="font-size:32px;font-weight:900;margin:6px 0 32px;color:#fff">Tournament Bracket</div>
+  ${champBlock}
+  <div style="font-size:10px;font-weight:800;letter-spacing:.18em;color:#6b7280;text-transform:uppercase">Knockout Bracket</div>
+  <div style="height:1px;background:#1e1e2e;margin:8px 0 0"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px">
+    <div style="background:#12121a;border:1px solid rgba(245,193,66,.3);border-radius:14px;padding:18px">
+      <div style="font-size:9px;font-weight:800;letter-spacing:.2em;color:#f5c142;margin-bottom:12px">FINAL · JUL 19 · NEW YORK/NJ</div>
+      ${matchRow(finalMatchup, bracketPicks.final, 104)}
+    </div>
+    <div style="background:#12121a;border:1px solid #1e1e2e;border-radius:14px;padding:18px">
+      <div style="font-size:9px;font-weight:800;letter-spacing:.2em;color:#6b7280;margin-bottom:12px">3RD PLACE · JUL 18 · MIAMI</div>
+      ${matchRow(thirdMatchup, bracketPicks.thirdPlace, 103)}
+    </div>
+  </div>
+  ${roundSection('Semifinals', 'Jul 14–15', sfrows)}
+  ${roundSection('Quarterfinals', 'Jul 9–11', qfrows)}
+  ${roundSection('Round of 16', 'Jul 4–7', r16rows)}
+  ${roundSection('Round of 32', 'Jun 28 – Jul 3', r32rows)}
+  <div style="margin-top:40px">
+    <div style="font-size:10px;font-weight:800;letter-spacing:.18em;color:#6b7280;text-transform:uppercase;margin-bottom:14px">Group Stage</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px">${groupRows}</div>
+  </div>
+  ${thirdPlacePicks.length > 0 ? `<div style="margin-top:28px"><div style="font-size:10px;font-weight:800;letter-spacing:.18em;color:#6b7280;text-transform:uppercase;margin-bottom:12px">Best 8 Third-Place Teams</div><div style="display:flex;flex-wrap:wrap;gap:8px">${thirdPills}</div></div>` : ''}
+  <div style="text-align:center;color:#2a2a40;font-size:11px;margin-top:40px;padding-top:20px;border-top:1px solid #1a1a28">
+    Generated ${new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})} · fifa-world-cup-predictor.vercel.app · Not affiliated with FIFA
+  </div>
+</div></body></html>`;
+    const blob = new Blob([html], { type:'text/html' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
     a.href = url; a.download = 'WC2026-My-Predictions.html';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
   };
 
   const pct = (completedCount / 12) * 100;
