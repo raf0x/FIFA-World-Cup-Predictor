@@ -709,7 +709,7 @@ export default function Home() {
       const u = {
         r32: [...prev.r32],
         r16: [...prev.r16],
-        qf:  ...[prev.qf],
+        qf: [...prev.qf],
         sf:  [...prev.sf],
         final: prev.final,
         thirdPlace: prev.thirdPlace,
