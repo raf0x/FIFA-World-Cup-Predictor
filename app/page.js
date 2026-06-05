@@ -728,13 +728,55 @@ export default function Home() {
 
   const pickBracket = (round, idx, name) => {
     setBracketPicks(prev => {
-      const u = { ...prev };
-      if (round==='r32') { u.r32=[...prev.r32]; u.r32[idx]=name; u.r16=Array(8).fill(null); u.qf=Array(4).fill(null); u.sf=Array(2).fill(null); u.final=null; u.thirdPlace=null; }
-      else if (round==='r16') { u.r16=[...prev.r16]; u.r16[idx]=name; u.qf=Array(4).fill(null); u.sf=Array(2).fill(null); u.final=null; u.thirdPlace=null; }
-      else if (round==='qf') { u.qf=[...prev.qf]; u.qf[idx]=name; u.sf=Array(2).fill(null); u.final=null; u.thirdPlace=null; }
-      else if (round==='sf') { u.sf=[...prev.sf]; u.sf[idx]=name; u.final=null; u.thirdPlace=null; }
-      else if (round==='final') u.final=name;
-      else if (round==='thirdPlace') u.thirdPlace=name;
+      const u = {
+        r32: [...prev.r32],
+        r16: [...prev.r16],
+        qf:  [...prev.qf],
+        sf:  [...prev.sf],
+        final: prev.final,
+        thirdPlace: prev.thirdPlace,
+      };
+
+      // Cascade helper: null out only the downstream slots affected by this pick
+      const clearFrom = (fromRound, fromIdx) => {
+        if (fromRound === 'r32') {
+          const r16i = R16_PAIRS.findIndex(([a,b]) => a === fromIdx || b === fromIdx);
+          if (r16i === -1) return;
+          u.r16[r16i] = null;
+          clearFrom('r16', r16i);
+        } else if (fromRound === 'r16') {
+          const qfi = QF_PAIRS.findIndex(([a,b]) => a === fromIdx || b === fromIdx);
+          if (qfi === -1) return;
+          u.qf[qfi] = null;
+          clearFrom('qf', qfi);
+        } else if (fromRound === 'qf') {
+          const sfi = SF_PAIRS.findIndex(([a,b]) => a === fromIdx || b === fromIdx);
+          if (sfi === -1) return;
+          u.sf[sfi] = null;
+          u.final = null;
+          u.thirdPlace = null;
+        }
+      };
+
+      if (round === 'r32') {
+        u.r32[idx] = name;
+        clearFrom('r32', idx);
+      } else if (round === 'r16') {
+        u.r16[idx] = name;
+        clearFrom('r16', idx);
+      } else if (round === 'qf') {
+        u.qf[idx] = name;
+        clearFrom('qf', idx);
+      } else if (round === 'sf') {
+        u.sf[idx] = name;
+        u.final = null;
+        u.thirdPlace = null;
+      } else if (round === 'final') {
+        u.final = name;
+      } else if (round === 'thirdPlace') {
+        u.thirdPlace = name;
+      }
+
       return u;
     });
   };
