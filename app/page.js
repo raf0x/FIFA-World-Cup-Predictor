@@ -475,7 +475,7 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
   }
   return (
     <>
-      <div className="tree-scroll" ref={treeScrollRef}>
+      <div className="tree-scroll">
         <div className="tree" style={{ minWidth:1492 }}>
           <BracketLines />
           <div className="tree-col tree-groups">
