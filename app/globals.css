@@ -501,7 +501,7 @@ a { color: inherit; }
   align-items: stretch;
   gap: 6px;
   height: 544px;
-  min-width: 1252px;
+  min-width: 1332px;
 }
 .tree-col {
   display: flex;
@@ -545,7 +545,7 @@ a { color: inherit; }
   background: var(--surface);
   z-index: 2;
 }
-.slot--wide { width: 130px; }
+.slot--wide { width: 160px; }
 
 .slotrow {
   width: 100%;
@@ -600,46 +600,110 @@ a { color: inherit; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-width: 160px;
-  flex: 1;
-  padding: 0 8px;
+  gap: 10px;
+  width: 272px;
+  flex-shrink: 0;
+  padding: 0 16px;
   position: relative;
   z-index: 2;
 }
-.trophy { font-size: 40px; transition: transform .4s var(--ease); }
-.trophy--won { animation: trophyPop .6s var(--ease) forwards; }
-@keyframes trophyPop { 0%{transform:scale(.6)}70%{transform:scale(1.25)}100%{transform:scale(1)} }
+.trophy {
+  font-size: 56px;
+  filter: grayscale(1) opacity(.25);
+  transition: all .5s var(--ease);
+  line-height: 1;
+}
+.trophy--won {
+  filter: none;
+  animation: trophyPop .7s var(--ease) forwards;
+  filter: drop-shadow(0 0 20px rgba(245,193,66,.5));
+}
+@keyframes trophyPop { 0%{transform:scale(.5)}65%{transform:scale(1.2)}100%{transform:scale(1)} }
 .champ-name-wrap { text-align: center; }
 .champ-eyebrow {
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: .2em;
+  letter-spacing: .22em;
   text-transform: uppercase;
   color: var(--gold);
-  margin-bottom: 3px;
+  margin-bottom: 4px;
 }
 .champ-name {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 7px;
+  font-size: 16px;
   font-weight: 900;
   color: var(--gold);
+  text-shadow: 0 0 24px rgba(245,193,66,.3);
 }
-.champ-placeholder { font-size: 11px; color: var(--dim-2); letter-spacing: .1em; }
-.champ-div { width: 1px; height: 20px; background: var(--border-2); }
+.champ-placeholder {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--dim-2);
+  letter-spacing: .06em;
+}
+.champ-div { width: 40px; height: 1px; background: var(--border-2); }
 .champ-match { width: 100%; }
 .champ-match-label {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
-  letter-spacing: .1em;
+  letter-spacing: .12em;
   text-transform: uppercase;
   color: var(--dim);
   text-align: center;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
+.champ-final-label {
+  color: var(--gold) !important;
+  font-size: 9px !important;
+  letter-spacing: .16em !important;
+}
+
+/* Tournament Story panel */
+.tournament-story {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin: 16px 0 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  flex-wrap: wrap;
+}
+.ts-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px 32px;
+  border-right: 1px solid var(--border);
+  flex: 1;
+  min-width: 140px;
+}
+.ts-item:last-child { border-right: none; }
+.ts-item--champion { background: radial-gradient(ellipse at center, rgba(245,193,66,.06) 0%, transparent 70%); }
+.ts-item--right { border-right: none; }
+.ts-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.ts-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+.ts-value--dim { color: var(--dim); font-size: 13px; }
 
 /* Mobile bracket */
 .tree-mobile { display: none; }
