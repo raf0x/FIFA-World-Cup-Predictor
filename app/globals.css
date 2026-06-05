@@ -494,7 +494,7 @@ a { color: inherit; }
 .locked--big  { padding: 48px; font-size: 15px; }
 
 /* ─── Bracket tree ────────────────────────────────────────────────────────── */
-.tree-scroll { overflow-x: auto; padding-bottom: 20px; }
+.tree-scroll { overflow-x: auto; padding-bottom: 20px; display: flex; flex-direction: column; align-items: center; }
 .tree {
   position: relative;
   display: flex;
