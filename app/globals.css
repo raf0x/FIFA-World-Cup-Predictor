@@ -500,14 +500,14 @@ a { color: inherit; }
   display: flex;
   align-items: stretch;
   gap: 6px;
-  height: 544px;
-  min-width: 1332px;
+  height: 640px;
+  min-width: 1492px;
 }
 .tree-col {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-  height: 544px;
+  height: 640px;
 }
 .tree-groups { width: 60px; gap: 0; }
 .bracket-svg {
@@ -521,7 +521,7 @@ a { color: inherit; }
   display: flex;
   align-items: center;
   gap: 6px;
-  min-width: 1252px;
+  min-width: 1492px;
   padding: 10px 0 0;
 }
 .tlabel {
@@ -537,24 +537,24 @@ a { color: inherit; }
 
 /* Bracket match slot */
 .slot {
-  width: 110px;
+  width: 130px;
   flex-shrink: 0;
-  border-radius: 7px;
+  border-radius: 8px;
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--surface);
   z-index: 2;
 }
-.slot--wide { width: 160px; }
+.slot--wide { width: 175px; }
 
 .slotrow {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 7px;
+  gap: 6px;
+  padding: 8px 10px;
   border-top: 1px solid var(--border);
-  font-size: 10px;
+  font-size: 12px;
   text-align: left;
   color: var(--dim);
   transition: background .12s;
@@ -565,8 +565,8 @@ a { color: inherit; }
 .slotrow--pick { background: rgba(74,222,128,.08); color: var(--green) !important; }
 .slotrow--out  { color: var(--dim-2) !important; }
 .slot-flag { flex-shrink: 0; display: flex; align-items: center; }
-.slot-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.slot-adv  { font-size: 9px; color: var(--green); flex-shrink: 0; }
+.slot-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.slot-adv  { font-size: 10px; color: var(--green); flex-shrink: 0; }
 
 /* Group box */
 .gbox {
