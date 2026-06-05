@@ -309,26 +309,39 @@ function GroupBox({ group }) {
 }
 
 function BracketLines() {
+  // Geometry: 130px slots, 640px height, 6px gaps
+  // Left column right edges:  R32=196, R16=332, QF=468, SF=604
+  // Right column left edges:  SF=888, QF=1024, R16=1160, R32=1296
+  // Slot centers (justify-around, 640px): R32=40,120,200,280,360,440,520,600
+  // R16=80,240,400,560 | QF=160,480 | SF=320
   const lines = [
-    // Left side (unchanged)
-    [176,34,176,102],[176,68,182,68],[176,170,176,238],[176,204,182,204],
-    [176,306,176,374],[176,340,182,340],[176,442,176,510],[176,476,182,476],
-    [292,68,292,204],[292,136,298,136],[292,340,292,476],[292,408,298,408],
-    [408,136,408,408],[408,272,414,272],[524,272,530,272],
-    // Right side — shifted +80px to accommodate wider center column
-    [1156,34,1156,102],[1150,68,1156,68],[1156,170,1156,238],[1150,204,1156,204],
-    [1156,306,1156,374],[1150,340,1156,340],[1156,442,1156,510],[1150,476,1156,476],
-    [1040,68,1040,204],[1034,136,1040,136],[1040,340,1040,476],[1034,408,1040,408],
-    [924,136,924,408],[918,272,924,272],[808,272,802,272],
+    // Left R32 vertical pairs + horizontal exits
+    [196,40,196,120],  [196,80,202,80],
+    [196,200,196,280], [196,240,202,240],
+    [196,360,196,440], [196,400,202,400],
+    [196,520,196,600], [196,560,202,560],
+    // Left R16 vertical pairs + horizontal exits
+    [332,80,332,240],  [332,160,338,160],
+    [332,400,332,560], [332,480,338,480],
+    // Left QF vertical + horizontal exit
+    [468,160,468,480], [468,320,474,320],
+    // Left SF → center
+    [604,320,610,320],
+    // Right R32 vertical pairs + horizontal exits
+    [1296,40,1296,120],  [1290,80,1296,80],
+    [1296,200,1296,280], [1290,240,1296,240],
+    [1296,360,1296,440], [1290,400,1296,400],
+    [1296,520,1296,600], [1290,560,1296,560],
+    // Right R16 vertical pairs + horizontal exits
+    [1160,80,1160,240],  [1154,160,1160,160],
+    [1160,400,1160,560], [1154,480,1160,480],
+    // Right QF vertical + horizontal exit
+    [1024,160,1024,480], [1018,320,1024,320],
+    // Right center → SF
+    [882,320,888,320],
   ];
   return (
-    <svg width="1332" height="544" className="bracket-svg" style={{ minWidth:1332 }}>
-      <defs>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="1.5" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
+    <svg width="1492" height="640" className="bracket-svg" style={{ minWidth:1492 }}>
       {lines.map(([x1,y1,x2,y2],i) => (
         <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
           stroke="rgba(99,132,185,0.55)" strokeWidth="1.5" strokeLinecap="round" />
@@ -463,7 +476,7 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
   return (
     <>
       <div className="tree-scroll">
-        <div className="tree" style={{ minWidth:1332 }}>
+        <div className="tree" style={{ minWidth:1492 }}>
           <BracketLines />
           <div className="tree-col tree-groups">
             {GROUPS.slice(0,6).map(g => <GroupBox key={g.id} group={g} />)}
@@ -499,7 +512,7 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
             {GROUPS.slice(6).map(g => <GroupBox key={g.id} group={g} />)}
           </div>
         </div>
-        <div className="tree-labels" style={{ minWidth:1332 }}>
+        <div className="tree-labels" style={{ minWidth:1492 }}>
           <div style={{ width:60 }} />
           {['Round of 32','Round of 16','Quarterfinals','Semifinals'].map(l => <div key={l} className="tlabel">{l}</div>)}
           <div className="tlabel tlabel--c">Final</div>
