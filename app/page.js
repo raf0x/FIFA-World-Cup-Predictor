@@ -7,9 +7,18 @@ import { MATCH_SCHEDULE } from '../lib/schedule';
 
 // ─── Design tokens ────────────────────────────────────────────────────────
 const GROUP_COLORS = {
-  A:'#39ff14', B:'#06b6d4', C:'#8b5cf6', D:'#fbbf24',
-  E:'#fb923c', F:'#f87171', G:'#ec4899', H:'#22d3ee',
-  I:'#a78bfa', J:'#facc15', K:'#fb7185', L:'#34d399',
+  A: '#22c55e',  // green-500  (was neon #39ff14)
+  B: '#0891b2',  // cyan-600
+  C: '#8b5cf6',  // violet-500
+  D: '#d97706',  // amber-600  (was bright #fbbf24)
+  E: '#f97316',  // orange-500
+  F: '#f87171',  // red-400
+  G: '#ec4899',  // pink-500
+  H: '#0ea5e9',  // sky-500    (was bright #22d3ee)
+  I: '#a78bfa',  // violet-400
+  J: '#ca8a04',  // yellow-600 (was bright #facc15)
+  K: '#fb7185',  // rose-400
+  L: '#34d399',  // emerald-400
 };
 const MEDAL = {
   1:{ tint:'rgba(245,193,66,.13)', ring:'rgba(245,193,66,.55)', text:'#f7cf5b', solid:'#f5c142', label:'WINNER' },
@@ -165,7 +174,7 @@ function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading
     <div className={`gcard ${complete ? 'gcard--done' : ''}`} style={complete ? { '--gc': color } : {}}>
       <div className="gcard-head">
         <div className="gcard-id">
-          <span className="gchip" style={{ background: color, boxShadow:`0 0 14px ${color}66` }}>{group.id}</span>
+          <span className="gchip" style={{ background: color, boxShadow:`0 0 10px ${color}33` }}>{group.id}</span>
           <div>
             <div className="gcard-title">Group {group.id}</div>
             <div className="gcard-meta">
