@@ -310,25 +310,28 @@ function GroupBox({ group }) {
 
 function BracketLines() {
   const lines = [
+    // Left side (unchanged)
     [176,34,176,102],[176,68,182,68],[176,170,176,238],[176,204,182,204],
     [176,306,176,374],[176,340,182,340],[176,442,176,510],[176,476,182,476],
     [292,68,292,204],[292,136,298,136],[292,340,292,476],[292,408,298,408],
     [408,136,408,408],[408,272,414,272],[524,272,530,272],
-    [1076,34,1076,102],[1070,68,1076,68],[1076,170,1076,238],[1070,204,1076,204],
-    [1076,306,1076,374],[1070,340,1076,340],[1076,442,1076,510],[1070,476,1076,476],
-    [960,68,960,204],[954,136,960,136],[960,340,960,476],[954,408,960,408],
-    [844,136,844,408],[838,272,844,272],[728,272,722,272],
+    // Right side — shifted +80px to accommodate wider center column
+    [1156,34,1156,102],[1150,68,1156,68],[1156,170,1156,238],[1150,204,1156,204],
+    [1156,306,1156,374],[1150,340,1156,340],[1156,442,1156,510],[1150,476,1156,476],
+    [1040,68,1040,204],[1034,136,1040,136],[1040,340,1040,476],[1034,408,1040,408],
+    [924,136,924,408],[918,272,924,272],[808,272,802,272],
   ];
   return (
-    <svg width="1252" height="544" className="bracket-svg" style={{ minWidth:1252 }}>
+    <svg width="1332" height="544" className="bracket-svg" style={{ minWidth:1332 }}>
       <defs>
-        <linearGradient id="lg" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#2a3550" />
-          <stop offset="100%" stopColor="#3a4a6b" />
-        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="1.5" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
       </defs>
       {lines.map(([x1,y1,x2,y2],i) => (
-        <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="url(#lg)" strokeWidth="1.5" strokeLinecap="round" />
+        <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
+          stroke="rgba(99,132,185,0.55)" strokeWidth="1.5" strokeLinecap="round" />
       ))}
     </svg>
   );
@@ -402,24 +405,48 @@ function Confetti({ id }) {
 }
 
 function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bracketPicks, pickBracket }) {
+  const sfHome = finalMatchup.home;
+  const sfAway = finalMatchup.away;
   return (
     <div className="champ-col">
       {champion && <Confetti id={champion} />}
+
+      {/* Trophy */}
       <div className={`trophy ${champion ? 'trophy--won' : ''}`}>🏆</div>
+
+      {/* Champion or pre-final state */}
       {champion ? (
         <div className="champ-name-wrap">
-          <div className="champ-eyebrow">World Champion</div>
-          <div className="champ-name"><Flag team={championObj || { flag:'🏆', name:champion }} size={16} /> {champion}</div>
+          <div className="champ-eyebrow">2026 World Champion</div>
+          <div className="champ-name">
+            <Flag team={championObj || { flag:'🏆', name:champion }} size={18} />
+            {champion}
+          </div>
         </div>
       ) : (
-        <div className="champ-placeholder">Champion</div>
+        <div style={{ textAlign:'center' }}>
+          <div className="champ-eyebrow" style={{ opacity:.5 }}>FIFA World Cup</div>
+          <div className="champ-placeholder">2026 Final</div>
+          {sfHome.name && sfAway.name && (
+            <div style={{ fontSize:11, color:'var(--dim)', marginTop:4 }}>
+              {sfHome.name} <span style={{ color:'var(--border-2)' }}>vs</span> {sfAway.name}
+            </div>
+          )}
+        </div>
       )}
+
       <div className="champ-div" />
+
+      {/* Final match */}
       <div className="champ-match">
-        <div className="champ-match-label" style={{ color:'#f5c142' }}>Final · Jul 19 · NY/NJ</div>
+        <div className="champ-match-label champ-final-label">FINAL · JUL 19 · NY/NJ</div>
         <BracketSlot matchup={finalMatchup} picked={bracketPicks.final} onPick={n => pickBracket('final',0,n)} matchNum={104} wide />
       </div>
-      <div className="champ-match" style={{ marginTop:8 }}>
+
+      <div style={{ height:10 }} />
+
+      {/* 3rd place */}
+      <div className="champ-match">
         <div className="champ-match-label">3rd Place · Jul 18 · Miami</div>
         <BracketSlot matchup={thirdMatchup} picked={bracketPicks.thirdPlace} onPick={n => pickBracket('thirdPlace',0,n)} matchNum={103} wide />
       </div>
@@ -436,7 +463,7 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
   return (
     <>
       <div className="tree-scroll">
-        <div className="tree">
+        <div className="tree" style={{ minWidth:1332 }}>
           <BracketLines />
           <div className="tree-col tree-groups">
             {GROUPS.slice(0,6).map(g => <GroupBox key={g.id} group={g} />)}
@@ -472,7 +499,7 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
             {GROUPS.slice(6).map(g => <GroupBox key={g.id} group={g} />)}
           </div>
         </div>
-        <div className="tree-labels">
+        <div className="tree-labels" style={{ minWidth:1332 }}>
           <div style={{ width:60 }} />
           {['Round of 32','Round of 16','Quarterfinals','Semifinals'].map(l => <div key={l} className="tlabel">{l}</div>)}
           <div className="tlabel tlabel--c">Final</div>
@@ -480,6 +507,57 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
           <div style={{ width:60 }} />
         </div>
       </div>
+
+      {/* Tournament Story — fills horizontal space on wide screens */}
+      {(champion || bracketPicks.sf[0] || bracketPicks.sf[1]) && (
+        <div className="tournament-story">
+          {champion && (
+            <div className="ts-item ts-item--champion">
+              <div className="ts-label">🏆 My Champion</div>
+              <div className="ts-value">
+                <Flag team={championObj || { flag:'🏆', name:champion }} size={20} />
+                {champion}
+              </div>
+            </div>
+          )}
+          {bracketPicks.final && bracketPicks.final !== champion && (
+            <div className="ts-item">
+              <div className="ts-label">Runner-Up</div>
+              <div className="ts-value ts-value--dim">
+                {(() => {
+                  const loser = finalMatchup.home.name === bracketPicks.final ? finalMatchup.away : finalMatchup.home;
+                  return loser.name ? <><Flag team={loser} size={16} /> {loser.name}</> : '—';
+                })()}
+              </div>
+            </div>
+          )}
+          {bracketPicks.final && (
+            <div className="ts-item">
+              <div className="ts-label">Final</div>
+              <div className="ts-value ts-value--dim" style={{ fontSize:13 }}>
+                {finalMatchup.home.name || '?'} vs {finalMatchup.away.name || '?'}
+              </div>
+            </div>
+          )}
+          {bracketPicks.thirdPlace && (
+            <div className="ts-item">
+              <div className="ts-label">3rd Place</div>
+              <div className="ts-value ts-value--dim">
+                {(() => {
+                  const obj = GROUPS.flatMap(g=>g.teams).find(t=>t.name===bracketPicks.thirdPlace);
+                  return obj ? <><Flag team={obj} size={16} /> {obj.name}</> : bracketPicks.thirdPlace;
+                })()}
+              </div>
+            </div>
+          )}
+          <div className="ts-item ts-item--right">
+            <div className="ts-label">Bracket Progress</div>
+            <div className="ts-value" style={{ color:'var(--green)' }}>
+              {Math.round(((bracketPicks.r32.filter(Boolean).length + bracketPicks.r16.filter(Boolean).length + bracketPicks.qf.filter(Boolean).length + bracketPicks.sf.filter(Boolean).length + (bracketPicks.final?1:0) + (bracketPicks.thirdPlace?1:0)) / 32) * 100)}% complete
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="tree-mobile" style={{ padding:'0 24px' }}>
         <RoundSection title="Round of 32" subtitle="Jun 28 – Jul 3" matchups={r32Matchups} picks={bracketPicks.r32} onPick={(i,n)=>pickBracket('r32',i,n)} matchNumStart={73} locked={false} />
