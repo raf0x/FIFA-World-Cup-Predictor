@@ -416,7 +416,6 @@ function Confetti({ id }) {
     </div>
   );
 }
-
 function ChampionCelebration({ show, champion, championObj, onDismiss }) {
   if (!show || !champion) return null;
   return (
@@ -639,6 +638,9 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false);
   const [days, setDays] = useState(null);
   const [showChampionReveal, setShowChampionReveal] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState(false);
+  const [autoFilling, setAutoFilling] = useState(false);
+  const [autoFillProgress, setAutoFillProgress] = useState(0);
 
   const thirdRef      = useRef(null);
   const bracketRef    = useRef(null);
@@ -648,13 +650,23 @@ export default function Home() {
     const d = Math.ceil((new Date('2026-06-11') - new Date()) / 86400000);
     setDays(d);
     try {
-      const saved = localStorage.getItem('wc2026-v2');
-      if (saved) {
-        const data = JSON.parse(saved);
+      // URL share param takes priority over localStorage
+      const params = new URLSearchParams(window.location.search);
+      const bracketParam = params.get('b');
+      if (bracketParam) {
+        const data = JSON.parse(atob(bracketParam));
         if (data.picks) setPicks(data.picks);
         if (data.thirdPlacePicks) setThirdPlacePicks(data.thirdPlacePicks);
-        if (data.bracketPicks) setBracketPicks(data.bracketPicks);
-        if (data.analyses) setAnalyses(data.analyses);
+        if (data.bracketPicks) setBracketPicks({ ...initBracket(), ...data.bracketPicks });
+      } else {
+        const saved = localStorage.getItem('wc2026-v2');
+        if (saved) {
+          const data = JSON.parse(saved);
+          if (data.picks) setPicks(data.picks);
+          if (data.thirdPlacePicks) setThirdPlacePicks(data.thirdPlacePicks);
+          if (data.bracketPicks) setBracketPicks(data.bracketPicks);
+          if (data.analyses) setAnalyses(data.analyses);
+        }
       }
     } catch {}
     setHydrated(true);
@@ -829,6 +841,54 @@ export default function Home() {
   };
   const scrollTo = (ref) => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
+  const shareLink = () => {
+    const data = { picks, thirdPlacePicks, bracketPicks };
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+    const url = `${window.location.origin}?b=${encoded}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+    });
+  };
+
+  const autoFillAll = async () => {
+    if (!confirm('Auto-fill all 12 groups with AI picks? Existing group picks will be replaced.')) return;
+    setAutoFilling(true);
+    setAutoFillProgress(0);
+    setBracketPicks(initBracket());
+    const newPicks = {};
+    const newAnalyses = { ...analyses };
+
+    // Process in batches of 3 to avoid rate limits
+    for (let i = 0; i < GROUPS.length; i += 3) {
+      const batch = GROUPS.slice(i, i + 3);
+      await Promise.all(batch.map(async (group) => {
+        try {
+          const teams = group.teams.map(t => t.name);
+          const res = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groupId: group.id, teams }),
+          });
+          const data = await res.json();
+          if (data.result?.teams?.length) {
+            const groupPicks = {};
+            data.result.teams
+              .filter(t => t.rank >= 1 && t.rank <= 3)
+              .forEach(t => { groupPicks[t.name] = t.rank; });
+            newPicks[group.id] = groupPicks;
+            newAnalyses[group.id] = data.result;
+          }
+        } catch {}
+        setAutoFillProgress(p => p + 1);
+      }));
+    }
+
+    setPicks(newPicks);
+    setAnalyses(newAnalyses);
+    setAutoFilling(false);
+  };
+
   const downloadPredictions = () => {
     const fl = t => {
       if (!t?.flag) return '';
@@ -931,6 +991,9 @@ export default function Home() {
             {thirdPlaceDone && (
               <button className="btn btn-green" onClick={() => scrollTo(bracketRef)}>Open bracket</button>
             )}
+            <button className="btn btn-ghost" onClick={shareLink}>
+              {copyFeedback ? '✓ Copied!' : '🔗 Share'}
+            </button>
             <button className="btn btn-gold" onClick={downloadPredictions}>Export</button>
             <button className="btn btn-bare" onClick={reset}>Reset</button>
           </div>
@@ -993,12 +1056,26 @@ export default function Home() {
       {/* ── Group Stage ── */}
       <section className="section">
         <div className="section-head">
-          <div className="eyebrow">Stage 01 · Group Draw</div>
-          <h2 className="section-title">Group Stage</h2>
-          <p className="section-desc">
-            Rank each group 1–2–3. Top two qualify directly; third place enters the best-eight race.
-            Tap <b>AI Analysis</b> for a live scouting briefing.
-          </p>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, flexWrap:'wrap' }}>
+            <div>
+              <div className="eyebrow">Stage 01 · Group Draw</div>
+              <h2 className="section-title">Group Stage</h2>
+              <p className="section-desc">
+                Rank each group 1–2–3. Top two qualify directly; third place enters the best-eight race.
+                Tap <b>AI Analysis</b> for a live scouting briefing.
+              </p>
+            </div>
+            <button
+              className="btn btn-gold"
+              onClick={autoFillAll}
+              disabled={autoFilling}
+              style={{ marginTop:8, whiteSpace:'nowrap' }}
+            >
+              {autoFilling
+                ? `◆ Analyzing… (${autoFillProgress}/12)`
+                : '◆ Auto-fill with AI'}
+            </button>
+          </div>
         </div>
         <div className="groups-grid">
           {GROUPS.map(group => (
