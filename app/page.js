@@ -639,8 +639,6 @@ export default function Home() {
   const [days, setDays] = useState(null);
   const [showChampionReveal, setShowChampionReveal] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
-  const [autoFilling, setAutoFilling] = useState(false);
-  const [autoFillProgress, setAutoFillProgress] = useState(0);
 
   const thirdRef      = useRef(null);
   const bracketRef    = useRef(null);
@@ -851,42 +849,17 @@ export default function Home() {
     });
   };
 
-  const autoFillAll = async () => {
-    if (!confirm('Auto-fill all 12 groups with AI picks? Existing group picks will be replaced.')) return;
-    setAutoFilling(true);
-    setAutoFillProgress(0);
-    setBracketPicks(initBracket());
+  const autoFillByRanking = () => {
     const newPicks = {};
-    const newAnalyses = { ...analyses };
-
-    // Process in batches of 3 to avoid rate limits
-    for (let i = 0; i < GROUPS.length; i += 3) {
-      const batch = GROUPS.slice(i, i + 3);
-      await Promise.all(batch.map(async (group) => {
-        try {
-          const teams = group.teams.map(t => t.name);
-          const res = await fetch('/api/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ groupId: group.id, teams }),
-          });
-          const data = await res.json();
-          if (data.result?.teams?.length) {
-            const groupPicks = {};
-            data.result.teams
-              .filter(t => t.rank >= 1 && t.rank <= 3)
-              .forEach(t => { groupPicks[t.name] = t.rank; });
-            newPicks[group.id] = groupPicks;
-            newAnalyses[group.id] = data.result;
-          }
-        } catch {}
-        setAutoFillProgress(p => p + 1);
-      }));
-    }
-
+    GROUPS.forEach(group => {
+      const sorted = [...group.teams].sort((a, b) => a.rank - b.rank);
+      newPicks[group.id] = {};
+      sorted.slice(0, 3).forEach((team, i) => {
+        newPicks[group.id][team.name] = i + 1;
+      });
+    });
     setPicks(newPicks);
-    setAnalyses(newAnalyses);
-    setAutoFilling(false);
+    setBracketPicks(initBracket());
   };
 
   const downloadPredictions = () => {
@@ -1067,13 +1040,10 @@ export default function Home() {
             </div>
             <button
               className="btn btn-gold"
-              onClick={autoFillAll}
-              disabled={autoFilling}
+              onClick={autoFillByRanking}
               style={{ marginTop:8, whiteSpace:'nowrap' }}
             >
-              {autoFilling
-                ? `◆ Analyzing… (${autoFillProgress}/12)`
-                : '◆ Auto-fill with AI'}
+              ↕ Fill by FIFA Ranking
             </button>
           </div>
         </div>
