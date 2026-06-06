@@ -814,3 +814,94 @@ a { color: inherit; }
   .hero-stats  { width: 100%; }
   .groups-grid { grid-template-columns: 1fr; }
 }
+
+/* ─── Champion Celebration Overlay ──────────────────────────────────────── */
+.champion-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0,0,0,.85);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  animation: champFade .4s ease;
+}
+.champion-modal {
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+.champion-year {
+  color: #f5c142;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: .4em;
+  opacity: 0;
+  animation: champUp .7s .3s forwards;
+}
+.champion-trophy-big {
+  font-size: 140px;
+  line-height: 1;
+  opacity: 0;
+  transform: translateY(220px) scale(.5);
+  animation: trophyLift 1s .5s forwards;
+}
+.champion-title-big {
+  margin-top: 10px;
+  color: #fff;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: .3em;
+  opacity: 0;
+  animation: champUp .8s 1.1s forwards;
+}
+.champion-team-big {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #f5c142;
+  font-size: 58px;
+  font-weight: 900;
+  opacity: 0;
+  animation: champUp .8s 1.7s forwards;
+}
+.champion-dismiss {
+  margin-top: 32px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  color: rgba(255,255,255,.3);
+  text-transform: uppercase;
+  opacity: 0;
+  animation: champUp .6s 2.4s forwards;
+}
+.champion-spotlight {
+  position: absolute;
+  width: 700px;
+  height: 700px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245,193,66,.40), rgba(245,193,66,.18), transparent 70%);
+  animation: spotPulse 3s infinite;
+}
+@keyframes trophyLift {
+  from { opacity: 0; transform: translateY(220px) scale(.5); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes champUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes spotPulse {
+  0%   { transform: scale(.95); }
+  50%  { transform: scale(1.08); }
+  100% { transform: scale(.95); }
+}
+@keyframes champFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
