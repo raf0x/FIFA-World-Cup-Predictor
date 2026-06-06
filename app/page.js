@@ -863,8 +863,7 @@ export default function Home() {
   };
 
   const downloadPredictions = () => {
-    // ── helpers ─────────────────────────────────────────────────────────
-    const lc = '#252538';  // bracket line color
+    const lc = '#252538';
     const fl = t => (t?.flag && !/^[a-z]{2,3}$/.test(t.flag)) ? t.flag + ' ' : '';
     const teamOf = (gid, rank) => {
       const name = getTeamByRank(picks, gid, rank);
@@ -872,55 +871,55 @@ export default function Home() {
       return name ? `${fl(obj)}${name}` : '—';
     };
 
-    // Single match box
-    const mbox = (matchup, pick, w = 130) => {
+    // Match box — width:100% fills its flex parent
+    const mbox = (matchup, pick) => {
       const h = matchup.home, a = matchup.away;
       const hW = pick && pick === h.name, aW = pick && pick === a.name;
       const row = (t, won, out) =>
-        `<div style="padding:5px 9px;font-size:11px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-          color:${won?'#4ade80':out?'#2a2a40':'#c8d0de'};font-weight:${won?700:400};
-          background:${won?'rgba(74,222,128,.07)':'transparent'};border-bottom:1px solid #151524">
+        `<div style="padding:5px 8px;font-size:11px;line-height:1.4;white-space:nowrap;
+          overflow:hidden;text-overflow:ellipsis;
+          color:${won?'#4ade80':out?'#252538':'#c8d0de'};font-weight:${won?700:400};
+          background:${won?'rgba(74,222,128,.07)':'transparent'};border-bottom:1px solid #12121e">
           ${fl(t)}${t.name||t.display}${won?' ✓':''}
         </div>`;
-      return `<div style="background:#0c0c1c;border:1px solid #1a1a2e;border-radius:6px;overflow:hidden;width:${w}px;flex-shrink:0">
-        ${row(h,hW,aW)}${row(a,aW,hW)}</div>`;
+      return `<div style="background:#0c0c1c;border:1px solid #181828;border-radius:5px;
+        overflow:hidden;width:100%">${row(h,hW,aW)}${row(a,aW,hW)}</div>`;
     };
 
-    // Column of match boxes (justify-around)
-    const mcol = (matchups, picks_arr, w = 130) =>
-      `<div style="display:flex;flex-direction:column;justify-content:space-around;align-items:flex-start;width:${w}px;height:640px;flex-shrink:0">
-        ${matchups.map((m,i) => mbox(m, picks_arr[i], w)).join('')}
+    // Column — flex:1 so all columns share width equally
+    const mcol = (matchups, picks_arr) =>
+      `<div style="display:flex;flex-direction:column;justify-content:space-around;
+        align-items:stretch;flex:1;min-width:0;height:620px">
+        ${matchups.map((m,i) => mbox(m, picks_arr[i])).join('')}
       </div>`;
 
-    // Left-side bracket connector (bracket ┤ opens RIGHT toward next round)
+    // Left connector ┤ (bracket opens right)
     const connL = pairs => {
       const d = Array.from({length:pairs*2},(_,i)=>
         `<div style="flex:1;border-right:1px solid ${lc};${i%2===0?'border-bottom':'border-top'}:1px solid ${lc}"></div>`
       ).join('');
-      return `<div style="display:flex;flex-direction:column;width:14px;height:640px;flex-shrink:0">${d}</div>`;
+      return `<div style="display:flex;flex-direction:column;width:10px;flex-shrink:0;height:620px">${d}</div>`;
     };
 
-    // Right-side bracket connector (bracket ├ opens LEFT toward next round)
+    // Right connector ├ (bracket opens left)
     const connR = pairs => {
       const d = Array.from({length:pairs*2},(_,i)=>
         `<div style="flex:1;border-left:1px solid ${lc};${i%2===0?'border-bottom':'border-top'}:1px solid ${lc}"></div>`
       ).join('');
-      return `<div style="display:flex;flex-direction:column;width:14px;height:640px;flex-shrink:0">${d}</div>`;
+      return `<div style="display:flex;flex-direction:column;width:10px;flex-shrink:0;height:620px">${d}</div>`;
     };
 
-    // Thin horizontal line (SF → Final)
     const lineH = () =>
-      `<div style="display:flex;align-items:center;width:14px;height:640px;flex-shrink:0">
+      `<div style="display:flex;align-items:center;width:10px;flex-shrink:0;height:620px">
         <div style="width:100%;height:1px;background:${lc}"></div></div>`;
 
-    // ── gather bracket data ──────────────────────────────────────────────
+    // Gather matchup arrays
     const r32L = BRACKET_L.r32.map(i => r32Matchups[i]);
     const r16L = BRACKET_L.r16.map(i => r16Matchups[i]);
     const qfL  = BRACKET_L.qf.map(i  => qfMatchups[i]);
     const r32R = BRACKET_R.r32.map(i => r32Matchups[i]);
     const r16R = BRACKET_R.r16.map(i => r16Matchups[i]);
     const qfR  = BRACKET_R.qf.map(i  => qfMatchups[i]);
-
     const r32LP = BRACKET_L.r32.map(i => bracketPicks.r32[i]);
     const r16LP = BRACKET_L.r16.map(i => bracketPicks.r16[i]);
     const qfLP  = BRACKET_L.qf.map(i  => bracketPicks.qf[i]);
@@ -928,102 +927,114 @@ export default function Home() {
     const r16RP = BRACKET_R.r16.map(i => bracketPicks.r16[i]);
     const qfRP  = BRACKET_R.qf.map(i  => bracketPicks.qf[i]);
 
-    // ── label row helper ─────────────────────────────────────────────────
-    const lbl = (text, w, color = '#3a3a54') =>
-      `<div style="width:${w}px;text-align:center;font-size:8px;font-weight:800;letter-spacing:.1em;color:${color};text-transform:uppercase">${text}</div>`;
-    const gap = (w) => `<div style="width:${w}px"></div>`;
-
-    // ── champion block ────────────────────────────────────────────────────
-    const champBlock = champion ? `
-      <div style="text-align:center;padding:40px 24px;margin-bottom:36px;
-          background:radial-gradient(120% 140% at 50% 0,rgba(245,193,66,.12),transparent),#0e0e1a;
-          border:1px solid rgba(245,193,66,.35);border-radius:20px">
-        <div style="font-size:56px;margin-bottom:10px">🏆</div>
-        <div style="font-size:10px;font-weight:800;letter-spacing:.28em;color:#f5c142;margin-bottom:8px">2026 WORLD CHAMPION</div>
-        <div style="font-size:34px;font-weight:900;color:#fff">${fl(championObj)}${champion}</div>
-      </div>` : '';
-
-    // ── bracket HTML ──────────────────────────────────────────────────────
-    const bracketHtml = `
-      <div style="margin-bottom:40px">
-        <div style="font-size:10px;font-weight:800;letter-spacing:.18em;color:#6b7280;text-transform:uppercase;margin-bottom:14px">Knockout Bracket</div>
-        <div style="overflow-x:auto;background:#080814;border:1px solid #151524;border-radius:14px;padding:24px 20px 14px">
-
-          <div style="display:flex;align-items:stretch;min-width:1140px">
-            ${mcol(r32L, r32LP)}
-            ${connL(4)}
-            ${mcol(r16L, r16LP)}
-            ${connL(2)}
-            ${mcol(qfL, qfLP)}
-            ${connL(1)}
-            ${mcol([sfMatchups[0]], [bracketPicks.sf[0]])}
-            ${lineH()}
-
-            <div style="width:170px;height:640px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;flex-shrink:0">
-              <div style="font-size:44px;line-height:1;filter:${champion?'drop-shadow(0 0 16px rgba(245,193,66,.55))':'grayscale(1) opacity(.2)'}">🏆</div>
-              ${champion?`<div style="font-size:12px;font-weight:800;letter-spacing:.14em;color:#f5c142;text-align:center">${fl(championObj)}${champion}</div>`:''}
-              <div style="font-size:8px;font-weight:800;letter-spacing:.15em;color:#f5c142;text-transform:uppercase;margin-top:4px">Final · Jul 19</div>
-              ${mbox(finalMatchup, bracketPicks.final, 162)}
-              <div style="font-size:8px;font-weight:800;letter-spacing:.12em;color:#4a4a6a;text-transform:uppercase;margin-top:4px">3rd Place · Jul 18</div>
-              ${mbox(thirdMatchup, bracketPicks.thirdPlace, 162)}
-            </div>
-
-            ${lineH()}
-            ${mcol([sfMatchups[1]], [bracketPicks.sf[1]])}
-            ${connR(1)}
-            ${mcol(qfR, qfRP)}
-            ${connR(2)}
-            ${mcol(r16R, r16RP)}
-            ${connR(4)}
-            ${mcol(r32R, r32RP)}
-          </div>
-
-          <div style="display:flex;margin-top:10px;min-width:1140px">
-            ${lbl('Round of 32',130)} ${gap(14)} ${lbl('Round of 16',130)} ${gap(14)}
-            ${lbl('Quarters',130)} ${gap(14)} ${lbl('Semis',130)} ${gap(14)}
-            ${lbl('Final',170,'#f5c142')}
-            ${gap(14)} ${lbl('Semis',130)} ${gap(14)} ${lbl('Quarters',130)} ${gap(14)}
-            ${lbl('Round of 16',130)} ${gap(14)} ${lbl('Round of 32',130)}
-          </div>
-        </div>
+    // Center column (slightly wider via flex:1.4)
+    const centerCol = `
+      <div style="flex:1.4;flex-shrink:0;height:620px;display:flex;flex-direction:column;
+        align-items:center;justify-content:center;gap:8px;min-width:0;padding:0 4px">
+        <div style="font-size:40px;line-height:1;filter:${champion
+          ?'drop-shadow(0 0 14px rgba(245,193,66,.55))'
+          :'grayscale(1) opacity(.2)'}">🏆</div>
+        ${champion
+          ?`<div style="font-size:11px;font-weight:800;letter-spacing:.12em;color:#f5c142;
+              text-align:center;white-space:nowrap">${fl(championObj)}${champion}</div>`:''}
+        <div style="font-size:8px;font-weight:800;letter-spacing:.12em;color:#f5c142;
+          text-transform:uppercase;margin-top:4px;white-space:nowrap">Final · Jul 19</div>
+        ${mbox(finalMatchup, bracketPicks.final)}
+        <div style="font-size:8px;font-weight:800;letter-spacing:.1em;color:#4a4a6a;
+          text-transform:uppercase;margin-top:2px;white-space:nowrap">3rd Place · Jul 18</div>
+        ${mbox(thirdMatchup, bracketPicks.thirdPlace)}
       </div>`;
 
-    // ── group rows ────────────────────────────────────────────────────────
+    // Label row — mirrors the flex structure above
+    const lbl = (text, flex, color='#2e2e4a') =>
+      `<div style="flex:${flex};min-width:0;text-align:center;font-size:8px;font-weight:800;
+        letter-spacing:.08em;color:${color};text-transform:uppercase;overflow:hidden">${text}</div>`;
+    const gap10 = `<div style="width:10px;flex-shrink:0"></div>`;
+
+    const labelRow = `
+      <div style="display:flex;margin-top:8px;align-items:center">
+        ${lbl('R32',1)} ${gap10} ${lbl('R16',1)} ${gap10} ${lbl('QF',1)} ${gap10}
+        ${lbl('SF',1)} ${gap10} ${lbl('Final',1.4,'#f5c142')} ${gap10}
+        ${lbl('SF',1)} ${gap10} ${lbl('QF',1)} ${gap10} ${lbl('R16',1)} ${gap10} ${lbl('R32',1)}
+      </div>`;
+
+    // ── sections ──────────────────────────────────────────────────────────
+
+    // 1. Champion block
+    const champBlock = champion ? `
+      <div style="text-align:center;padding:36px 24px;margin-bottom:32px;
+        background:radial-gradient(120% 140% at 50% 0,rgba(245,193,66,.12),transparent),#0e0e1a;
+        border:1px solid rgba(245,193,66,.35);border-radius:18px">
+        <div style="font-size:52px;margin-bottom:10px">🏆</div>
+        <div style="font-size:10px;font-weight:800;letter-spacing:.28em;color:#f5c142;margin-bottom:8px">2026 WORLD CHAMPION</div>
+        <div style="font-size:32px;font-weight:900;color:#fff">${fl(championObj)}${champion}</div>
+      </div>` : '';
+
+    // 2. Group stage (NOW FIRST, above bracket)
     const groupRows = GROUPS.map(g => `
-      <div style="background:#0c0c1c;border:1px solid #151524;border-radius:12px;padding:14px">
-        <div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:${GROUP_COLORS[g.id]};margin-bottom:10px">GROUP ${g.id}</div>
-        <div style="display:flex;flex-direction:column;gap:5px">
-          <div style="font-size:13px;color:#f5c142">🥇 ${teamOf(g.id,1)}</div>
-          <div style="font-size:13px;color:#c2cad6">🥈 ${teamOf(g.id,2)}</div>
-          <div style="font-size:13px;color:#cf8a4f">🥉 ${teamOf(g.id,3)}</div>
+      <div style="background:#0c0c1c;border:1px solid #181828;border-radius:10px;padding:12px">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.1em;color:${GROUP_COLORS[g.id]};margin-bottom:8px">GROUP ${g.id}</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:12px;color:#f5c142">🥇 ${teamOf(g.id,1)}</div>
+          <div style="font-size:12px;color:#c2cad6">🥈 ${teamOf(g.id,2)}</div>
+          <div style="font-size:12px;color:#cf8a4f">🥉 ${teamOf(g.id,3)}</div>
         </div>
       </div>`).join('');
 
     const thirdPills = thirdPlacePicks.map(gid => {
       const name = getTeamByRank(picks, gid, 3);
       const obj  = name ? getTeamObj(gid, name) : null;
-      return `<span style="background:#0c0c1c;border:1px solid #151524;border-radius:6px;padding:4px 10px;font-size:12px;color:#c8d0de">${fl(obj)}${name||gid}</span>`;
+      return `<span style="background:#0c0c1c;border:1px solid #181828;border-radius:6px;
+        padding:4px 10px;font-size:12px;color:#c8d0de">${fl(obj)}${name||gid}</span>`;
     }).join('');
 
-    // ── assemble full HTML ────────────────────────────────────────────────
+    const groupSection = `
+      <div style="margin-bottom:36px">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.18em;color:#6b7280;text-transform:uppercase;margin-bottom:12px">Group Stage</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">${groupRows}</div>
+        ${thirdPlacePicks.length > 0 ? `
+          <div style="margin-top:20px">
+            <div style="font-size:10px;font-weight:800;letter-spacing:.18em;color:#6b7280;text-transform:uppercase;margin-bottom:10px">Best 8 Third-Place Teams</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">${thirdPills}</div>
+          </div>` : ''}
+      </div>`;
+
+    // 3. Knockout bracket (full-width, no min-width, no scrollbar)
+    const bracketSection = `
+      <div style="margin-bottom:36px">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.18em;color:#6b7280;text-transform:uppercase;margin-bottom:12px">Knockout Bracket</div>
+        <div style="background:#080814;border:1px solid #151524;border-radius:12px;padding:20px 16px 12px">
+          <div style="display:flex;align-items:stretch;width:100%">
+            ${mcol(r32L,r32LP)} ${connL(4)}
+            ${mcol(r16L,r16LP)} ${connL(2)}
+            ${mcol(qfL,qfLP)}   ${connL(1)}
+            ${mcol([sfMatchups[0]],[bracketPicks.sf[0]])} ${lineH()}
+            ${centerCol}
+            ${lineH()} ${mcol([sfMatchups[1]],[bracketPicks.sf[1]])}
+            ${connR(1)} ${mcol(qfR,qfRP)}
+            ${connR(2)} ${mcol(r16R,r16RP)}
+            ${connR(4)} ${mcol(r32R,r32RP)}
+          </div>
+          ${labelRow}
+        </div>
+      </div>`;
+
     const html = `<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>My WC2026 Predictions</title>
-<style>*{margin:0;box-sizing:border-box}body{background:#080814;color:#e2e8f0;
-  font-family:ui-sans-serif,system-ui,-apple-system,sans-serif}
-  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
+<style>*{margin:0;box-sizing:border-box}
+body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
 </head><body>
 <div style="height:4px;background:linear-gradient(90deg,#4ade80,#06b6d4,#a78bfa,#f5c142,#fb7185)"></div>
-<div style="max-width:1200px;margin:0 auto;padding:40px 28px">
+<div style="max-width:1200px;margin:0 auto;padding:36px 28px">
   <div style="font-size:10px;font-weight:800;letter-spacing:.28em;color:#6b7280;text-transform:uppercase">FIFA World Cup 2026 · My Predictions</div>
-  <div style="font-size:30px;font-weight:900;margin:6px 0 32px;color:#fff">Tournament Bracket</div>
+  <div style="font-size:28px;font-weight:900;margin:6px 0 28px;color:#fff">Tournament Bracket</div>
   ${champBlock}
-  ${bracketHtml}
-  <div style="font-size:10px;font-weight:800;letter-spacing:.18em;color:#6b7280;text-transform:uppercase;margin-bottom:14px">Group Stage</div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">${groupRows}</div>
-  ${thirdPlacePicks.length > 0 ? `<div style="margin-top:24px"><div style="font-size:10px;font-weight:800;letter-spacing:.18em;color:#6b7280;text-transform:uppercase;margin-bottom:12px">Best 8 Third-Place Teams</div><div style="display:flex;flex-wrap:wrap;gap:8px">${thirdPills}</div></div>` : ''}
-  <div style="text-align:center;color:#252538;font-size:11px;margin-top:40px;padding-top:20px;border-top:1px solid #131320">
+  ${groupSection}
+  ${bracketSection}
+  <div style="text-align:center;color:#1e1e30;font-size:11px;margin-top:32px;padding-top:16px;border-top:1px solid #111120">
     Generated ${new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})} · Not affiliated with FIFA
   </div>
 </div></body></html>`;
