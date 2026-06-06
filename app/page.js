@@ -7,16 +7,16 @@ import { MATCH_SCHEDULE } from '../lib/schedule';
 
 // ─── Design tokens ────────────────────────────────────────────────────────
 const GROUP_COLORS = {
-  A: '#22c55e',  // green-500
+  A: '#22c55e',  // green-500  (was neon #39ff14)
   B: '#0891b2',  // cyan-600
   C: '#8b5cf6',  // violet-500
-  D: '#d97706',  // amber-600
+  D: '#d97706',  // amber-600  (was bright #fbbf24)
   E: '#f97316',  // orange-500
   F: '#f87171',  // red-400
   G: '#ec4899',  // pink-500
-  H: '#0ea5e9',  // sky-500
+  H: '#0ea5e9',  // sky-500    (was bright #22d3ee)
   I: '#a78bfa',  // violet-400
-  J: '#ca8a04',  // yellow-600
+  J: '#ca8a04',  // yellow-600 (was bright #facc15)
   K: '#fb7185',  // rose-400
   L: '#34d399',  // emerald-400
 };
@@ -214,8 +214,8 @@ function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading
                     <button key={r} className={`rankbtn ${active ? 'rankbtn--on' : ''}`}
                       onClick={() => onSetRank(group.id, team.name, r)}
                       style={active ? { background:rm.solid, color:'#0a0a12', boxShadow:`0 0 12px ${rm.solid}66` } : {}}>
-                      {r
-                    }</button>
+                      {r}
+                    </button>
                   );
                 })}
               </div>
@@ -309,22 +309,35 @@ function GroupBox({ group }) {
 }
 
 function BracketLines() {
+  // Geometry: 130px slots, 640px height, 6px gaps
+  // Left column right edges:  R32=196, R16=332, QF=468, SF=604
+  // Right column left edges:  SF=888, QF=1024, R16=1160, R32=1296
+  // Slot centers (justify-around, 640px): R32=40,120,200,280,360,440,520,600
+  // R16=80,240,400,560 | QF=160,480 | SF=320
   const lines = [
+    // Left R32 vertical pairs + horizontal exits
     [196,40,196,120],  [196,80,202,80],
     [196,200,196,280], [196,240,202,240],
     [196,360,196,440], [196,400,202,400],
     [196,520,196,600], [196,560,202,560],
+    // Left R16 vertical pairs + horizontal exits
     [332,80,332,240],  [332,160,338,160],
     [332,400,332,560], [332,480,338,480],
+    // Left QF vertical + horizontal exit
     [468,160,468,480], [468,320,474,320],
+    // Left SF → center
     [604,320,610,320],
+    // Right R32 vertical pairs + horizontal exits
     [1296,40,1296,120],  [1290,80,1296,80],
     [1296,200,1296,280], [1290,240,1296,240],
     [1296,360,1296,440], [1290,400,1296,400],
     [1296,520,1296,600], [1290,560,1296,560],
+    // Right R16 vertical pairs + horizontal exits
     [1160,80,1160,240],  [1154,160,1160,160],
     [1160,400,1160,560], [1154,480,1160,480],
+    // Right QF vertical + horizontal exit
     [1024,160,1024,480], [1018,320,1024,320],
+    // Right center → SF
     [882,320,888,320],
   ];
   return (
@@ -404,13 +417,37 @@ function Confetti({ id }) {
   );
 }
 
+function ChampionCelebration({ show, champion, championObj, onDismiss }) {
+  if (!show || !champion) return null;
+  return (
+    <div className="champion-overlay" onClick={onDismiss}>
+      <Confetti id={`celebrate-${champion}`} />
+      <div className="champion-spotlight" />
+      <div className="champion-modal">
+        <div className="champion-year">FIFA WORLD CUP 2026</div>
+        <div className="champion-trophy-big">🏆</div>
+        <div className="champion-title-big">CHAMPIONS</div>
+        <div className="champion-team-big">
+          {championObj && <Flag team={championObj} size={36} />}
+          <span>{champion}</span>
+        </div>
+        <div className="champion-dismiss">tap anywhere to close</div>
+      </div>
+    </div>
+  );
+}
+
 function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bracketPicks, pickBracket }) {
   const sfHome = finalMatchup.home;
   const sfAway = finalMatchup.away;
   return (
     <div className="champ-col">
       {champion && <Confetti id={champion} />}
+
+      {/* Trophy */}
       <div className={`trophy ${champion ? 'trophy--won' : ''}`}>🏆</div>
+
+      {/* Champion or pre-final state */}
       {champion ? (
         <div className="champ-name-wrap">
           <div className="champ-eyebrow">2026 World Champion</div>
@@ -430,12 +467,18 @@ function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bra
           )}
         </div>
       )}
+
       <div className="champ-div" />
+
+      {/* Final match */}
       <div className="champ-match">
         <div className="champ-match-label champ-final-label">FINAL · JUL 19 · NY/NJ</div>
         <BracketSlot matchup={finalMatchup} picked={bracketPicks.final} onPick={n => pickBracket('final',0,n)} matchNum={104} wide />
       </div>
+
       <div style={{ height:10 }} />
+
+      {/* 3rd place */}
       <div className="champ-match">
         <div className="champ-match-label">3rd Place · Jul 18 · Miami</div>
         <BracketSlot matchup={thirdMatchup} picked={bracketPicks.thirdPlace} onPick={n => pickBracket('thirdPlace',0,n)} matchNum={103} wide />
@@ -444,16 +487,15 @@ function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bra
   );
 }
 
-// Fixed Bracket sub-component accepting treeScrollRef as a parameter
 function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatchups,
                    finalMatchup, thirdMatchup, bracketPicks, pickBracket,
-                   champion, championObj, r32Done, r16Done, qfDone, sfDone, treeScrollRef }) {
+                   champion, championObj, r32Done, r16Done, qfDone, sfDone }) {
   if (!thirdPlaceDone) {
     return <div className="locked locked--dark locked--big">Select your 8 third-place teams above to unlock the bracket.</div>;
   }
   return (
     <>
-      <div className="tree-scroll" ref={treeScrollRef}>
+      <div className="tree-scroll">
         <div className="tree" style={{ minWidth:1492 }}>
           <BracketLines />
           <div className="tree-col tree-groups">
@@ -471,14 +513,9 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
           <div className="tree-col">
             <BracketSlot matchup={sfMatchups[0]} picked={bracketPicks.sf[0]} onPick={n=>pickBracket('sf',0,n)} matchNum={101} />
           </div>
-          <ChampionReveal
-  champion={champion}
-  championObj={championObj}
-  finalMatchup={finalMatchup}
-  thirdMatchup={thirdMatchup}
-  bracketPicks={bracketPicks}
-  pickBracket={pickBracket}
-/>
+          <ChampionReveal champion={champion} championObj={championObj}
+            finalMatchup={finalMatchup} thirdMatchup={thirdMatchup}
+            bracketPicks={bracketPicks} pickBracket={pickBracket} />
           <div className="tree-col">
             <BracketSlot matchup={sfMatchups[1]} picked={bracketPicks.sf[1]} onPick={n=>pickBracket('sf',1,n)} matchNum={102} />
           </div>
@@ -504,6 +541,7 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
         </div>
       </div>
 
+      {/* Tournament Story — fills horizontal space on wide screens */}
       {(champion || bracketPicks.sf[0] || bracketPicks.sf[1]) && (
         <div className="tournament-story">
           {champion && (
@@ -600,6 +638,7 @@ export default function Home() {
   const [openGroup, setOpenGroup] = useState(null);
   const [hydrated, setHydrated] = useState(false);
   const [days, setDays] = useState(null);
+  const [showChampionReveal, setShowChampionReveal] = useState(false);
 
   const thirdRef      = useRef(null);
   const bracketRef    = useRef(null);
@@ -714,12 +753,13 @@ export default function Home() {
       const u = {
         r32: [...prev.r32],
         r16: [...prev.r16],
-        qf: [...prev.qf],
+        qf:  [...prev.qf],
         sf:  [...prev.sf],
         final: prev.final,
         thirdPlace: prev.thirdPlace,
       };
 
+      // Cascade helper: null out only the downstream slots affected by this pick
       const clearFrom = (fromRound, fromIdx) => {
         if (fromRound === 'r32') {
           const r16i = R16_PAIRS.findIndex(([a,b]) => a === fromIdx || b === fromIdx);
@@ -761,6 +801,12 @@ export default function Home() {
 
       return u;
     });
+
+    // Trigger celebration outside the updater — can't call setState inside setState
+    if (round === 'final' && name) {
+      setShowChampionReveal(true);
+      setTimeout(() => setShowChampionReveal(false), 5000);
+    }
   };
 
   const r32Done = bracketPicks.r32.every(p => p !== null);
@@ -841,6 +887,12 @@ export default function Home() {
 
   return (
     <main className="page">
+      <ChampionCelebration
+        show={showChampionReveal}
+        champion={champion}
+        championObj={championObj}
+        onDismiss={() => setShowChampionReveal(false)}
+      />
 
       {/* ── Progress header ── */}
       <div className="phead">
@@ -997,14 +1049,12 @@ export default function Home() {
             </p>
           </div>
         </div>
-        {/* Correctly passing the treeScrollRef property down into the Bracket component call */}
         <Bracket thirdPlaceDone={thirdPlaceDone}
           r32Matchups={r32Matchups} r16Matchups={r16Matchups} qfMatchups={qfMatchups} sfMatchups={sfMatchups}
           finalMatchup={finalMatchup} thirdMatchup={thirdMatchup}
           bracketPicks={bracketPicks} pickBracket={pickBracket}
           champion={champion} championObj={championObj}
-          r32Done={r32Done} r16Done={r16Done} qfDone={qfDone} sfDone={sfDone}
-          treeScrollRef={treeScrollRef} />
+          r32Done={r32Done} r16Done={r16Done} qfDone={qfDone} sfDone={sfDone} />
       </section>
 
       <footer className="footer">
