@@ -189,7 +189,7 @@ function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading
           className={`ai-toggle ${isOpen ? 'ai-toggle--on' : ''} ${limitReached && !analysis ? 'ai-toggle--disabled' : ''}`}
           onClick={onToggleAI}
           disabled={limitReached && !analysis && !loading}
-          title={limitReached && !analysis ? `AI limit reached${user ? ' (3/3)' : ' — sign in for more'}` : undefined}
+          title={limitReached && !analysis ? 'AI analysis limit reached' : undefined}
         >
           {loading
             ? <><span className="ai-spinner ai-spinner--sm" /> Analyzing</>
