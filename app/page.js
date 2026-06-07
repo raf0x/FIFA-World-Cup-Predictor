@@ -168,7 +168,7 @@ function AIPanel({ loading, analysis, color }) {
 }
 
 // ─── Group Stage Card ──────────────────────────────────────────────────────
-function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading, onToggleAI, onSetRank, limitReached }) {
+function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading, onToggleAI, onSetRank, limitReached, contactMsg }) {
   const color = GROUP_COLORS[group.id];
   const rankedCount = Object.keys(groupPicks).length;
   return (
@@ -188,19 +188,27 @@ function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading
         <button
           className={`ai-toggle ${isOpen ? 'ai-toggle--on' : ''} ${limitReached && !analysis ? 'ai-toggle--disabled' : ''}`}
           onClick={onToggleAI}
-          disabled={limitReached && !analysis && !loading}
           title={limitReached && !analysis ? 'AI analysis limit reached' : undefined}
         >
           {loading
             ? <><span className="ai-spinner ai-spinner--sm" /> Analyzing</>
             : isOpen ? 'Hide AI'
             : analysis ? '◆ AI Analysis'
-            : limitReached ? '✕ Limit reached'
+            : limitReached ? '◆ AI Analysis'
             : '◆ AI Analysis'}
         </button>
       </div>
 
-      {isOpen && <AIPanel loading={loading} analysis={analysis} color={color} />}
+      {isOpen && (
+        contactMsg
+          ? <div className="aipanel" style={{ textAlign:'center', padding:'24px 20px' }}>
+              <div style={{ fontSize:24, marginBottom:10 }}>😅</div>
+              <p style={{ fontSize:13, color:'var(--dim)', lineHeight:1.7 }}>
+                If you want to use more AI Analysis, contact Rafa because this costs him money 💸
+              </p>
+            </div>
+          : <AIPanel loading={loading} analysis={analysis} color={color} />
+      )}
 
       <div className="gcard-teams">
         {group.teams.map(team => {
@@ -728,6 +736,7 @@ export default function Home() {
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [user, setUser] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [contactMsgGroup, setContactMsgGroup] = useState(null);
   const pendingGroupRef = useRef(null);
 
   const thirdRef      = useRef(null);
@@ -1341,10 +1350,19 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
               groupPicks={picks[group.id] || {}} complete={groupComplete(group.id)}
               isOpen={openGroup === group.id} analysis={analyses[group.id]} loading={loadingAnalysis[group.id]}
               limitReached={user ? aiCallsUsed >= AI_LIMIT : aiCallsUsed >= 1}
+              contactMsg={contactMsgGroup === group.id}
               onToggleAI={() => {
                 const isNowOpen = openGroup !== group.id;
-                setOpenGroup(isNowOpen ? group.id : null);
-                if (isNowOpen && !analyses[group.id] && !loadingAnalysis[group.id]) fetchAnalysis(group.id);
+                const atLimit = user ? aiCallsUsed >= AI_LIMIT : aiCallsUsed >= 1;
+                if (isNowOpen && atLimit && !analyses[group.id]) {
+                  // At limit with no cache: show contact message instead
+                  setOpenGroup(group.id);
+                  setContactMsgGroup(group.id);
+                } else {
+                  setContactMsgGroup(null);
+                  setOpenGroup(isNowOpen ? group.id : null);
+                  if (isNowOpen && !analyses[group.id] && !loadingAnalysis[group.id]) fetchAnalysis(group.id);
+                }
               }}
               onSetRank={setRank} />
           ))}
