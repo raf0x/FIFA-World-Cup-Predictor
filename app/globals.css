@@ -425,6 +425,7 @@ a { color: inherit; }
 }
 .ai-note { font-size: 12px; color: var(--text); line-height: 1.5; }
 .ai-note b { font-weight: 700; }
+.ai-last-match { font-size: 11px; color: var(--green); margin-top: 3px; font-weight: 600; letter-spacing: .01em; }
 
 .ai-foot { border-top: 1px solid var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 5px; }
 .ai-foot-row { display: flex; align-items: baseline; gap: 8px; font-size: 12px; flex-wrap: wrap; }
