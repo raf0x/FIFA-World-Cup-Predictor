@@ -186,7 +186,7 @@ function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading
           </div>
         </div>
         <button
-          className={`ai-toggle ${isOpen ? 'ai-toggle--on' : ''} ${limitReached && !analysis ? 'ai-toggle--disabled' : ''}`}
+          className={`ai-toggle ${isOpen ? 'ai-toggle--on' : ''}`}
           onClick={onToggleAI}
           title={limitReached && !analysis ? 'AI analysis limit reached' : undefined}
         >
@@ -194,7 +194,7 @@ function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading
             ? <><span className="ai-spinner ai-spinner--sm" /> Analyzing</>
             : isOpen ? 'Hide AI'
             : analysis ? '◆ AI Analysis'
-            : limitReached ? '◆ AI Analysis'
+            : limitReached ? '◆ Want more AI?'
             : '◆ AI Analysis'}
         </button>
       </div>
