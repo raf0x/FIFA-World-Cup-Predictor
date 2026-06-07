@@ -83,7 +83,7 @@ OUTPUT: Respond with ONLY a valid JSON object. No markdown fences, no explanatio
     {
       "name": "<exact team name from the list above>",
       "rank": 1,
-      "lastMatch": "<Opponent> <Score> (<DD Mon YYYY>) — confirmed",
+      "lastMatch": "vs [Opponent] · [WON/DREW/LOST] [TeamScore]-[OpponentScore] ([DD Mon YYYY]) — confirmed",
       "note": "max 22 words referencing confirmed last match and one key differentiator"
     }
   ],
