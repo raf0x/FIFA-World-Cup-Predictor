@@ -846,7 +846,7 @@ export default function Home() {
 
   const fetchAnalysis = async (groupId) => {
     // Anonymous: 1 free call, then login wall
-    if (!user && aiCallsUsed >= 1) {
+    if (!user && aiCallsUsed >= 2) {
       pendingGroupRef.current = groupId;
       setShowAuthModal(true);
       return;
@@ -1352,11 +1352,11 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
             <GroupStageCard key={group.id} group={group}
               groupPicks={picks[group.id] || {}} complete={groupComplete(group.id)}
               isOpen={openGroup === group.id} analysis={analyses[group.id]} loading={loadingAnalysis[group.id]}
-              limitReached={user ? aiCallsUsed >= AI_LIMIT : aiCallsUsed >= 1}
+              limitReached={user ? aiCallsUsed >= AI_LIMIT : aiCallsUsed >= 2}
               contactMsg={contactMsgGroup === group.id}
               onToggleAI={() => {
                 const isNowOpen = openGroup !== group.id;
-                const atLimit = user ? aiCallsUsed >= AI_LIMIT : aiCallsUsed >= 1;
+                const atLimit = user ? aiCallsUsed >= AI_LIMIT : aiCallsUsed >= 2;
                 if (isNowOpen && atLimit && !analyses[group.id]) {
                   // At limit with no cache: show contact message instead
                   setOpenGroup(group.id);
