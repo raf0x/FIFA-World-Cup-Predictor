@@ -91,8 +91,8 @@ Include all four teams ranked 1-4. "confidence" must be exactly High, Medium, or
 
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1600,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
+      max_tokens: 2400,
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 8 }],
       messages: [{ role: 'user', content: prompt }],
     });
 
@@ -101,17 +101,23 @@ Include all four teams ranked 1-4. "confidence" must be exactly High, Medium, or
       .map((b) => b.text)
       .join('\n');
 
-    const start = raw.indexOf('{');
-    const end = raw.lastIndexOf('}');
-    if (start === -1 || end === -1) {
-      return Response.json({ result: { summary: 'Could not parse the analysis. Try again.', teams: [] } });
-    }
-
+    // Robust JSON extraction: find outermost { } by tracking brace depth
     let result;
     try {
-      result = JSON.parse(raw.slice(start, end + 1));
+      let depth = 0, jsonStart = -1, jsonEnd = -1;
+      for (let i = 0; i < raw.length; i++) {
+        if (raw[i] === '{') {
+          if (depth === 0) jsonStart = i;
+          depth++;
+        } else if (raw[i] === '}') {
+          depth--;
+          if (depth === 0 && jsonStart !== -1) { jsonEnd = i; break; }
+        }
+      }
+      if (jsonStart === -1 || jsonEnd === -1) throw new Error('No JSON found');
+      result = JSON.parse(raw.slice(jsonStart, jsonEnd + 1));
     } catch {
-      result = { summary: raw.slice(0, 600), teams: [] };
+      result = { summary: 'Could not parse the analysis. Try again.', teams: [] };
     }
 
     // Only increment count if analysis actually returned useful data
