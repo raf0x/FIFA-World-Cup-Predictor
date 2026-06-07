@@ -23,9 +23,14 @@ export async function POST(req) {
       const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
       if (!error && user) {
         userId = user.id;
-        currentCount = user.user_metadata?.ai_count || 0;
-        if (currentCount >= AUTH_LIMIT) {
-          return Response.json({ error: 'limit_reached' }, { status: 429 });
+        // Admin account: unlimited, no counter
+        if (user.email === 'rlemor@gmail.com') {
+          userId = null; // skip limit check and counter increment
+        } else {
+          currentCount = user.user_metadata?.ai_count || 0;
+          if (currentCount >= AUTH_LIMIT) {
+            return Response.json({ error: 'limit_reached' }, { status: 429 });
+          }
         }
       }
     }
