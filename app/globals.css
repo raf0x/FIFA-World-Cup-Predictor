@@ -336,15 +336,21 @@ a { color: inherit; }
   border-radius: 8px;
   font-size: 12px;
   font-weight: 700;
-  color: var(--dim);
-  border: 1px solid var(--border-2);
-  background: var(--surface-2);
+  color: #39ff14;
+  border: 1px solid rgba(57,255,20,.35);
+  background: rgba(57,255,20,.06);
   white-space: nowrap;
   transition: all .15s;
   flex-shrink: 0;
+  text-shadow: 0 0 8px rgba(57,255,20,.5);
 }
-.ai-toggle:hover { color: var(--text); border-color: var(--dim); }
-.ai-toggle--on { color: var(--text); border-color: var(--border-2); background: var(--surface-3); }
+.ai-toggle:hover {
+  color: #39ff14;
+  border-color: rgba(57,255,20,.7);
+  background: rgba(57,255,20,.12);
+  box-shadow: 0 0 12px rgba(57,255,20,.2);
+}
+.ai-toggle--on { color: var(--text); border-color: var(--border-2); background: var(--surface-3); text-shadow: none; box-shadow: none; }
 .ai-toggle--disabled { opacity: .4; cursor: not-allowed; }
 .ai-toggle--disabled:hover { color: var(--dim); border-color: var(--border); }
 
