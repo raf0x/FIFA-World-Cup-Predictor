@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { GROUPS } from '../lib/groups';
 import { ANNEX_C } from '../lib/annex_c';
 import { MATCH_SCHEDULE } from '../lib/schedule';
+import { supabase } from '../lib/supabase';
 
 // ─── Design tokens ────────────────────────────────────────────────────────
 const GROUP_COLORS = {
@@ -167,7 +168,7 @@ function AIPanel({ loading, analysis, color }) {
 }
 
 // ─── Group Stage Card ──────────────────────────────────────────────────────
-function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading, onToggleAI, onSetRank }) {
+function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading, onToggleAI, onSetRank, limitReached }) {
   const color = GROUP_COLORS[group.id];
   const rankedCount = Object.keys(groupPicks).length;
   return (
@@ -184,10 +185,18 @@ function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading
             </div>
           </div>
         </div>
-        <button className={`ai-toggle ${isOpen ? 'ai-toggle--on' : ''}`} onClick={onToggleAI}>
+        <button
+          className={`ai-toggle ${isOpen ? 'ai-toggle--on' : ''} ${limitReached && !analysis ? 'ai-toggle--disabled' : ''}`}
+          onClick={onToggleAI}
+          disabled={limitReached && !analysis && !loading}
+          title={limitReached && !analysis ? `AI limit reached${user ? ' (3/3)' : ' — sign in for more'}` : undefined}
+        >
           {loading
             ? <><span className="ai-spinner ai-spinner--sm" /> Analyzing</>
-            : isOpen ? 'Hide AI' : '◆ AI Analysis'}
+            : isOpen ? 'Hide AI'
+            : analysis ? '◆ AI Analysis'
+            : limitReached ? '✕ Limit reached'
+            : '◆ AI Analysis'}
         </button>
       </div>
 
@@ -416,6 +425,82 @@ function Confetti({ id }) {
     </div>
   );
 }
+// ─── Auth Modal ───────────────────────────────────────────────────────────
+function AuthModal({ show, onClose }) {
+  const [tab, setTab] = useState('signup');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (show) { setEmail(''); setPassword(''); setError(''); setSuccess(false); }
+  }, [show]);
+
+  if (!show) return null;
+
+  const submit = async () => {
+    if (!email || !password) return;
+    setLoading(true);
+    setError('');
+    try {
+      const { error: err } = tab === 'signup'
+        ? await supabase.auth.signUp({ email, password })
+        : await supabase.auth.signInWithPassword({ email, password });
+      if (err) throw err;
+      setSuccess(true);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="auth-overlay" onClick={onClose}>
+      <div className="auth-modal" onClick={e => e.stopPropagation()}>
+        <button className="auth-close" onClick={onClose}>✕</button>
+        {success ? (
+          <div className="auth-success">
+            <div style={{ fontSize: 48, marginBottom: 12 }}>✓</div>
+            <div className="auth-title">You're in.</div>
+            <p className="auth-desc">
+              You now have <b>3 AI analyses</b>. Close this and click <b>◆ AI Analysis</b> on any group.
+            </p>
+            <button className="btn btn-green auth-submit" onClick={onClose}>Start analyzing →</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 36, textAlign: 'center', marginBottom: 10 }}>🔒</div>
+            <h2 className="auth-title">Unlock AI Analysis</h2>
+            <p className="auth-desc">
+              Create a free account to unlock <b>3 AI analyses</b> — live squad data,
+              form guides and group predictions.
+            </p>
+            <div className="auth-tabs">
+              <button className={`auth-tab ${tab==='signup'?'auth-tab--on':''}`} onClick={() => setTab('signup')}>Create Account</button>
+              <button className={`auth-tab ${tab==='signin'?'auth-tab--on':''}`} onClick={() => setTab('signin')}>Sign In</button>
+            </div>
+            <div className="auth-fields">
+              <input className="auth-input" type="email" placeholder="Email address"
+                value={email} onChange={e => setEmail(e.target.value)} autoFocus />
+              <input className="auth-input" type="password" placeholder="Password (min 6 chars)"
+                value={password} onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && submit()} />
+            </div>
+            {error && <div className="auth-error">{error}</div>}
+            <button className="btn btn-green auth-submit" onClick={submit}
+              disabled={loading || !email || !password}>
+              {loading ? 'Please wait…' : tab === 'signup' ? 'Create Account →' : 'Sign In →'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ChampionCelebration({ show, champion, championObj, onDismiss }) {
   if (!show || !champion) return null;
   return (
@@ -634,11 +719,16 @@ export default function Home() {
   const [bracketPicks, setBracketPicks] = useState(initBracket());
   const [analyses, setAnalyses] = useState({});
   const [loadingAnalysis, setLoadingAnalysis] = useState({});
+  const [aiCallsUsed, setAiCallsUsed] = useState(0);
+  const AI_LIMIT = 2;
   const [openGroup, setOpenGroup] = useState(null);
   const [hydrated, setHydrated] = useState(false);
   const [days, setDays] = useState(null);
   const [showChampionReveal, setShowChampionReveal] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [user, setUser] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const pendingGroupRef = useRef(null);
 
   const thirdRef      = useRef(null);
   const bracketRef    = useRef(null);
@@ -667,6 +757,10 @@ export default function Home() {
         }
       }
     } catch {}
+    try {
+      const savedCalls = localStorage.getItem('wc2026-ai-calls');
+      if (savedCalls) setAiCallsUsed(parseInt(savedCalls, 10) || 0);
+    } catch {}
     setHydrated(true);
   }, []);
 
@@ -674,6 +768,34 @@ export default function Home() {
     if (!hydrated) return;
     localStorage.setItem('wc2026-v2', JSON.stringify({ picks, thirdPlacePicks, bracketPicks, analyses }));
   }, [picks, thirdPlacePicks, bracketPicks, analyses, hydrated]);
+
+  // Auth state
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user || null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+      if (event === 'SIGNED_IN') {
+        // Reset client counter — server is authoritative for logged-in users
+        setAiCallsUsed(0);
+        localStorage.removeItem('wc2026-ai-calls');
+        // Auto-open pending group if user just signed in to unlock it
+        if (pendingGroupRef.current) {
+          setOpenGroup(pendingGroupRef.current);
+          pendingGroupRef.current = null;
+        }
+      }
+      if (event === 'SIGNED_OUT') {
+        // Restore anon counter
+        try {
+          const saved = localStorage.getItem('wc2026-ai-calls');
+          setAiCallsUsed(parseInt(saved, 10) || 0);
+        } catch {}
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const setRank = (groupId, team, rank) => {
     setPicks(prev => {
@@ -714,16 +836,39 @@ export default function Home() {
   const thirdPlaceDone = thirdPlacePicks.length === 8;
 
   const fetchAnalysis = async (groupId) => {
+    // Anonymous: 1 free call, then login wall
+    if (!user && aiCallsUsed >= 1) {
+      pendingGroupRef.current = groupId;
+      setShowAuthModal(true);
+      return;
+    }
+    // Logged-in: client-side guard (server is authoritative via 429)
+    if (user && aiCallsUsed >= AI_LIMIT) return;
+
     const teams = GROUPS.find(g => g.id === groupId)?.teams.map(t => t.name) || [];
     setLoadingAnalysis(prev => ({ ...prev, [groupId]: true }));
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (user) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.access_token) headers['Authorization'] = `Bearer ${data.session.access_token}`;
+      }
       const res = await fetch('/api/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ groupId, teams }),
       });
+      if (res.status === 429) {
+        setAiCallsUsed(AI_LIMIT); // server confirmed limit reached
+        return;
+      }
       const data = await res.json();
       setAnalyses(prev => ({ ...prev, [groupId]: data.result }));
+      setAiCallsUsed(prev => {
+        const next = prev + 1;
+        if (!user) localStorage.setItem('wc2026-ai-calls', String(next));
+        return next;
+      });
     } catch {
       setAnalyses(prev => ({ ...prev, [groupId]: { summary: 'Analysis unavailable. Try again.', teams: [] } }));
     } finally {
@@ -1052,6 +1197,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
 
   return (
     <main className="page">
+      <AuthModal show={showAuthModal} onClose={() => setShowAuthModal(false)} />
       <ChampionCelebration
         show={showChampionReveal}
         champion={champion}
@@ -1099,6 +1245,16 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
             <button className="btn btn-ghost" onClick={shareLink}>
               {copyFeedback ? '✓ Copied!' : '🔗 Share'}
             </button>
+            {user ? (
+              <button className="btn btn-bare" style={{ fontSize:11, color:'var(--dim)' }}
+                onClick={() => supabase.auth.signOut()}>
+                Sign out
+              </button>
+            ) : (
+              <button className="btn btn-ghost" onClick={() => setShowAuthModal(true)}>
+                Sign in
+              </button>
+            )}
             <button className="btn btn-gold" onClick={downloadPredictions}>Export</button>
             <button className="btn btn-bare" onClick={reset}>Reset</button>
           </div>
@@ -1184,6 +1340,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
             <GroupStageCard key={group.id} group={group}
               groupPicks={picks[group.id] || {}} complete={groupComplete(group.id)}
               isOpen={openGroup === group.id} analysis={analyses[group.id]} loading={loadingAnalysis[group.id]}
+              limitReached={user ? aiCallsUsed >= AI_LIMIT : aiCallsUsed >= 1}
               onToggleAI={() => {
                 const isNowOpen = openGroup !== group.id;
                 setOpenGroup(isNowOpen ? group.id : null);
