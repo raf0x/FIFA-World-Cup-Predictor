@@ -146,9 +146,14 @@ function AIPanel({ loading, analysis, color }) {
               <span className="ai-rank" style={{ background:m.tint, color:m.text, boxShadow:`inset 0 0 0 1px ${m.ring}` }}>{t.rank}</span>
               <div>
                 <p className="ai-note"><b>{t.name}.</b> {t.note}</p>
-                {t.lastMatch && t.lastMatch !== 'Last result unverified' && (
-                  <p className="ai-last-match">⚽ {t.lastMatch}</p>
-                )}
+                {t.lastMatch && t.lastMatch !== 'Last result unverified' && (() => {
+                  const color = t.lastMatch.includes('WON') ? 'var(--green)' : t.lastMatch.includes('LOST') ? '#fb7185' : t.lastMatch.includes('DREW') ? '#f5c142' : 'var(--dim)';
+                  return (
+                    <p className="ai-last-match" style={{ color }}>
+                      ⚽ <span className="ai-last-match-label">Last match:</span> {t.lastMatch}
+                    </p>
+                  );
+                })()}
               </div>
             </div>
           );
