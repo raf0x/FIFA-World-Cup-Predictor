@@ -42,52 +42,58 @@ export async function POST(req) {
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const prompt = `You are the most respected international football analyst in the world, writing a pre-tournament briefing for the 2026 FIFA World Cup. Kickoff is June 11, 2026.
+    const prompt = `You are the most respected international football analyst in the world, writing a pre-tournament briefing for the 2026 FIFA World Cup.
 
-TODAY'S DATE: ${today}. This is the only date that matters for determining what has already happened.
+TODAY'S DATE: ${today}.
 
-CRITICAL RULE — READ BEFORE SEARCHING:
-Only cite match results where the date of the match is on or before ${today}.
-Any match dated AFTER ${today} has NOT been played. It is a future scheduled fixture.
-Do NOT report a future fixture as a result under any circumstances.
-If you are uncertain whether a match was played or is upcoming, do not cite it. Skip it entirely.
-Always double-check the date of every result before including it.
+═══════════════════════════════════════════
+ANTI-HALLUCINATION RULES — ABSOLUTE:
+═══════════════════════════════════════════
+1. A result is CONFIRMED only if your search returned the exact score AND exact date.
+2. NEVER invent, estimate, or assume a score. Not found = not reported.
+3. NEVER report a future fixture as a result. If the match date is after ${today}, it has NOT been played.
+4. If you cannot confirm a result via search, write exactly: "Last result unverified"
+5. Do NOT write "reportedly" or "believed to have" — confirmed facts only.
+6. When in doubt, leave it out.
 
-GROUP ${groupId}. Teams: ${teams.join(', ')}.
+═══════════════════════════════════════════
+GROUP ${groupId} — Teams: ${teams.join(', ')}
+═══════════════════════════════════════════
 
-SEARCH STRATEGY — follow this order:
+SEARCH STRATEGY — search each team INDIVIDUALLY. This is mandatory:
 
-1. FIRST search: "${teams.join(', ')} match results June 2026"
-   Find only matches already played on or before ${today}. Ignore any fixtures scheduled after today.
+${teams.map((t, i) => `SEARCH ${i + 1}: "${t} last match result score ${today}" → Find the single most recent confirmed scoreline for ${t}, including exact opponent, score, and date.`).join('\n')}
 
-2. SECOND search: "${teams.join(', ')} World Cup 2026 squad injuries"
-   Confirmed 26-man squads and any injuries or absences.
+SEARCH ${teams.length + 1}: "${teams.join(' ')} World Cup 2026 squad injuries suspensions" → Key absences for the tournament.
 
-3. THIRD search: "${teams.join(', ')} 2026 World Cup qualifying FIFA ranking"
-   Qualifying records and current FIFA rankings.
+SEARCH ${teams.length + 2} (if needed): Follow up on any surprising result from the individual searches above.
 
-4. FOURTH search (optional): follow up on any surprising recent result that changes your assessment.
+═══════════════════════════════════════════
+ANALYSIS REQUIREMENTS:
+═══════════════════════════════════════════
+- lastMatch: REQUIRED for every team. Use confirmed search result. If not found after searching, write "Last result unverified" — never fabricate.
+- note: reference the confirmed last result by name. Max 22 words.
+- Be decisive. No hedging.
+- Use EXACT team names: ${teams.join(', ')}.
 
-ANALYSIS RULES:
-- Cite actual past scorelines with confirmed dates. If you cannot confirm a result was played before ${today}, omit it.
-- Injured or missing key players must be flagged by name.
-- Be decisive and opinionated. No hedging.
-
-Use these EXACT team names: ${teams.join(', ')}.
-
-OUTPUT: After all searches, output ONLY a JSON object (no markdown fences, no text before or after):
+OUTPUT: Respond with ONLY a valid JSON object. No markdown fences, no explanation, no text before or after the JSON:
 {
-  "summary": "one sharp sentence on the group's overall shape, referencing the most notable confirmed recent result",
+  "summary": "one sharp sentence on the group's shape, citing the most decisive confirmed recent result",
   "teams": [
-    { "name": "<exact team name>", "rank": 1, "note": "max 22 words: most recent confirmed result + key player status + one decisive differentiator" }
+    {
+      "name": "<exact team name from the list above>",
+      "rank": 1,
+      "lastMatch": "<Opponent> <Score> (<DD Mon YYYY>) — confirmed",
+      "note": "max 22 words referencing confirmed last match and one key differentiator"
+    }
   ],
   "advance": ["<team>", "<team>"],
-  "thirdPlaceShot": "short note on the 3rd team's best-third wildcard chances, or empty string",
-  "upset": "one short sentence naming the most likely upset, grounded in confirmed recent evidence",
+  "thirdPlaceShot": "short note on 3rd place wildcard, or empty string",
+  "upset": "one sentence on the most likely upset backed by confirmed recent evidence",
   "confidence": "High"
 }
 
-Include all four teams ranked 1-4. "confidence" must be exactly High, Medium, or Low.`;
+Include all ${teams.length} teams ranked 1 to ${teams.length}. "confidence" must be exactly: High, Medium, or Low.`;
 
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
