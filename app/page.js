@@ -873,11 +873,14 @@ export default function Home() {
       }
       const data = await res.json();
       setAnalyses(prev => ({ ...prev, [groupId]: data.result }));
-      setAiCallsUsed(prev => {
-        const next = prev + 1;
-        if (!user) localStorage.setItem('wc2026-ai-calls', String(next));
-        return next;
-      });
+      // Only count as a used call if the analysis actually returned data
+      if (data.result?.teams?.length > 0) {
+        setAiCallsUsed(prev => {
+          const next = prev + 1;
+          if (!user) localStorage.setItem('wc2026-ai-calls', String(next));
+          return next;
+        });
+      }
     } catch {
       setAnalyses(prev => ({ ...prev, [groupId]: { summary: 'Analysis unavailable. Try again.', teams: [] } }));
     } finally {
