@@ -1,12 +1,36 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { createClient } from '@supabase/supabase-js';
 
 export const maxDuration = 60;
+const AUTH_LIMIT = 3;
 
 export async function POST(req) {
+  // Lazy init — env vars only available at runtime, not build time
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
   try {
     const { groupId, teams } = await req.json();
 
-    // Inject today's exact date so the model knows what "already played" means
+    // ── Auth + usage check ───────────────────────────────────────────────
+    const authHeader = req.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    let userId = null;
+    let currentCount = 0;
+
+    if (token) {
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+      if (!error && user) {
+        userId = user.id;
+        currentCount = user.user_metadata?.ai_count || 0;
+        if (currentCount >= AUTH_LIMIT) {
+          return Response.json({ error: 'limit_reached' }, { status: 429 });
+        }
+      }
+    }
+
+    // ── Claude call (unchanged) ──────────────────────────────────────────
     const today = new Date().toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric',
     });
@@ -78,12 +102,21 @@ Include all four teams ranked 1-4. "confidence" must be exactly High, Medium, or
       return Response.json({ result: { summary: 'Could not parse the analysis. Try again.', teams: [] } });
     }
 
+    let result;
     try {
-      const result = JSON.parse(raw.slice(start, end + 1));
-      return Response.json({ result });
+      result = JSON.parse(raw.slice(start, end + 1));
     } catch {
-      return Response.json({ result: { summary: raw.slice(0, 600), teams: [] } });
+      result = { summary: raw.slice(0, 600), teams: [] };
     }
+
+    // ── Increment count after successful call ────────────────────────────
+    if (userId) {
+      await supabaseAdmin.auth.admin.updateUserById(userId, {
+        user_metadata: { ai_count: currentCount + 1 },
+      });
+    }
+
+    return Response.json({ result });
   } catch (err) {
     return Response.json({ result: { summary: `Analysis failed: ${err.message}`, teams: [] } });
   }
