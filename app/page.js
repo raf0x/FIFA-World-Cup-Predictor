@@ -144,7 +144,12 @@ function AIPanel({ loading, analysis, color }) {
           return (
             <div key={t.name} className="ai-team">
               <span className="ai-rank" style={{ background:m.tint, color:m.text, boxShadow:`inset 0 0 0 1px ${m.ring}` }}>{t.rank}</span>
-              <p className="ai-note"><b>{t.name}.</b> {t.note}</p>
+              <div>
+                <p className="ai-note"><b>{t.name}.</b> {t.note}</p>
+                {t.lastMatch && t.lastMatch !== 'Last result unverified' && (
+                  <p className="ai-last-match">⚽ {t.lastMatch}</p>
+                )}
+              </div>
             </div>
           );
         })}
