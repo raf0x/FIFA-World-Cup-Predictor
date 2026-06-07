@@ -114,8 +114,8 @@ Include all four teams ranked 1-4. "confidence" must be exactly High, Medium, or
       result = { summary: raw.slice(0, 600), teams: [] };
     }
 
-    // ── Increment count after successful call ────────────────────────────
-    if (userId) {
+    // Only increment count if analysis actually returned useful data
+    if (userId && result?.teams?.length > 0) {
       await supabaseAdmin.auth.admin.updateUserById(userId, {
         user_metadata: { ai_count: currentCount + 1 },
       });
