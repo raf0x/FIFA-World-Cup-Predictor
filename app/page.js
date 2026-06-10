@@ -419,7 +419,7 @@ function ThirdPlacePicker({ candidates, picks, allGroupsDone, onToggle }) {
 }
 
 // ─── Bracket components ────────────────────────────────────────────────────
-function BracketSlot({ matchup, picked, onPick, matchNum, wide }) {
+function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreChange }) {
   const { home, away } = matchup;
   const bothKnown = home.name && away.name;
   const info = matchNum ? MATCH_SCHEDULE[matchNum] : null;
@@ -441,6 +441,19 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide }) {
           </button>
         );
       })}
+      {picked && onScoreChange && (
+        <div className="slot-score-row">
+          <input className="slot-score-inp" type="number" min="0" max="30"
+            placeholder="0" value={score?.home ?? ''}
+            onClick={e => e.stopPropagation()}
+            onChange={e => onScoreChange('home', e.target.value)} />
+          <span className="slot-score-dash">–</span>
+          <input className="slot-score-inp" type="number" min="0" max="30"
+            placeholder="0" value={score?.away ?? ''}
+            onClick={e => e.stopPropagation()}
+            onChange={e => onScoreChange('away', e.target.value)} />
+        </div>
+      )}
     </div>
   );
 }
@@ -739,7 +752,8 @@ function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bra
 function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatchups,
                    finalMatchup, thirdMatchup, bracketPicks, pickBracket,
                    champion, championObj, r32Done, r16Done, qfDone, sfDone,
-                   finalScore, onFinalScoreChange }) {
+                   finalScore, onFinalScoreChange,
+                   bracketScores, setBracketScore }) {
   if (!thirdPlaceDone) {
     return <div className="locked locked--dark locked--big">Select your 8 third-place teams above to unlock the bracket.</div>;
   }
@@ -752,32 +766,32 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
             {GROUPS.slice(0,6).map(g => <GroupBox key={g.id} group={g} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_L.r32.map(idx => <BracketSlot key={idx} matchup={r32Matchups[idx]} picked={bracketPicks.r32[idx]} onPick={n=>pickBracket('r32',idx,n)} matchNum={73+idx} />)}
+            {BRACKET_L.r32.map(idx => <BracketSlot key={idx} matchup={r32Matchups[idx]} picked={bracketPicks.r32[idx]} onPick={n=>pickBracket('r32',idx,n)} matchNum={73+idx} score={bracketScores[`r32_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r32',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_L.r16.map(idx => <BracketSlot key={idx} matchup={r16Matchups[idx]} picked={bracketPicks.r16[idx]} onPick={n=>pickBracket('r16',idx,n)} matchNum={89+idx} />)}
+            {BRACKET_L.r16.map(idx => <BracketSlot key={idx} matchup={r16Matchups[idx]} picked={bracketPicks.r16[idx]} onPick={n=>pickBracket('r16',idx,n)} matchNum={89+idx} score={bracketScores[`r16_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r16',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_L.qf.map(idx => <BracketSlot key={idx} matchup={qfMatchups[idx]} picked={bracketPicks.qf[idx]} onPick={n=>pickBracket('qf',idx,n)} matchNum={97+idx} />)}
+            {BRACKET_L.qf.map(idx => <BracketSlot key={idx} matchup={qfMatchups[idx]} picked={bracketPicks.qf[idx]} onPick={n=>pickBracket('qf',idx,n)} matchNum={97+idx} score={bracketScores[`qf_${idx}`]} onScoreChange={(s,v)=>setBracketScore('qf',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            <BracketSlot matchup={sfMatchups[0]} picked={bracketPicks.sf[0]} onPick={n=>pickBracket('sf',0,n)} matchNum={101} />
+            <BracketSlot matchup={sfMatchups[0]} picked={bracketPicks.sf[0]} onPick={n=>pickBracket('sf',0,n)} matchNum={101} score={bracketScores['sf_0']} onScoreChange={(s,v)=>setBracketScore('sf',0,s,v)} />
           </div>
           <ChampionReveal champion={champion} championObj={championObj}
             finalMatchup={finalMatchup} thirdMatchup={thirdMatchup}
             bracketPicks={bracketPicks} pickBracket={pickBracket}
             finalScore={finalScore} onFinalScoreChange={onFinalScoreChange} />
           <div className="tree-col">
-            <BracketSlot matchup={sfMatchups[1]} picked={bracketPicks.sf[1]} onPick={n=>pickBracket('sf',1,n)} matchNum={102} />
+            <BracketSlot matchup={sfMatchups[1]} picked={bracketPicks.sf[1]} onPick={n=>pickBracket('sf',1,n)} matchNum={102} score={bracketScores['sf_1']} onScoreChange={(s,v)=>setBracketScore('sf',1,s,v)} />
           </div>
           <div className="tree-col">
-            {BRACKET_R.qf.map(idx => <BracketSlot key={idx} matchup={qfMatchups[idx]} picked={bracketPicks.qf[idx]} onPick={n=>pickBracket('qf',idx,n)} matchNum={97+idx} />)}
+            {BRACKET_R.qf.map(idx => <BracketSlot key={idx} matchup={qfMatchups[idx]} picked={bracketPicks.qf[idx]} onPick={n=>pickBracket('qf',idx,n)} matchNum={97+idx} score={bracketScores[`qf_${idx}`]} onScoreChange={(s,v)=>setBracketScore('qf',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_R.r16.map(idx => <BracketSlot key={idx} matchup={r16Matchups[idx]} picked={bracketPicks.r16[idx]} onPick={n=>pickBracket('r16',idx,n)} matchNum={89+idx} />)}
+            {BRACKET_R.r16.map(idx => <BracketSlot key={idx} matchup={r16Matchups[idx]} picked={bracketPicks.r16[idx]} onPick={n=>pickBracket('r16',idx,n)} matchNum={89+idx} score={bracketScores[`r16_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r16',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_R.r32.map(idx => <BracketSlot key={idx} matchup={r32Matchups[idx]} picked={bracketPicks.r32[idx]} onPick={n=>pickBracket('r32',idx,n)} matchNum={73+idx} />)}
+            {BRACKET_R.r32.map(idx => <BracketSlot key={idx} matchup={r32Matchups[idx]} picked={bracketPicks.r32[idx]} onPick={n=>pickBracket('r32',idx,n)} matchNum={73+idx} score={bracketScores[`r32_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r32',idx,s,v)} />)}
           </div>
           <div className="tree-col tree-groups">
             {GROUPS.slice(6).map(g => <GroupBox key={g.id} group={g} />)}
@@ -897,6 +911,7 @@ export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [contactMsgGroup, setContactMsgGroup] = useState(null);
   const [groupScores, setGroupScores] = useState({});
+  const [bracketScores, setBracketScores] = useState({});
   const [scoreOpenGroup, setScoreOpenGroup] = useState(null);
   const [finalScore, setFinalScore] = useState({ home: '', away: '' });
   const pendingGroupRef = useRef(null);
@@ -926,6 +941,7 @@ export default function Home() {
           if (data.bracketPicks) setBracketPicks(data.bracketPicks);
           if (data.analyses) setAnalyses(data.analyses);
           if (data.groupScores) setGroupScores(data.groupScores);
+          if (data.bracketScores) setBracketScores(data.bracketScores);
           if (data.finalScore) setFinalScore(data.finalScore);
         }
       }
@@ -939,7 +955,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem('wc2026-v2', JSON.stringify({ picks, thirdPlacePicks, bracketPicks, analyses, groupScores, finalScore }));
+    localStorage.setItem('wc2026-v2', JSON.stringify({ picks, thirdPlacePicks, bracketPicks, analyses, groupScores, bracketScores, finalScore }));
   }, [picks, thirdPlacePicks, bracketPicks, analyses, hydrated]);
 
   // Auth state
@@ -978,6 +994,15 @@ export default function Home() {
         ...(prev[`${groupId}_${matchIdx}`] || { home:'', away:'' }),
         [side]: value,
       },
+    }));
+  };
+
+  // ── Bracket score handler ──────────────────────────────────────────────
+  const setBracketScore = (round, idx, side, value) => {
+    const key = `${round}_${idx}`;
+    setBracketScores(prev => ({
+      ...prev,
+      [key]: { ...(prev[key] || { home:'', away:'' }), [side]: value },
     }));
   };
 
@@ -1211,14 +1236,14 @@ export default function Home() {
   const reset = () => {
     if (confirm('Clear all picks?')) {
       setPicks({}); setThirdPlacePicks([]); setBracketPicks(initBracket()); setAnalyses({});
-      setGroupScores({}); setFinalScore({ home:'', away:'' });
+      setGroupScores({}); setBracketScores({}); setFinalScore({ home:'', away:'' });
       setOpenGroup(null); setScoreOpenGroup(null);
     }
   };
   const scrollTo = (ref) => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const shareLink = () => {
-    const data = { picks, thirdPlacePicks, bracketPicks, groupScores, finalScore };
+    const data = { picks, thirdPlacePicks, bracketPicks, groupScores, bracketScores, finalScore };
     const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
     const url = `${window.location.origin}?b=${encoded}`;
     navigator.clipboard.writeText(url).then(() => {
@@ -1637,7 +1662,8 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
           bracketPicks={bracketPicks} pickBracket={pickBracket}
           champion={champion} championObj={championObj}
           r32Done={r32Done} r16Done={r16Done} qfDone={qfDone} sfDone={sfDone}
-          finalScore={finalScore} onFinalScoreChange={setFinalScore} />
+          finalScore={finalScore} onFinalScoreChange={setFinalScore}
+          bracketScores={bracketScores} setBracketScore={setBracketScore} />
       </section>
 
       <footer className="footer">
