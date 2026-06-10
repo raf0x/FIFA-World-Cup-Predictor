@@ -36,6 +36,29 @@ const SLOT_ELIGIBLE = [
 ];
 const initBracket = () => ({ r32:Array(16).fill(null), r16:Array(8).fill(null), qf:Array(4).fill(null), sf:Array(2).fill(null), final:null, thirdPlace:null });
 
+// All 6 round-robin match combos for a 4-team group (indices into group.teams)
+const GROUP_MATCH_PAIRS = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
+
+function calcGroupStandings(group, groupScores) {
+  const s = {};
+  group.teams.forEach(t => {
+    s[t.name] = { name:t.name, pts:0, gf:0, ga:0, gd:0, played:0, w:0, d:0, l:0 };
+  });
+  GROUP_MATCH_PAIRS.forEach(([hi, ai], idx) => {
+    const sc = groupScores[`${group.id}_${idx}`];
+    if (!sc || sc.home==='' || sc.away==='' || sc.home===null || sc.away===null) return;
+    const hg = Number(sc.home), ag = Number(sc.away);
+    if (isNaN(hg) || isNaN(ag) || hg < 0 || ag < 0) return;
+    const hn = group.teams[hi].name, an = group.teams[ai].name;
+    s[hn].gf+=hg; s[hn].ga+=ag; s[hn].gd+=(hg-ag); s[hn].played++;
+    s[an].gf+=ag; s[an].ga+=hg; s[an].gd+=(ag-hg); s[an].played++;
+    if (hg>ag)      { s[hn].pts+=3; s[hn].w++; s[an].l++; }
+    else if (hg<ag) { s[an].pts+=3; s[an].w++; s[hn].l++; }
+    else            { s[hn].pts++; s[an].pts++; s[hn].d++; s[an].d++; }
+  });
+  return Object.values(s).sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf);
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────
 function getTeamByRank(picks, groupId, rank) {
   const p = picks[groupId] || {};
@@ -178,7 +201,70 @@ function AIPanel({ loading, analysis, color }) {
 }
 
 // ─── Group Stage Card ──────────────────────────────────────────────────────
-function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading, onToggleAI, onSetRank, limitReached, contactMsg }) {
+// ─── Group Score Panel ─────────────────────────────────────────────────────
+function GroupScorePanel({ group, groupScores, onScoreChange }) {
+  const standings = calcGroupStandings(group, groupScores);
+  const hasScores = standings.some(s => s.played > 0);
+  const allFilled = GROUP_MATCH_PAIRS.every((_,i) => {
+    const sc = groupScores[`${group.id}_${i}`];
+    return sc && sc.home!=='' && sc.away!=='' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
+  });
+
+  return (
+    <div className="score-panel">
+      <div className="score-matches">
+        {GROUP_MATCH_PAIRS.map(([hi,ai], idx) => {
+          const home = group.teams[hi], away = group.teams[ai];
+          const sc = groupScores[`${group.id}_${idx}`] || { home:'', away:'' };
+          const hg = sc.home==='' ? null : Number(sc.home);
+          const ag = sc.away==='' ? null : Number(sc.away);
+          const result = hg!==null && ag!==null ? (hg>ag?'home':hg<ag?'away':'draw') : null;
+          return (
+            <div key={idx} className="score-row">
+              <span className={`score-team score-team--l ${result==='home'?'score-team--w':result==='away'?'score-team--l2':''}`}>
+                <Flag team={home} size={13}/> {home.name}
+              </span>
+              <div className="score-inputs">
+                <input className="score-input" type="number" min="0" max="20" placeholder="–"
+                  value={sc.home} onChange={e=>onScoreChange(group.id,idx,'home',e.target.value)}/>
+                <span className="score-colon">:</span>
+                <input className="score-input" type="number" min="0" max="20" placeholder="–"
+                  value={sc.away} onChange={e=>onScoreChange(group.id,idx,'away',e.target.value)}/>
+              </div>
+              <span className={`score-team score-team--r ${result==='away'?'score-team--w':result==='home'?'score-team--l2':''}`}>
+                {away.name} <Flag team={away} size={13}/>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {hasScores && (
+        <div className="standings-wrap">
+          <div className="standings-head">
+            <span className="sth-team">Team</span>
+            <span>P</span><span>W</span><span>D</span><span>L</span>
+            <span>GD</span><span className="sth-pts">Pts</span>
+          </div>
+          {standings.map((s,i) => (
+            <div key={s.name} className={`standings-row ${i<2?'standings-row--q':i===2?'standings-row--3':'standings-row--e'}`}>
+              <span className="st-pos">{i+1}</span>
+              <span className="st-name">{s.name}</span>
+              <span>{s.played}</span><span>{s.w}</span><span>{s.d}</span><span>{s.l}</span>
+              <span className={s.gd>0?'gd-pos':s.gd<0?'gd-neg':''}>{s.gd>0?'+':''}{s.gd}</span>
+              <span className="st-pts">{s.pts}</span>
+            </div>
+          ))}
+          {allFilled && (
+            <div className="standings-auto-note">✓ Rankings auto-filled from scores</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading, onToggleAI, onSetRank, limitReached, contactMsg, groupScores, scoreOpen, onToggleScore, onScoreChange }) {
   const color = GROUP_COLORS[group.id];
   const rankedCount = Object.keys(groupPicks).length;
   return (
@@ -250,6 +336,16 @@ function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading
           );
         })}
       </div>
+
+      {/* Score entry toggle */}
+      <div className="score-toggle-row">
+        <button className={`score-toggle-btn ${scoreOpen ? 'score-toggle-btn--on' : ''}`} onClick={onToggleScore}>
+          ⚽ {scoreOpen ? 'Hide match scores' : 'Enter match scores'}
+        </button>
+      </div>
+      {scoreOpen && (
+        <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} />
+      )}
     </div>
   );
 }
@@ -539,7 +635,7 @@ function ChampionCelebration({ show, champion, championObj, onDismiss }) {
   );
 }
 
-function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bracketPicks, pickBracket }) {
+function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bracketPicks, pickBracket, finalScore, onFinalScoreChange, finalScoreHint, loadingFinalHint }) {
   const sfHome = finalMatchup.home;
   const sfAway = finalMatchup.away;
   return (
@@ -576,6 +672,37 @@ function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bra
       <div className="champ-match">
         <div className="champ-match-label champ-final-label">FINAL · JUL 19 · NY/NJ</div>
         <BracketSlot matchup={finalMatchup} picked={bracketPicks.final} onPick={n => pickBracket('final',0,n)} matchNum={104} wide />
+
+        {/* Score prediction — shown when both finalists are known */}
+        {finalMatchup.home.name && finalMatchup.away.name && (
+          <div className="final-score-wrap">
+            <div className="final-score-label">Score prediction</div>
+            <div className="final-score-inputs">
+              <span className="final-score-team">
+                <Flag team={finalMatchup.home} size={12}/> {finalMatchup.home.name}
+              </span>
+              <input className="final-score-input" type="number" min="0" max="20"
+                placeholder="0" value={finalScore.home}
+                onChange={e => onFinalScoreChange({ ...finalScore, home: e.target.value })} />
+              <span className="final-score-sep">–</span>
+              <input className="final-score-input" type="number" min="0" max="20"
+                placeholder="0" value={finalScore.away}
+                onChange={e => onFinalScoreChange({ ...finalScore, away: e.target.value })} />
+              <span className="final-score-team">
+                {finalMatchup.away.name} <Flag team={finalMatchup.away} size={12}/>
+              </span>
+            </div>
+            {loadingFinalHint && (
+              <div className="final-hint-loading"><span className="ai-spinner ai-spinner--sm"/> Fetching odds…</div>
+            )}
+            {finalScoreHint && !loadingFinalHint && (
+              <div className="final-hint">
+                💡 Odds suggest: <b>{finalMatchup.home.name} {finalScoreHint.home}–{finalScoreHint.away} {finalMatchup.away.name}</b>
+                {finalScoreHint.source && <span className="final-hint-source"> · {finalScoreHint.source}</span>}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div style={{ height:10 }} />
@@ -591,7 +718,8 @@ function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bra
 
 function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatchups,
                    finalMatchup, thirdMatchup, bracketPicks, pickBracket,
-                   champion, championObj, r32Done, r16Done, qfDone, sfDone }) {
+                   champion, championObj, r32Done, r16Done, qfDone, sfDone,
+                   finalScore, onFinalScoreChange, finalScoreHint, loadingFinalHint }) {
   if (!thirdPlaceDone) {
     return <div className="locked locked--dark locked--big">Select your 8 third-place teams above to unlock the bracket.</div>;
   }
@@ -617,7 +745,9 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
           </div>
           <ChampionReveal champion={champion} championObj={championObj}
             finalMatchup={finalMatchup} thirdMatchup={thirdMatchup}
-            bracketPicks={bracketPicks} pickBracket={pickBracket} />
+            bracketPicks={bracketPicks} pickBracket={pickBracket}
+            finalScore={finalScore} onFinalScoreChange={onFinalScoreChange}
+            finalScoreHint={finalScoreHint} loadingFinalHint={loadingFinalHint} />
           <div className="tree-col">
             <BracketSlot matchup={sfMatchups[1]} picked={bracketPicks.sf[1]} onPick={n=>pickBracket('sf',1,n)} matchNum={102} />
           </div>
@@ -747,6 +877,11 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [contactMsgGroup, setContactMsgGroup] = useState(null);
+  const [groupScores, setGroupScores] = useState({});
+  const [scoreOpenGroup, setScoreOpenGroup] = useState(null);
+  const [finalScore, setFinalScore] = useState({ home: '', away: '' });
+  const [finalScoreHint, setFinalScoreHint] = useState(null);
+  const [loadingFinalHint, setLoadingFinalHint] = useState(false);
   const pendingGroupRef = useRef(null);
 
   const thirdRef      = useRef(null);
@@ -773,6 +908,8 @@ export default function Home() {
           if (data.thirdPlacePicks) setThirdPlacePicks(data.thirdPlacePicks);
           if (data.bracketPicks) setBracketPicks(data.bracketPicks);
           if (data.analyses) setAnalyses(data.analyses);
+          if (data.groupScores) setGroupScores(data.groupScores);
+          if (data.finalScore) setFinalScore(data.finalScore);
         }
       }
     } catch {}
@@ -785,7 +922,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem('wc2026-v2', JSON.stringify({ picks, thirdPlacePicks, bracketPicks, analyses }));
+    localStorage.setItem('wc2026-v2', JSON.stringify({ picks, thirdPlacePicks, bracketPicks, analyses, groupScores, finalScore }));
   }, [picks, thirdPlacePicks, bracketPicks, analyses, hydrated]);
 
   // Auth state
@@ -815,6 +952,80 @@ export default function Home() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // ── Group score handler ────────────────────────────────────────────────
+  const setGroupScore = (groupId, matchIdx, side, value) => {
+    setGroupScores(prev => ({
+      ...prev,
+      [`${groupId}_${matchIdx}`]: {
+        ...(prev[`${groupId}_${matchIdx}`] || { home:'', away:'' }),
+        [side]: value,
+      },
+    }));
+  };
+
+  // ── Auto-fill picks from group scores ─────────────────────────────────
+  useEffect(() => {
+    const updates = {};
+    GROUPS.forEach(group => {
+      const allFilled = GROUP_MATCH_PAIRS.every((_,i) => {
+        const sc = groupScores[`${group.id}_${i}`];
+        return sc && sc.home!=='' && sc.away!=='' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away)) && Number(sc.home)>=0 && Number(sc.away)>=0;
+      });
+      if (!allFilled) return;
+      const standings = calcGroupStandings(group, groupScores);
+      if (standings.length < 3) return;
+      updates[group.id] = {
+        [standings[0].name]: 1,
+        [standings[1].name]: 2,
+        [standings[2].name]: 3,
+      };
+    });
+    if (Object.keys(updates).length === 0) return;
+    setPicks(prev => ({ ...prev, ...updates }));
+    setBracketPicks(initBracket());
+  }, [groupScores]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Auto-select best 8 third-place teams when all groups complete ──────
+  useEffect(() => {
+    const allComplete = GROUPS.every(group =>
+      GROUP_MATCH_PAIRS.every((_,i) => {
+        const sc = groupScores[`${group.id}_${i}`];
+        return sc && sc.home!=='' && sc.away!=='' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
+      })
+    );
+    if (!allComplete) return;
+    const thirds = GROUPS.map(group => {
+      const standings = calcGroupStandings(group, groupScores);
+      const t = standings[2];
+      return t ? { groupId: group.id, ...t } : null;
+    }).filter(Boolean);
+    if (thirds.length < 12) return;
+    const top8 = [...thirds]
+      .sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf)
+      .slice(0,8)
+      .map(t => t.groupId);
+    setThirdPlacePicks(top8);
+  }, [groupScores]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Fetch final score odds hint when finalists are known ──────────────
+  const fetchFinalScoreHint = async (homeTeam, awayTeam) => {
+    if (!homeTeam || !awayTeam) return;
+    setLoadingFinalHint(true);
+    setFinalScoreHint(null);
+    try {
+      const res = await fetch('/api/score-hint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ homeTeam, awayTeam }),
+      });
+      const data = await res.json();
+      if (data.hint?.home !== null && data.hint?.home !== undefined) {
+        setFinalScoreHint(data.hint);
+      }
+    } catch {}
+    setLoadingFinalHint(false);
+  };
 
   const setRank = (groupId, team, rank) => {
     setPicks(prev => {
@@ -999,15 +1210,28 @@ export default function Home() {
   const champion = bracketPicks.final;
   const championObj = champion ? GROUPS.flatMap(g => g.teams).find(t => t.name === champion) : null;
 
+  // Trigger odds fetch when both SF winners (finalists) are known
+  useEffect(() => {
+    const home = finalMatchup.home.name;
+    const away = finalMatchup.away.name;
+    if (home && away) {
+      fetchFinalScoreHint(home, away);
+    } else {
+      setFinalScoreHint(null);
+    }
+  }, [finalMatchup.home.name, finalMatchup.away.name]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const reset = () => {
     if (confirm('Clear all picks?')) {
-      setPicks({}); setThirdPlacePicks([]); setBracketPicks(initBracket()); setAnalyses({}); setOpenGroup(null);
+      setPicks({}); setThirdPlacePicks([]); setBracketPicks(initBracket()); setAnalyses({});
+      setGroupScores({}); setFinalScore({ home:'', away:'' }); setFinalScoreHint(null);
+      setOpenGroup(null); setScoreOpenGroup(null);
     }
   };
   const scrollTo = (ref) => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const shareLink = () => {
-    const data = { picks, thirdPlacePicks, bracketPicks };
+    const data = { picks, thirdPlacePicks, bracketPicks, groupScores, finalScore };
     const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
     const url = `${window.location.origin}?b=${encoded}`;
     navigator.clipboard.writeText(url).then(() => {
@@ -1364,6 +1588,10 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
               isOpen={openGroup === group.id} analysis={analyses[group.id]} loading={loadingAnalysis[group.id]}
               limitReached={user ? aiCallsUsed >= AI_LIMIT : aiCallsUsed >= 2}
               contactMsg={contactMsgGroup === group.id}
+              groupScores={groupScores}
+              scoreOpen={scoreOpenGroup === group.id}
+              onToggleScore={() => setScoreOpenGroup(scoreOpenGroup === group.id ? null : group.id)}
+              onScoreChange={setGroupScore}
               onToggleAI={() => {
                 const isNowOpen = openGroup !== group.id;
                 const atLimit = user ? aiCallsUsed >= AI_LIMIT : aiCallsUsed >= 2;
@@ -1421,7 +1649,9 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
           finalMatchup={finalMatchup} thirdMatchup={thirdMatchup}
           bracketPicks={bracketPicks} pickBracket={pickBracket}
           champion={champion} championObj={championObj}
-          r32Done={r32Done} r16Done={r16Done} qfDone={qfDone} sfDone={sfDone} />
+          r32Done={r32Done} r16Done={r16Done} qfDone={qfDone} sfDone={sfDone}
+          finalScore={finalScore} onFinalScoreChange={setFinalScore}
+          finalScoreHint={finalScoreHint} loadingFinalHint={loadingFinalHint} />
       </section>
 
       <footer className="footer">
