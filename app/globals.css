@@ -583,7 +583,7 @@ a { color: inherit; }
   align-items: center;
   gap: 6px;
   padding: 8px 10px;
-  border-top: 1px solid var(--border);
+  border: none;
   font-size: 12px;
   text-align: left;
   color: var(--dim);
@@ -597,22 +597,26 @@ a { color: inherit; }
 .slot-flag { flex-shrink: 0; display: flex; align-items: center; }
 .slot-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .slot-adv  { font-size: 10px; color: var(--green); flex-shrink: 0; }
-.slot-score-row {
+
+/* Inline score inputs — right of each team row, no extra height */
+.slot-team-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 4px 6px;
-  border-top: 1px solid var(--border);
-  background: rgba(0,0,0,.18);
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+}
+.slot-team-row:last-child { border-bottom: none; }
+.slot-team-row .slotrow {
+  flex: 1;
+  min-width: 0;
+  border-bottom: none; /* border is now on the wrapper */
 }
 .slot-score-inp {
   width: 26px;
-  height: 20px;
-  background: var(--surface-3);
-  border: 1px solid var(--border-2);
-  border-radius: 4px;
-  color: var(--text);
+  flex-shrink: 0;
+  background: var(--surface-2);
+  border: none;
+  border-left: 1px solid var(--border);
+  color: var(--dim);
   font-size: 11px;
   font-weight: 700;
   text-align: center;
@@ -622,8 +626,8 @@ a { color: inherit; }
 }
 .slot-score-inp::-webkit-outer-spin-button,
 .slot-score-inp::-webkit-inner-spin-button { -webkit-appearance: none; }
-.slot-score-inp:focus { border-color: var(--green); }
-.slot-score-dash { color: var(--dim); font-size: 12px; font-weight: 700; }
+.slot-score-inp:focus { border-left-color: var(--green); color: var(--text); }
+.slot-score-inp--pick { background: rgba(74,222,128,.07); color: var(--green); }
 
 /* Group box */
 .gbox {
