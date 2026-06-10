@@ -1206,3 +1206,26 @@ a { color: inherit; }
   justify-content: center;
   gap: 6px;
 }
+
+/* Score hints */
+.score-hints-note {
+  font-size: 10px;
+  color: var(--dim);
+  margin-bottom: 10px;
+  font-style: italic;
+}
+.score-input-wrap { position: relative; }
+.score-apply-hint {
+  font-size: 9px;
+  font-weight: 700;
+  color: #f5c142;
+  background: rgba(245,193,66,.08);
+  border: 1px solid rgba(245,193,66,.2);
+  border-radius: 4px;
+  padding: 2px 5px;
+  cursor: pointer;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.score-apply-hint:hover { background: rgba(245,193,66,.15); }
