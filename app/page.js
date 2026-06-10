@@ -663,7 +663,7 @@ function ChampionCelebration({ show, champion, championObj, onDismiss }) {
   );
 }
 
-function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bracketPicks, pickBracket, finalScore, onFinalScoreChange, finalScoreHint, loadingFinalHint }) {
+function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bracketPicks, pickBracket, finalScore, onFinalScoreChange }) {
   const sfHome = finalMatchup.home;
   const sfAway = finalMatchup.away;
   return (
@@ -720,15 +720,7 @@ function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bra
                 {finalMatchup.away.name} <Flag team={finalMatchup.away} size={12}/>
               </span>
             </div>
-            {loadingFinalHint && (
-              <div className="final-hint-loading"><span className="ai-spinner ai-spinner--sm"/> Fetching odds…</div>
-            )}
-            {finalScoreHint && !loadingFinalHint && (
-              <div className="final-hint">
-                💡 Odds suggest: <b>{finalMatchup.home.name} {finalScoreHint.home}–{finalScoreHint.away} {finalMatchup.away.name}</b>
-                {finalScoreHint.source && <span className="final-hint-source"> · {finalScoreHint.source}</span>}
-              </div>
-            )}
+            <div style={{ height:4 }} />
           </div>
         )}
       </div>
@@ -747,7 +739,7 @@ function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bra
 function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatchups,
                    finalMatchup, thirdMatchup, bracketPicks, pickBracket,
                    champion, championObj, r32Done, r16Done, qfDone, sfDone,
-                   finalScore, onFinalScoreChange, finalScoreHint, loadingFinalHint }) {
+                   finalScore, onFinalScoreChange }) {
   if (!thirdPlaceDone) {
     return <div className="locked locked--dark locked--big">Select your 8 third-place teams above to unlock the bracket.</div>;
   }
@@ -774,8 +766,7 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
           <ChampionReveal champion={champion} championObj={championObj}
             finalMatchup={finalMatchup} thirdMatchup={thirdMatchup}
             bracketPicks={bracketPicks} pickBracket={pickBracket}
-            finalScore={finalScore} onFinalScoreChange={onFinalScoreChange}
-            finalScoreHint={finalScoreHint} loadingFinalHint={loadingFinalHint} />
+            finalScore={finalScore} onFinalScoreChange={onFinalScoreChange} />
           <div className="tree-col">
             <BracketSlot matchup={sfMatchups[1]} picked={bracketPicks.sf[1]} onPick={n=>pickBracket('sf',1,n)} matchNum={102} />
           </div>
@@ -908,8 +899,6 @@ export default function Home() {
   const [groupScores, setGroupScores] = useState({});
   const [scoreOpenGroup, setScoreOpenGroup] = useState(null);
   const [finalScore, setFinalScore] = useState({ home: '', away: '' });
-  const [finalScoreHint, setFinalScoreHint] = useState(null);
-  const [loadingFinalHint, setLoadingFinalHint] = useState(false);
   const pendingGroupRef = useRef(null);
 
   const thirdRef      = useRef(null);
@@ -1035,25 +1024,6 @@ export default function Home() {
       .map(t => t.groupId);
     setThirdPlacePicks(top8);
   }, [groupScores]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Fetch final score odds hint when finalists are known ──────────────
-  const fetchFinalScoreHint = async (homeTeam, awayTeam) => {
-    if (!homeTeam || !awayTeam) return;
-    setLoadingFinalHint(true);
-    setFinalScoreHint(null);
-    try {
-      const res = await fetch('/api/score-hint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ homeTeam, awayTeam }),
-      });
-      const data = await res.json();
-      if (data.hint?.home !== null && data.hint?.home !== undefined) {
-        setFinalScoreHint(data.hint);
-      }
-    } catch {}
-    setLoadingFinalHint(false);
-  };
 
   const setRank = (groupId, team, rank) => {
     setPicks(prev => {
@@ -1238,21 +1208,10 @@ export default function Home() {
   const champion = bracketPicks.final;
   const championObj = champion ? GROUPS.flatMap(g => g.teams).find(t => t.name === champion) : null;
 
-  // Trigger odds fetch when both SF winners (finalists) are known
-  useEffect(() => {
-    const home = finalMatchup.home.name;
-    const away = finalMatchup.away.name;
-    if (home && away) {
-      fetchFinalScoreHint(home, away);
-    } else {
-      setFinalScoreHint(null);
-    }
-  }, [finalMatchup.home.name, finalMatchup.away.name]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const reset = () => {
     if (confirm('Clear all picks?')) {
       setPicks({}); setThirdPlacePicks([]); setBracketPicks(initBracket()); setAnalyses({});
-      setGroupScores({}); setFinalScore({ home:'', away:'' }); setFinalScoreHint(null);
+      setGroupScores({}); setFinalScore({ home:'', away:'' });
       setOpenGroup(null); setScoreOpenGroup(null);
     }
   };
@@ -1678,8 +1637,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
           bracketPicks={bracketPicks} pickBracket={pickBracket}
           champion={champion} championObj={championObj}
           r32Done={r32Done} r16Done={r16Done} qfDone={qfDone} sfDone={sfDone}
-          finalScore={finalScore} onFinalScoreChange={setFinalScore}
-          finalScoreHint={finalScoreHint} loadingFinalHint={loadingFinalHint} />
+          finalScore={finalScore} onFinalScoreChange={setFinalScore} />
       </section>
 
       <footer className="footer">
