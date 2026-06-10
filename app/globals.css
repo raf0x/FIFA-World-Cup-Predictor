@@ -325,7 +325,40 @@ a { color: inherit; }
 }
 .gcard-title { font-size: 16px; font-weight: 800; color: var(--text); line-height: 1.2; }
 .gcard-meta  { font-size: 12px; color: var(--dim); margin-top: 2px; }
-.gcard-done-tag { color: var(--green); font-weight: 700; }
+.gcard-done-tag {
+  color: var(--green);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  animation: doneSlideIn .3s ease;
+}
+@keyframes doneSlideIn {
+  from { opacity: 0; transform: translateX(-5px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Hover picks — fades in below ✓ Complete on hover */
+.gcard-picks-hover {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height .22s ease, opacity .18s ease;
+}
+.gcard--done:hover .gcard-picks-hover {
+  max-height: 64px;
+  opacity: 1;
+}
+.gcard-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--dim);
+}
 
 .ai-toggle {
   display: flex;
@@ -369,7 +402,7 @@ a { color: inherit; }
   padding: 10px 12px;
   border-radius: 10px;
   background: var(--surface-2);
-  transition: background .15s;
+  transition: background .22s ease, box-shadow .22s ease;
 }
 .trow:hover { background: var(--surface-3); }
 .trow-id { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
@@ -385,9 +418,10 @@ a { color: inherit; }
   color: var(--dim);
   background: var(--surface-3);
   border: 1px solid var(--border-2);
-  transition: all .12s;
+  transition: all .15s;
 }
 .rankbtn:hover { color: var(--text); border-color: var(--dim); }
+.rankbtn:active { transform: scale(.86); }
 .rankbtn--on { color: #0a0a12 !important; border-color: transparent !important; }
 
 /* ─── AI Panel ────────────────────────────────────────────────────────────── */
@@ -578,7 +612,11 @@ a { color: inherit; }
 .slotrow:first-child { border-top: none; }
 .slotrow--live { color: var(--text); }
 .slotrow--live:hover { background: var(--surface-2); cursor: pointer; }
-.slotrow--pick { background: rgba(74,222,128,.08); color: var(--green) !important; }
+.slotrow--pick { background: rgba(74,222,128,.08); color: var(--green) !important; animation: pickFlash .35s ease; }
+@keyframes pickFlash {
+  0%   { background: rgba(74,222,128,.28); }
+  100% { background: rgba(74,222,128,.08); }
+}
 .slotrow--out  { color: var(--dim-2) !important; }
 .slot-flag { flex-shrink: 0; display: flex; align-items: center; }
 .slot-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
