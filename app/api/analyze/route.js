@@ -66,15 +66,28 @@ ${teams.map((t, i) => `SEARCH ${i + 1}: "${t} last match result score ${today}" 
 
 SEARCH ${teams.length + 1}: "${teams.join(' ')} World Cup 2026 squad injuries suspensions" → Key absences for the tournament.
 
-SEARCH ${teams.length + 2} (if needed): Follow up on any surprising result from the individual searches above.
+SEARCH ${teams.length + 2}: "Group ${groupId} 2026 World Cup correct score odds ${teams[0]} ${teams[1]} ${teams[2]} ${teams[3]} Kalshi Polymarket Hard Rock Bet" → Find betting market odds for correct scores in this group's matches.
+
+SEARCH ${teams.length + 3}: "FIFA World Cup 2026 Group ${groupId} match score predictions DraftKings FanDuel betting" → Additional correct score market data.
+
+SEARCH ${teams.length + 4} (if needed): Follow up on any surprising result from the individual searches above.
 
 ═══════════════════════════════════════════
 ANALYSIS REQUIREMENTS:
 ═══════════════════════════════════════════
 - lastMatch: REQUIRED for every team. Use confirmed search result. If not found after searching, write "Last result unverified" — never fabricate.
 - note: reference the confirmed last result by name. Max 22 words.
+- suggestedScores: for each of the 6 group matches below, provide the most likely correct score based on betting market data found in searches. Only include a match if you found actual odds/prediction data — never invent scores.
 - Be decisive. No hedging.
 - Use EXACT team names: ${teams.join(', ')}.
+
+THE 6 GROUP MATCHES (use these exact matchIdx values):
+0: ${teams[0]} vs ${teams[1]}
+1: ${teams[0]} vs ${teams[2]}
+2: ${teams[0]} vs ${teams[3]}
+3: ${teams[1]} vs ${teams[2]}
+4: ${teams[1]} vs ${teams[3]}
+5: ${teams[2]} vs ${teams[3]}
 
 OUTPUT: Respond with ONLY a valid JSON object. No markdown fences, no explanation, no text before or after the JSON:
 {
@@ -90,7 +103,10 @@ OUTPUT: Respond with ONLY a valid JSON object. No markdown fences, no explanatio
   "advance": ["<team>", "<team>"],
   "thirdPlaceShot": "short note on 3rd place wildcard, or empty string",
   "upset": "one sentence on the most likely upset backed by confirmed recent evidence",
-  "confidence": "High"
+  "confidence": "High",
+  "suggestedScores": [
+    { "matchIdx": 0, "homeScore": 2, "awayScore": 1, "source": "Polymarket" }
+  ]
 }
 
 Include all ${teams.length} teams ranked 1 to ${teams.length}. "confidence" must be exactly: High, Medium, or Low.`;
