@@ -430,30 +430,28 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
         const isPicked = team.name !== null && picked === team.name;
         const isOther = picked && picked !== team.name;
         const clickable = bothKnown && team.name;
+        const side = i === 0 ? 'home' : 'away';
         return (
-          <button key={i}
-            className={`slotrow ${isPicked ? 'slotrow--pick' : ''} ${isOther ? 'slotrow--out' : ''} ${clickable ? 'slotrow--live' : ''}`}
-            onClick={() => clickable && onPick(isPicked ? null : team.name)}
-            disabled={!clickable}>
-            <span className="slot-flag"><Flag team={team} size={11} /></span>
-            <span className="slot-name">{team.name || team.display}</span>
-            {isPicked && <span className="slot-adv">▸</span>}
-          </button>
+          <div key={i} className="slot-team-row">
+            <button
+              className={`slotrow ${isPicked ? 'slotrow--pick' : ''} ${isOther ? 'slotrow--out' : ''} ${clickable ? 'slotrow--live' : ''}`}
+              onClick={() => clickable && onPick(isPicked ? null : team.name)}
+              disabled={!clickable}>
+              <span className="slot-flag"><Flag team={team} size={11} /></span>
+              <span className="slot-name">{team.name || team.display}</span>
+              {isPicked && <span className="slot-adv">▸</span>}
+            </button>
+            {picked && onScoreChange && (
+              <input
+                className={`slot-score-inp ${isPicked ? 'slot-score-inp--pick' : ''}`}
+                type="number" min="0" max="30" placeholder="–"
+                value={score?.[side] ?? ''}
+                onClick={e => e.stopPropagation()}
+                onChange={e => onScoreChange(side, e.target.value)} />
+            )}
+          </div>
         );
       })}
-      {picked && onScoreChange && (
-        <div className="slot-score-row">
-          <input className="slot-score-inp" type="number" min="0" max="30"
-            placeholder="0" value={score?.home ?? ''}
-            onClick={e => e.stopPropagation()}
-            onChange={e => onScoreChange('home', e.target.value)} />
-          <span className="slot-score-dash">–</span>
-          <input className="slot-score-inp" type="number" min="0" max="30"
-            placeholder="0" value={score?.away ?? ''}
-            onClick={e => e.stopPropagation()}
-            onChange={e => onScoreChange('away', e.target.value)} />
-        </div>
-      )}
     </div>
   );
 }
