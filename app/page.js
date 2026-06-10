@@ -424,6 +424,24 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
   const bothKnown = home.name && away.name;
   const info = matchNum ? MATCH_SCHEDULE[matchNum] : null;
   const title = info ? `M${matchNum} · ${info.date} · ${info.time} · ${info.venue}` : undefined;
+
+  const handleScoreChange = (side, value) => {
+    if (!onScoreChange) return;
+    onScoreChange(side, value);
+    // Auto-advance higher scorer when both fields are filled
+    const otherSide = side === 'home' ? 'away' : 'home';
+    const otherVal = score?.[otherSide] ?? '';
+    const thisNum = parseInt(value);
+    const otherNum = parseInt(otherVal);
+    if (!isNaN(thisNum) && !isNaN(otherNum) && value !== '' && otherVal !== '') {
+      const homeScore = side === 'home' ? thisNum : otherNum;
+      const awayScore = side === 'away' ? thisNum : otherNum;
+      if (homeScore > awayScore && home.name) onPick(home.name);
+      else if (awayScore > homeScore && away.name) onPick(away.name);
+      // Equal score: don't auto-pick — user clicks the winner (extra time/pens)
+    }
+  };
+
   return (
     <div className={`slot ${wide ? 'slot--wide' : ''}`} title={title}>
       {[home, away].map((team, i) => {
@@ -441,13 +459,13 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
               <span className="slot-name">{team.name || team.display}</span>
               {isPicked && <span className="slot-adv">▸</span>}
             </button>
-            {picked && onScoreChange && (
+            {bothKnown && onScoreChange && (
               <input
-                className={`slot-score-inp ${isPicked ? 'slot-score-inp--pick' : ''}`}
+                className={`slot-score-inp ${isPicked ? 'slot-score-inp--pick' : isOther ? 'slot-score-inp--out' : ''}`}
                 type="number" min="0" max="30" placeholder="–"
                 value={score?.[side] ?? ''}
                 onClick={e => e.stopPropagation()}
-                onChange={e => onScoreChange(side, e.target.value)} />
+                onChange={e => handleScoreChange(side, e.target.value)} />
             )}
           </div>
         );
