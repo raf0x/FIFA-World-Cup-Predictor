@@ -334,9 +334,10 @@ a { color: inherit; }
   gap: 5px;
   padding: 7px 14px;
   border-radius: 6px;
+  font-family: 'Palatino Linotype', Palatino, Georgia, serif;
   font-size: 12px;
-  font-weight: 900;
-  letter-spacing: .06em;
+  font-weight: 700;
+  letter-spacing: .08em;
   color: #1e0e00;
   background: linear-gradient(180deg,
     #fdd84a 0%,
