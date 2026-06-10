@@ -630,6 +630,7 @@ a { color: inherit; }
 .slot-score-inp::-webkit-inner-spin-button { -webkit-appearance: none; }
 .slot-score-inp:focus { border-left-color: var(--green); color: var(--text); }
 .slot-score-inp--pick { background: rgba(74,222,128,.07); color: var(--green); }
+.slot-score-inp--out  { color: var(--dim-2); }
 
 /* Group box */
 .gbox {
