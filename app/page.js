@@ -340,7 +340,7 @@ function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading
       {/* Score entry toggle */}
       <div className="score-toggle-row">
         <button className={`score-toggle-btn ${scoreOpen ? 'score-toggle-btn--on' : ''}`} onClick={onToggleScore}>
-          ⚽ {scoreOpen ? 'Hide match scores' : 'Enter match scores'}
+          {scoreOpen ? '▴ Hide match scores' : '⚽ Enter scores → auto-ranks your group'}
         </button>
       </div>
       {scoreOpen && (
