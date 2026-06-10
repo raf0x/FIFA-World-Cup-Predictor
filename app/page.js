@@ -202,7 +202,7 @@ function AIPanel({ loading, analysis, color }) {
 
 // ─── Group Stage Card ──────────────────────────────────────────────────────
 // ─── Group Score Panel ─────────────────────────────────────────────────────
-function GroupScorePanel({ group, groupScores, onScoreChange }) {
+function GroupScorePanel({ group, groupScores, onScoreChange, analysis }) {
   const standings = calcGroupStandings(group, groupScores);
   const hasScores = standings.some(s => s.played > 0);
   const allFilled = GROUP_MATCH_PAIRS.every((_,i) => {
@@ -210,8 +210,23 @@ function GroupScorePanel({ group, groupScores, onScoreChange }) {
     return sc && sc.home!=='' && sc.away!=='' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
   });
 
+  // Build hint map from AI suggestedScores
+  const hintMap = {};
+  if (analysis?.suggestedScores?.length) {
+    analysis.suggestedScores.forEach(s => {
+      if (s.matchIdx !== undefined && s.homeScore !== null && s.awayScore !== null) {
+        hintMap[s.matchIdx] = s;
+      }
+    });
+  }
+
   return (
     <div className="score-panel">
+      {Object.keys(hintMap).length > 0 && (
+        <div className="score-hints-note">
+          💡 Faint hints are AI odds from betting markets — click to apply
+        </div>
+      )}
       <div className="score-matches">
         {GROUP_MATCH_PAIRS.map(([hi,ai], idx) => {
           const home = group.teams[hi], away = group.teams[ai];
@@ -219,17 +234,30 @@ function GroupScorePanel({ group, groupScores, onScoreChange }) {
           const hg = sc.home==='' ? null : Number(sc.home);
           const ag = sc.away==='' ? null : Number(sc.away);
           const result = hg!==null && ag!==null ? (hg>ag?'home':hg<ag?'away':'draw') : null;
+          const hint = hintMap[idx];
           return (
             <div key={idx} className="score-row">
               <span className={`score-team score-team--l ${result==='home'?'score-team--w':result==='away'?'score-team--l2':''}`}>
                 <Flag team={home} size={13}/> {home.name}
               </span>
               <div className="score-inputs">
-                <input className="score-input" type="number" min="0" max="20" placeholder="–"
-                  value={sc.home} onChange={e=>onScoreChange(group.id,idx,'home',e.target.value)}/>
+                <div className="score-input-wrap">
+                  <input className="score-input" type="number" min="0" max="20"
+                    placeholder={hint ? String(hint.homeScore) : '–'}
+                    value={sc.home} onChange={e=>onScoreChange(group.id,idx,'home',e.target.value)}/>
+                </div>
                 <span className="score-colon">:</span>
-                <input className="score-input" type="number" min="0" max="20" placeholder="–"
-                  value={sc.away} onChange={e=>onScoreChange(group.id,idx,'away',e.target.value)}/>
+                <div className="score-input-wrap">
+                  <input className="score-input" type="number" min="0" max="20"
+                    placeholder={hint ? String(hint.awayScore) : '–'}
+                    value={sc.away} onChange={e=>onScoreChange(group.id,idx,'away',e.target.value)}/>
+                </div>
+                {hint && sc.home==='' && sc.away==='' && (
+                  <button className="score-apply-hint" title={`Apply odds hint (${hint.source || 'AI'})`}
+                    onClick={() => { onScoreChange(group.id,idx,'home',String(hint.homeScore)); onScoreChange(group.id,idx,'away',String(hint.awayScore)); }}>
+                    apply
+                  </button>
+                )}
               </div>
               <span className={`score-team score-team--r ${result==='away'?'score-team--w':result==='home'?'score-team--l2':''}`}>
                 {away.name} <Flag team={away} size={13}/>
@@ -344,7 +372,7 @@ function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading
         </button>
       </div>
       {scoreOpen && (
-        <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} />
+        <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} analysis={analysis} />
       )}
     </div>
   );
