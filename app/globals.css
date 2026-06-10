@@ -338,28 +338,6 @@ a { color: inherit; }
   to   { opacity: 1; transform: translateX(0); }
 }
 
-/* Hover picks — fades in below ✓ Complete on hover */
-.gcard-picks-hover {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition: max-height .22s ease, opacity .18s ease;
-}
-.gcard--done:hover .gcard-picks-hover {
-  max-height: 64px;
-  opacity: 1;
-}
-.gcard-pick-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--dim);
-}
-
 .ai-toggle {
   display: flex;
   align-items: center;
