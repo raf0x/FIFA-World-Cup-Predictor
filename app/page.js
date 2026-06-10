@@ -307,6 +307,21 @@ function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading
                 ? <span className="gcard-done-tag">✓ Complete</span>
                 : <span>{rankedCount}/3 ranked · top 2 advance</span>}
             </div>
+            {complete && (
+              <div className="gcard-picks-hover">
+                {[1,2,3].map(r => {
+                  const name = Object.keys(groupPicks).find(k => groupPicks[k] === r);
+                  const obj = name ? group.teams.find(t => t.name === name) : null;
+                  return name ? (
+                    <span key={r} className="gcard-pick-item">
+                      <span>{['🥇','🥈','🥉'][r-1]}</span>
+                      {obj && <Flag team={obj} size={10}/>}
+                      <span>{name}</span>
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
           </div>
         </div>
         <button
