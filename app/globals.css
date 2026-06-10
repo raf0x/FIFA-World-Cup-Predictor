@@ -304,8 +304,7 @@ a { color: inherit; }
   transition: border-color .2s;
 }
 .gcard--done {
-  border-color: color-mix(in srgb, var(--gc, var(--green)) 35%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gc, var(--green)) 12%, transparent) inset;
+  border-color: var(--border-2);
 }
 
 .gcard-head {
@@ -332,46 +331,33 @@ a { color: inherit; }
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 7px 14px;
+  padding: 6px 13px;
   border-radius: 6px;
   font-family: 'Palatino Linotype', Palatino, Georgia, serif;
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: .08em;
-  color: #1e0e00;
-  background: linear-gradient(180deg,
-    #fdd84a 0%,
-    #e9a818 28%,
-    #f5c142 58%,
-    #c98a18 100%
-  );
-  border: 1px solid #a07218;
-  box-shadow:
-    0 3px 8px rgba(0,0,0,.35),
-    0 1px 0 rgba(255,240,160,.55) inset,
-    0 -1px 0 rgba(90,50,0,.35) inset;
-  text-shadow: 0 1px 0 rgba(255,220,80,.45);
+  letter-spacing: .06em;
+  color: #c9a535;
+  background: rgba(180,138,28,.10);
+  border: 1px solid rgba(180,138,28,.32);
   white-space: nowrap;
   flex-shrink: 0;
-  transition: all .15s;
+  transition: all .18s;
 }
 .ai-toggle:hover {
-  background: linear-gradient(180deg,
-    #ffe058 0%,
-    #f0b824 28%,
-    #f9ca4c 58%,
-    #d49520 100%
-  );
-  box-shadow:
-    0 4px 14px rgba(0,0,0,.4),
-    0 1px 0 rgba(255,240,160,.65) inset,
-    0 -1px 0 rgba(90,50,0,.35) inset;
-  transform: translateY(-1px);
+  color: #e0b83e;
+  background: rgba(180,138,28,.18);
+  border-color: rgba(180,138,28,.52);
+  box-shadow: 0 0 14px rgba(180,138,28,.12);
 }
-.ai-toggle:active { transform: translateY(0); box-shadow: 0 1px 4px rgba(0,0,0,.3), 0 1px 0 rgba(255,240,160,.4) inset; }
-.ai-toggle--on { color: var(--text); background: var(--surface-3); border-color: var(--border-2); text-shadow: none; box-shadow: none; transform: none; }
+.ai-toggle--on {
+  color: var(--text);
+  background: var(--surface-3);
+  border-color: var(--border-2);
+  box-shadow: none;
+}
 .ai-toggle--disabled { opacity: .45; cursor: not-allowed; }
-.ai-toggle--disabled:hover { transform: none; border-color: #a07218; box-shadow: 0 3px 8px rgba(0,0,0,.35), 0 1px 0 rgba(255,240,160,.55) inset, 0 -1px 0 rgba(90,50,0,.35) inset; }
+.ai-toggle--disabled:hover { color: #c9a535; background: rgba(180,138,28,.10); border-color: rgba(180,138,28,.32); box-shadow: none; }
 
 /* Team rows */
 .gcard-teams { display: flex; flex-direction: column; gap: 6px; }
