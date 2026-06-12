@@ -1293,7 +1293,7 @@ a { color: inherit; }
   background: var(--surface);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  padding: 10px 0 12px;
+  padding: 12px 0 14px;
   overflow: hidden;
 }
 .ticker-label {
@@ -1303,7 +1303,7 @@ a { color: inherit; }
   color: var(--dim);
   text-transform: uppercase;
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .ticker-track {
   position: relative;
@@ -1320,39 +1320,51 @@ a { color: inherit; }
 }
 .ticker-track::before { left: 0; background: linear-gradient(to right, var(--surface), transparent); }
 .ticker-track::after  { right: 0; background: linear-gradient(to left, var(--surface), transparent); }
-.ticker-cards {
+
+/* Animated ticker (4+ matches) */
+.ticker-cards--animate {
   display: flex;
-  gap: 10px;
+  gap: 16px;
   width: max-content;
-  padding: 0 80px;
   animation: tickerScroll linear infinite;
 }
-.ticker-cards:hover { animation-play-state: paused; }
+.ticker-cards--animate:hover { animation-play-state: paused; }
 @keyframes tickerScroll {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
+
+/* Static display (1–3 matches) — centered, no loop */
+.ticker-cards--static {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  padding: 0 80px;
+  flex-wrap: nowrap;
+}
+
 .ticker-card {
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-2);
   border-radius: 10px;
-  padding: 8px 14px;
-  min-width: 230px;
+  padding: 10px 18px;
+  min-width: 240px;
   flex-shrink: 0;
 }
 .ticker-card-group {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: .14em;
-  color: var(--dim);
+  letter-spacing: .12em;
+  color: var(--text);
   text-transform: uppercase;
   text-align: center;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  opacity: .7;
 }
 .ticker-card-match {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 .ticker-team {
   display: flex;
@@ -1360,11 +1372,11 @@ a { color: inherit; }
   gap: 5px;
   flex: 1;
   min-width: 0;
-  color: var(--dim);
+  color: var(--text);
 }
 .ticker-team--r { justify-content: flex-end; }
 .ticker-team--win  { color: var(--text); font-weight: 700; }
-.ticker-team--loss { color: var(--dim-2); }
+.ticker-team--loss { color: var(--dim); }
 .ticker-name {
   font-size: 11px;
   white-space: nowrap;
@@ -1375,22 +1387,22 @@ a { color: inherit; }
 .ticker-score {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 17px;
+  gap: 5px;
+  font-size: 18px;
   font-weight: 900;
   flex-shrink: 0;
   letter-spacing: -.01em;
 }
-.ticker-score-sep  { color: var(--dim); font-size: 13px; font-weight: 400; }
+.ticker-score-sep  { color: var(--dim); font-size: 14px; font-weight: 400; }
 .ticker-score--win  { color: var(--green); }
-.ticker-score--loss { color: var(--dim-2); }
+.ticker-score--loss { color: var(--dim); }
 .ticker-score--draw { color: var(--text); }
 .ticker-draw {
   font-size: 9px;
-  font-weight: 700;
-  letter-spacing: .1em;
-  color: var(--dim);
+  font-weight: 800;
+  letter-spacing: .12em;
+  color: #f5c142;
   text-transform: uppercase;
   text-align: center;
-  margin-top: 4px;
+  margin-top: 5px;
 }
