@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 
 export const maxDuration = 60;
-const AUTH_LIMIT = 2;
+const AUTH_LIMIT = 1;
 
 export async function POST(req) {
   // Lazy init — env vars only available at runtime, not build time
