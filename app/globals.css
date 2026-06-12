@@ -1134,7 +1134,7 @@ a { color: inherit; }
 .score-team--w { color: var(--text); font-weight: 700; }
 .score-team--l2 { color: var(--dim-2); }
 .score-team-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.score-inputs { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.score-inputs { display: flex; align-items: center; gap: 4px; flex-shrink: 0; width: 80px; justify-content: center; }
 .score-input {
   width: 34px;
   height: 30px;
@@ -1151,7 +1151,7 @@ a { color: inherit; }
 .score-input::-webkit-outer-spin-button,
 .score-input::-webkit-inner-spin-button { -webkit-appearance: none; }
 .score-input:focus { border-color: var(--green); }
-.score-colon { color: var(--dim); font-weight: 700; font-size: 13px; }
+.score-colon { color: var(--dim); font-weight: 700; font-size: 13px; width: 10px; text-align: center; flex-shrink: 0; }
 
 /* Standings table */
 .standings-wrap {
