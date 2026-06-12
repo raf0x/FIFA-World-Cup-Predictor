@@ -224,7 +224,7 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores 
           return (
             <div key={idx} className={`score-row ${locked ? 'score-row--locked' : ''}`}>
               <span className={`score-team score-team--l ${result==='home'?'score-team--w':result==='away'?'score-team--l2':''}`}>
-                <Flag team={home} size={13}/> {home.name}
+                <Flag team={home} size={13}/><span className="score-team-name">{home.name}</span>
               </span>
               <div className="score-inputs">
                 <input
@@ -238,10 +238,9 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores 
                   type="number" min="0" max="20" placeholder="–"
                   value={sc.away} disabled={locked}
                   onChange={e => !locked && onScoreChange(group.id,idx,'away',e.target.value)}/>
-                {locked && <span className="score-lock">✓</span>}
               </div>
               <span className={`score-team score-team--r ${result==='away'?'score-team--w':result==='home'?'score-team--l2':''}`}>
-                {away.name} <Flag team={away} size={13}/>
+                <span className="score-team-name">{away.name}</span><Flag team={away} size={13}/>
               </span>
             </div>
           );
