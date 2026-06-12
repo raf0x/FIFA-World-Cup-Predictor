@@ -1128,11 +1128,12 @@ a { color: inherit; }
   gap: 8px;
   font-size: 12px;
 }
-.score-team { flex: 1; color: var(--dim); display: flex; align-items: center; gap: 5px; }
-.score-team--l { text-align: right; justify-content: flex-end; }
-.score-team--r { text-align: left; justify-content: flex-start; }
+.score-team { flex: 1; min-width: 0; color: var(--dim); display: flex; align-items: center; gap: 5px; }
+.score-team--l { justify-content: flex-end; }
+.score-team--r { justify-content: flex-start; }
 .score-team--w { color: var(--text); font-weight: 700; }
 .score-team--l2 { color: var(--dim-2); }
+.score-team-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .score-inputs { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .score-input {
   width: 34px;
@@ -1279,13 +1280,6 @@ a { color: inherit; }
   color: var(--green);
   cursor: default;
   font-weight: 800;
-}
-.score-lock {
-  font-size: 11px;
-  color: var(--green);
-  font-weight: 800;
-  flex-shrink: 0;
-  margin-left: 2px;
 }
 
 /* ─── Score Carousel Ticker ──────────────────────────────────────────────── */
