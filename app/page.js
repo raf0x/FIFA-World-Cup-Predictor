@@ -946,7 +946,7 @@ export default function Home() {
   const [analyses, setAnalyses] = useState({});
   const [loadingAnalysis, setLoadingAnalysis] = useState({});
   const [aiCallsUsed, setAiCallsUsed] = useState(0);
-  const AI_LIMIT = 2;
+  const AI_LIMIT = 1;
   const [openGroup, setOpenGroup] = useState(null);
   const [hydrated, setHydrated] = useState(false);
   const [days, setDays] = useState(null);
@@ -1154,7 +1154,7 @@ export default function Home() {
 
   const fetchAnalysis = async (groupId) => {
     // Anonymous: 1 free call, then login wall
-    if (!user && aiCallsUsed >= 2) {
+    if (!user && aiCallsUsed >= AI_LIMIT) {
       pendingGroupRef.current = groupId;
       setShowAuthModal(true);
       return;
@@ -1694,7 +1694,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
             <GroupStageCard key={group.id} group={group}
               groupPicks={picks[group.id] || {}} complete={groupComplete(group.id)}
               isOpen={openGroup === group.id} analysis={analyses[group.id]} loading={loadingAnalysis[group.id]}
-              limitReached={user ? aiCallsUsed >= AI_LIMIT : aiCallsUsed >= 2}
+              limitReached={aiCallsUsed >= AI_LIMIT}
               contactMsg={contactMsgGroup === group.id}
               groupScores={groupScores}
               scoreOpen={scoreOpenGroup === group.id}
@@ -1703,7 +1703,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
               lockedGroupScores={lockedGroupScores}
               onToggleAI={() => {
                 const isNowOpen = openGroup !== group.id;
-                const atLimit = user ? aiCallsUsed >= AI_LIMIT : aiCallsUsed >= 2;
+                const atLimit = aiCallsUsed >= AI_LIMIT;
                 if (isNowOpen && atLimit && !analyses[group.id]) {
                   // At limit with no cache: show contact message instead
                   setOpenGroup(group.id);
