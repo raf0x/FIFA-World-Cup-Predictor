@@ -565,18 +565,19 @@ function RoundSection({ title, subtitle, matchups, picks, onPick, matchNumStart,
 function ScoreCarousel({ matches }) {
   if (!matches?.length) return null;
 
-  // Build base set of at least 6 cards, then double for seamless loop
-  let base = [...matches];
-  while (base.length < 6) base = [...base, ...matches];
-  const items = [...base, ...base];
+  // Only animate when enough matches to justify a ticker loop
+  const shouldAnimate = matches.length >= 4;
 
-  const duration = `${base.length * 5}s`;
+  // For animation: duplicate once — the -50% translateX trick requires exactly 2× the set
+  const items = shouldAnimate ? [...matches, ...matches] : matches;
+  const duration = `${matches.length * 6}s`;
 
   return (
     <div className="ticker-section">
       <div className="ticker-label">⚽ Latest Results</div>
       <div className="ticker-track">
-        <div className="ticker-cards" style={{ animationDuration: duration }}>
+        <div className={`ticker-cards ${shouldAnimate ? 'ticker-cards--animate' : 'ticker-cards--static'}`}
+          style={shouldAnimate ? { animationDuration: duration } : {}}>
           {items.map((m, i) => {
             const hWin = m.homeScore > m.awayScore;
             const aWin = m.awayScore > m.homeScore;
