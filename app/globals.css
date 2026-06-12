@@ -1272,24 +1272,18 @@ a { color: inherit; }
 }
 
 /* Score hints */
-.score-hints-note {
-  font-size: 10px;
-  color: var(--dim);
-  margin-bottom: 10px;
-  font-style: italic;
+.score-row--locked { opacity: 1; }
+.score-input--locked {
+  background: rgba(74,222,128,.08);
+  border-color: rgba(74,222,128,.3);
+  color: var(--green);
+  cursor: default;
+  font-weight: 800;
 }
-.score-input-wrap { position: relative; }
-.score-apply-hint {
-  font-size: 9px;
-  font-weight: 700;
-  color: #f5c142;
-  background: rgba(245,193,66,.08);
-  border: 1px solid rgba(245,193,66,.2);
-  border-radius: 4px;
-  padding: 2px 5px;
-  cursor: pointer;
-  letter-spacing: .04em;
-  white-space: nowrap;
+.score-lock {
+  font-size: 11px;
+  color: var(--green);
+  font-weight: 800;
   flex-shrink: 0;
+  margin-left: 2px;
 }
-.score-apply-hint:hover { background: rgba(245,193,66,.15); }
