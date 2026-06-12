@@ -1287,3 +1287,110 @@ a { color: inherit; }
   flex-shrink: 0;
   margin-left: 2px;
 }
+
+/* ─── Score Carousel Ticker ──────────────────────────────────────────────── */
+.ticker-section {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0 12px;
+  overflow: hidden;
+}
+.ticker-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .2em;
+  color: var(--dim);
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.ticker-track {
+  position: relative;
+  overflow: hidden;
+}
+.ticker-track::before,
+.ticker-track::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 80px;
+  z-index: 2;
+  pointer-events: none;
+}
+.ticker-track::before { left: 0; background: linear-gradient(to right, var(--surface), transparent); }
+.ticker-track::after  { right: 0; background: linear-gradient(to left, var(--surface), transparent); }
+.ticker-cards {
+  display: flex;
+  gap: 10px;
+  width: max-content;
+  padding: 0 80px;
+  animation: tickerScroll linear infinite;
+}
+.ticker-cards:hover { animation-play-state: paused; }
+@keyframes tickerScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 14px;
+  min-width: 230px;
+  flex-shrink: 0;
+}
+.ticker-card-group {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  color: var(--dim);
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 6px;
+}
+.ticker-card-match {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ticker-team {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+  color: var(--dim);
+}
+.ticker-team--r { justify-content: flex-end; }
+.ticker-team--win  { color: var(--text); font-weight: 700; }
+.ticker-team--loss { color: var(--dim-2); }
+.ticker-name {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 74px;
+}
+.ticker-score {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 17px;
+  font-weight: 900;
+  flex-shrink: 0;
+  letter-spacing: -.01em;
+}
+.ticker-score-sep  { color: var(--dim); font-size: 13px; font-weight: 400; }
+.ticker-score--win  { color: var(--green); }
+.ticker-score--loss { color: var(--dim-2); }
+.ticker-score--draw { color: var(--text); }
+.ticker-draw {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: var(--dim);
+  text-transform: uppercase;
+  text-align: center;
+  margin-top: 4px;
+}
