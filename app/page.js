@@ -929,6 +929,7 @@ export default function Home() {
   const [groupScores, setGroupScores] = useState({});
   const [bracketScores, setBracketScores] = useState({});
   const [scoreOpenGroup, setScoreOpenGroup] = useState(null);
+  const [liveActive, setLiveActive] = useState(false);
   const [finalScore, setFinalScore] = useState({ home: '', away: '' });
   const pendingGroupRef = useRef(null);
 
@@ -1002,7 +1003,23 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // ── Group score handler ────────────────────────────────────────────────
+  // ── Live score polling ────────────────────────────────────────────────
+  useEffect(() => {
+    const fetchLive = () => {
+      fetch('/api/live-scores')
+        .then(r => r.json())
+        .then(data => {
+          if (data.active && data.count > 0) {
+            setLiveActive(true);
+            setGroupScores(prev => ({ ...prev, ...data.groupScores }));
+          }
+        })
+        .catch(() => {});
+    };
+    fetchLive();
+    const interval = setInterval(fetchLive, 5 * 60 * 1000); // every 5 min
+    return () => clearInterval(interval);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const setGroupScore = (groupId, matchIdx, side, value) => {
     setGroupScores(prev => ({
       ...prev,
@@ -1593,7 +1610,14 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
         <div className="section-head">
           <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, flexWrap:'wrap' }}>
             <div>
-              <div className="eyebrow">Stage 01 · Group Draw</div>
+              <div className="eyebrow" style={{ display:'flex', alignItems:'center', gap:8 }}>
+                Stage 01 · Group Draw
+                {liveActive && (
+                  <span className="live-badge">
+                    <span className="livedot" /> Live results active
+                  </span>
+                )}
+              </div>
               <h2 className="section-title">Group Stage</h2>
               <p className="section-desc">
                 Rank each group 1–2–3. Top two qualify directly; third place enters the best-eight race.
