@@ -561,6 +561,54 @@ function RoundSection({ title, subtitle, matchups, picks, onPick, matchNumStart,
   );
 }
 
+// ─── Score Carousel ───────────────────────────────────────────────────────
+function ScoreCarousel({ matches }) {
+  if (!matches?.length) return null;
+
+  // Build base set of at least 6 cards, then double for seamless loop
+  let base = [...matches];
+  while (base.length < 6) base = [...base, ...matches];
+  const items = [...base, ...base];
+
+  const duration = `${base.length * 5}s`;
+
+  return (
+    <div className="ticker-section">
+      <div className="ticker-label">⚽ Latest Results</div>
+      <div className="ticker-track">
+        <div className="ticker-cards" style={{ animationDuration: duration }}>
+          {items.map((m, i) => {
+            const hWin = m.homeScore > m.awayScore;
+            const aWin = m.awayScore > m.homeScore;
+            const draw = m.homeScore === m.awayScore;
+            return (
+              <div key={i} className="ticker-card">
+                <div className="ticker-card-group">Group {m.group}</div>
+                <div className="ticker-card-match">
+                  <div className={`ticker-team ${hWin?'ticker-team--win':!draw?'ticker-team--loss':''}`}>
+                    <Flag team={m.homeTeamObj} size={13}/>
+                    <span className="ticker-name">{m.homeTeam}</span>
+                  </div>
+                  <div className="ticker-score">
+                    <span className={hWin?'ticker-score--win':draw?'ticker-score--draw':'ticker-score--loss'}>{m.homeScore}</span>
+                    <span className="ticker-score-sep">–</span>
+                    <span className={aWin?'ticker-score--win':draw?'ticker-score--draw':'ticker-score--loss'}>{m.awayScore}</span>
+                  </div>
+                  <div className={`ticker-team ticker-team--r ${aWin?'ticker-team--win':!draw?'ticker-team--loss':''}`}>
+                    <span className="ticker-name">{m.awayTeam}</span>
+                    <Flag team={m.awayTeamObj} size={13}/>
+                  </div>
+                </div>
+                {draw && <div className="ticker-draw">Draw</div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Confetti({ id }) {
   const colors = ['#f5c142','#39ff14','#06b6d4','#fb7185','#a78bfa','#ffffff'];
   return (
@@ -1249,6 +1297,28 @@ export default function Home() {
   const champion = bracketPicks.final;
   const championObj = champion ? GROUPS.flatMap(g => g.teams).find(t => t.name === champion) : null;
 
+  const recentMatches = useMemo(() => {
+    return Object.entries(lockedGroupScores)
+      .map(([key, score]) => {
+        const [groupId, matchIdxStr] = key.split('_');
+        const matchIdx = parseInt(matchIdxStr);
+        const group = GROUPS.find(g => g.id === groupId);
+        if (!group || isNaN(matchIdx) || !GROUP_MATCH_PAIRS[matchIdx]) return null;
+        const [hi, ai] = GROUP_MATCH_PAIRS[matchIdx];
+        return {
+          group: groupId,
+          homeTeam: group.teams[hi].name,
+          awayTeam: group.teams[ai].name,
+          homeTeamObj: group.teams[hi],
+          awayTeamObj: group.teams[ai],
+          homeScore: parseInt(score.home),
+          awayScore: parseInt(score.away),
+        };
+      })
+      .filter(m => m && !isNaN(m.homeScore) && !isNaN(m.awayScore))
+      .slice(-6);
+  }, [lockedGroupScores]);
+
   const reset = () => {
     if (confirm('Clear all picks?')) {
       setPicks({}); setThirdPlacePicks([]); setBracketPicks(initBracket()); setAnalyses({});
@@ -1587,6 +1657,9 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
           </div>
         </div>
       </section>
+
+      {/* ── Score Carousel ── */}
+      <ScoreCarousel matches={recentMatches} />
 
       {/* ── Group Stage ── */}
       <section className="section">
