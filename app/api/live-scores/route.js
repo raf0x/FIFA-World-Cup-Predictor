@@ -11,15 +11,19 @@ const NAME_MAP = {
   'South Korea':              'Korea Republic',
   'Czech Republic':           'Czechia',
   "Côte d'Ivoire":            'Ivory Coast',
-  'Cote d\'Ivoire':           'Ivory Coast',
+  "Cote d'Ivoire":            'Ivory Coast',
   'Turkey':                   'Türkiye',
   'United States of America': 'United States',
   'USA':                      'United States',
   'Bosnia & Herzegovina':     'Bosnia and Herzegovina',
   'Bosnia-Herzegovina':       'Bosnia and Herzegovina',
+  'Bosnia & Herzeg.':         'Bosnia and Herzegovina',
   'Curacao':                  'Curaçao',
   'DR Congo':                 'DR Congo',
   'Congo DR':                 'DR Congo',
+  'Democratic Republic of Congo': 'DR Congo',
+  'Republic of Korea':        'Korea Republic',
+  'Türkiye':                  'Türkiye',
 };
 
 const strip = s => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
@@ -66,9 +70,9 @@ export async function GET() {
     );
 
     for (const match of finished) {
-      // Try shortName first, fall back to full name
-      const hRaw = normalizeApiName(match.homeTeam.shortName || match.homeTeam.name);
-      const aRaw = normalizeApiName(match.awayTeam.shortName || match.awayTeam.name);
+      // Use full name first — shortName often truncates (e.g. "Bosnia" instead of "Bosnia and Herzegovina")
+      const hRaw = normalizeApiName(match.homeTeam.name || match.homeTeam.shortName);
+      const aRaw = normalizeApiName(match.awayTeam.name || match.awayTeam.shortName);
       const hGoals = match.score?.fullTime?.home;
       const aGoals = match.score?.fullTime?.away;
       if (hGoals === null || hGoals === undefined || aGoals === null || aGoals === undefined) continue;
