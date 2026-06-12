@@ -202,7 +202,7 @@ function AIPanel({ loading, analysis, color }) {
 
 // ─── Group Stage Card ──────────────────────────────────────────────────────
 // ─── Group Score Panel ─────────────────────────────────────────────────────
-function GroupScorePanel({ group, groupScores, onScoreChange, analysis }) {
+function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores }) {
   const standings = calcGroupStandings(group, groupScores);
   const hasScores = standings.some(s => s.played > 0);
   const allFilled = GROUP_MATCH_PAIRS.every((_,i) => {
@@ -210,54 +210,35 @@ function GroupScorePanel({ group, groupScores, onScoreChange, analysis }) {
     return sc && sc.home!=='' && sc.away!=='' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
   });
 
-  // Build hint map from AI suggestedScores
-  const hintMap = {};
-  if (analysis?.suggestedScores?.length) {
-    analysis.suggestedScores.forEach(s => {
-      if (s.matchIdx !== undefined && s.homeScore !== null && s.awayScore !== null) {
-        hintMap[s.matchIdx] = s;
-      }
-    });
-  }
-
   return (
     <div className="score-panel">
-      {Object.keys(hintMap).length > 0 && (
-        <div className="score-hints-note">
-          💡 Faint hints are AI odds from betting markets — click to apply
-        </div>
-      )}
       <div className="score-matches">
         {GROUP_MATCH_PAIRS.map(([hi,ai], idx) => {
           const home = group.teams[hi], away = group.teams[ai];
-          const sc = groupScores[`${group.id}_${idx}`] || { home:'', away:'' };
+          const key = `${group.id}_${idx}`;
+          const sc = groupScores[key] || { home:'', away:'' };
           const hg = sc.home==='' ? null : Number(sc.home);
           const ag = sc.away==='' ? null : Number(sc.away);
           const result = hg!==null && ag!==null ? (hg>ag?'home':hg<ag?'away':'draw') : null;
-          const hint = hintMap[idx];
+          const locked = !!lockedGroupScores?.[key];
           return (
-            <div key={idx} className="score-row">
+            <div key={idx} className={`score-row ${locked ? 'score-row--locked' : ''}`}>
               <span className={`score-team score-team--l ${result==='home'?'score-team--w':result==='away'?'score-team--l2':''}`}>
                 <Flag team={home} size={13}/> {home.name}
               </span>
               <div className="score-inputs">
-                <div className="score-input-wrap">
-                  <input className="score-input" type="number" min="0" max="20"
-                    placeholder={hint ? String(hint.homeScore) : '–'}
-                    value={sc.home} onChange={e=>onScoreChange(group.id,idx,'home',e.target.value)}/>
-                </div>
-                <span className="score-colon">:</span>
-                <div className="score-input-wrap">
-                  <input className="score-input" type="number" min="0" max="20"
-                    placeholder={hint ? String(hint.awayScore) : '–'}
-                    value={sc.away} onChange={e=>onScoreChange(group.id,idx,'away',e.target.value)}/>
-                </div>
-                {hint && sc.home==='' && sc.away==='' && (
-                  <button className="score-apply-hint" title={`Apply odds hint (${hint.source || 'AI'})`}
-                    onClick={() => { onScoreChange(group.id,idx,'home',String(hint.homeScore)); onScoreChange(group.id,idx,'away',String(hint.awayScore)); }}>
-                    apply
-                  </button>
-                )}
+                <input
+                  className={`score-input ${locked ? 'score-input--locked' : ''}`}
+                  type="number" min="0" max="20" placeholder="–"
+                  value={sc.home} disabled={locked}
+                  onChange={e => !locked && onScoreChange(group.id,idx,'home',e.target.value)}/>
+                <span className="score-colon">{locked ? '–' : ':'}</span>
+                <input
+                  className={`score-input ${locked ? 'score-input--locked' : ''}`}
+                  type="number" min="0" max="20" placeholder="–"
+                  value={sc.away} disabled={locked}
+                  onChange={e => !locked && onScoreChange(group.id,idx,'away',e.target.value)}/>
+                {locked && <span className="score-lock">✓</span>}
               </div>
               <span className={`score-team score-team--r ${result==='away'?'score-team--w':result==='home'?'score-team--l2':''}`}>
                 {away.name} <Flag team={away} size={13}/>
@@ -292,7 +273,7 @@ function GroupScorePanel({ group, groupScores, onScoreChange, analysis }) {
   );
 }
 
-function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading, onToggleAI, onSetRank, limitReached, contactMsg, groupScores, scoreOpen, onToggleScore, onScoreChange }) {
+function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading, onToggleAI, onSetRank, limitReached, contactMsg, groupScores, scoreOpen, onToggleScore, onScoreChange, lockedGroupScores }) {
   const color = GROUP_COLORS[group.id];
   const rankedCount = Object.keys(groupPicks).length;
   return (
@@ -372,7 +353,7 @@ function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading
         </button>
       </div>
       {scoreOpen && (
-        <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} analysis={analysis} />
+        <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} lockedGroupScores={lockedGroupScores} />
       )}
     </div>
   );
@@ -927,6 +908,7 @@ export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [contactMsgGroup, setContactMsgGroup] = useState(null);
   const [groupScores, setGroupScores] = useState({});
+  const [lockedGroupScores, setLockedGroupScores] = useState({});
   const [bracketScores, setBracketScores] = useState({});
   const [scoreOpenGroup, setScoreOpenGroup] = useState(null);
   const [liveActive, setLiveActive] = useState(false);
@@ -1011,6 +993,7 @@ export default function Home() {
         .then(data => {
           if (data.active && data.count > 0) {
             setLiveActive(true);
+            setLockedGroupScores(prev => ({ ...prev, ...data.groupScores }));
             setGroupScores(prev => ({ ...prev, ...data.groupScores }));
           }
         })
@@ -1269,7 +1252,7 @@ export default function Home() {
   const reset = () => {
     if (confirm('Clear all picks?')) {
       setPicks({}); setThirdPlacePicks([]); setBracketPicks(initBracket()); setAnalyses({});
-      setGroupScores({}); setBracketScores({}); setFinalScore({ home:'', away:'' });
+      setGroupScores({}); setBracketScores({}); setLockedGroupScores({}); setFinalScore({ home:'', away:'' });
       setOpenGroup(null); setScoreOpenGroup(null);
     }
   };
@@ -1644,6 +1627,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
               scoreOpen={scoreOpenGroup === group.id}
               onToggleScore={() => setScoreOpenGroup(scoreOpenGroup === group.id ? null : group.id)}
               onScoreChange={setGroupScore}
+              lockedGroupScores={lockedGroupScores}
               onToggleAI={() => {
                 const isNowOpen = openGroup !== group.id;
                 const atLimit = user ? aiCallsUsed >= AI_LIMIT : aiCallsUsed >= 2;
