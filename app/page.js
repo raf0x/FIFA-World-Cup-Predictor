@@ -561,6 +561,18 @@ function RoundSection({ title, subtitle, matchups, picks, onPick, matchNumStart,
 }
 
 // ─── Score Carousel ───────────────────────────────────────────────────────
+const TICKER_SHORT = {
+  'Bosnia and Herzegovina': 'Bosnia-Herz.',
+  'United States':          'USA',
+  'Korea Republic':         'Korea Rep.',
+  'Trinidad and Tobago':    'Trinidad & Tobago',
+  'DR Congo':               'DR Congo',
+  'New Zealand':            'New Zealand',
+  'Saudi Arabia':           'Saudi Arabia',
+  'South Africa':           'South Africa',
+};
+const tickerName = name => TICKER_SHORT[name] || name;
+
 function ScoreCarousel({ matches }) {
   if (!matches?.length) return null;
 
@@ -587,7 +599,7 @@ function ScoreCarousel({ matches }) {
                 <div className="ticker-card-match">
                   <div className={`ticker-team ${hWin?'ticker-team--win':!draw?'ticker-team--loss':''}`}>
                     <Flag team={m.homeTeamObj} size={13}/>
-                    <span className="ticker-name">{m.homeTeam}</span>
+                    <span className="ticker-name">{tickerName(m.homeTeam)}</span>
                   </div>
                   <div className="ticker-score">
                     <span className={hWin?'ticker-score--win':draw?'ticker-score--draw':'ticker-score--loss'}>{m.homeScore}</span>
@@ -595,7 +607,7 @@ function ScoreCarousel({ matches }) {
                     <span className={aWin?'ticker-score--win':draw?'ticker-score--draw':'ticker-score--loss'}>{m.awayScore}</span>
                   </div>
                   <div className={`ticker-team ticker-team--r ${aWin?'ticker-team--win':!draw?'ticker-team--loss':''}`}>
-                    <span className="ticker-name">{m.awayTeam}</span>
+                    <span className="ticker-name">{tickerName(m.awayTeam)}</span>
                     <Flag team={m.awayTeamObj} size={13}/>
                   </div>
                 </div>
