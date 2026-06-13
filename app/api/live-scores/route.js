@@ -36,14 +36,6 @@ function findTeamIdx(group, name) {
   return group.teams.findIndex(t => strip(t.name) === s);
 }
 
-// "25:00" → "25'" | "90:00" → "90'" | already "25'" → "25'"
-function fmtMinute(raw) {
-  if (!raw) return '';
-  if (raw.includes("'")) return raw.trim();
-  const mins = raw.split(':')[0];
-  return mins ? `${mins}'` : '';
-}
-
 // ── Goalscorer fetch (one call per completed match) ───────────────────────
 async function fetchScorers(eventId, homeTeamId, awayTeamId) {
   try {
@@ -58,31 +50,34 @@ async function fetchScorers(eventId, homeTeamId, awayTeamId) {
     const awayScorers = [];
 
     for (const evt of (data.keyEvents || [])) {
+      // Only process actual scoring plays
+      if (!evt.scoringPlay) continue;
       const typeText = (evt.type?.text || '').toLowerCase();
       if (!typeText.includes('goal')) continue;
 
       const isOwnGoal = typeText.includes('own');
-      const player = evt.athletesInvolved?.[0];
-      if (!player) continue;
 
-      const name = player.shortName || player.displayName || '';
-      const minute = fmtMinute(evt.clock?.displayValue || '');
-      const label = isOwnGoal ? `${name} ${minute} (OG)`.trim() : `${name} ${minute}`.trim();
+      // ESPN uses participants[0].athlete.displayName (not athletesInvolved)
+      const athlete = evt.participants?.[0]?.athlete;
+      if (!athlete) continue;
 
-      // Determine side: prefer homeAway field, fall back to team ID match
-      let isHome;
-      if (evt.homeAway) {
-        isHome = evt.homeAway === 'home';
-      } else if (evt.team?.id) {
-        isHome = String(evt.team.id) === String(homeTeamId);
-      } else {
-        continue;
-      }
+      const fullName = athlete.displayName || '';
+      // "Julián Quiñones" → "J. Quiñones"
+      const parts = fullName.trim().split(' ');
+      const shortName = parts.length > 1
+        ? `${parts[0][0]}. ${parts[parts.length - 1]}`
+        : fullName;
 
-      // Own goal: credit the OTHER team
-      if (isOwnGoal) isHome = !isHome;
+      // Clock is already formatted as "9'" by ESPN
+      const minute = evt.clock?.displayValue || '';
+      const label = `${shortName} ${minute}${isOwnGoal ? ' (OG)' : ''}`.trim();
 
-      if (isHome) homeScorers.push(label);
+      // Match by team.id — no homeAway field on keyEvents
+      const isHome = String(evt.team?.id) === String(homeTeamId);
+      // Own goal benefits the OTHER team
+      const creditHome = isOwnGoal ? !isHome : isHome;
+
+      if (creditHome) homeScorers.push(label);
       else awayScorers.push(label);
     }
 
