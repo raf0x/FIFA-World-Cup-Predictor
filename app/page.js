@@ -565,7 +565,7 @@ const TICKER_SHORT = {
   'Bosnia and Herzegovina': 'Bosnia-Herz.',
   'United States':          'USA',
   'Korea Republic':         'Korea Rep.',
-  'Trinidad and Tobago':    'Trinidad & Tobago',
+  'Trinidad and Tobago':    'T&T',
   'DR Congo':               'DR Congo',
   'New Zealand':            'New Zealand',
   'Saudi Arabia':           'Saudi Arabia',
@@ -576,10 +576,7 @@ const tickerName = name => TICKER_SHORT[name] || name;
 function ScoreCarousel({ matches }) {
   if (!matches?.length) return null;
 
-  // Only animate when enough matches to justify a ticker loop
   const shouldAnimate = matches.length >= 4;
-
-  // For animation: duplicate once — the -50% translateX trick requires exactly 2× the set
   const items = shouldAnimate ? [...matches, ...matches] : matches;
   const duration = `${matches.length * 6}s`;
 
@@ -593,6 +590,7 @@ function ScoreCarousel({ matches }) {
             const hWin = m.homeScore > m.awayScore;
             const aWin = m.awayScore > m.homeScore;
             const draw = m.homeScore === m.awayScore;
+            const hasScorers = (m.homeScorers?.length || 0) + (m.awayScorers?.length || 0) > 0;
             return (
               <div key={i} className="ticker-card">
                 <div className="ticker-card-group">Group {m.group}</div>
@@ -611,6 +609,16 @@ function ScoreCarousel({ matches }) {
                     <Flag team={m.awayTeamObj} size={13}/>
                   </div>
                 </div>
+                {hasScorers && (
+                  <div className="ticker-scorers">
+                    <div className="ticker-scorers-col">
+                      {(m.homeScorers || []).map((s, j) => <div key={j} className="ticker-scorer">{s}</div>)}
+                    </div>
+                    <div className="ticker-scorers-col ticker-scorers-col--r">
+                      {(m.awayScorers || []).map((s, j) => <div key={j} className="ticker-scorer">{s}</div>)}
+                    </div>
+                  </div>
+                )}
                 {draw && <div className="ticker-draw">Draw</div>}
               </div>
             );
@@ -972,6 +980,7 @@ export default function Home() {
   const [bracketScores, setBracketScores] = useState({});
   const [scoreOpenGroup, setScoreOpenGroup] = useState(null);
   const [liveActive, setLiveActive] = useState(false);
+  const [recentMatches, setRecentMatches] = useState([]);
   const [finalScore, setFinalScore] = useState({ home: '', away: '' });
   const pendingGroupRef = useRef(null);
 
@@ -1055,12 +1064,21 @@ export default function Home() {
             setLiveActive(true);
             setLockedGroupScores(prev => ({ ...prev, ...data.groupScores }));
             setGroupScores(prev => ({ ...prev, ...data.groupScores }));
+            if (data.recentMatches?.length > 0) {
+              const allTeams = GROUPS.flatMap(g => g.teams);
+              const enriched = data.recentMatches.map(m => ({
+                ...m,
+                homeTeamObj: allTeams.find(t => t.name === m.homeTeam) || { name: m.homeTeam },
+                awayTeamObj: allTeams.find(t => t.name === m.awayTeam) || { name: m.awayTeam },
+              }));
+              setRecentMatches(enriched.slice(-6));
+            }
           }
         })
         .catch(() => {});
     };
     fetchLive();
-    const interval = setInterval(fetchLive, 5 * 60 * 1000); // every 5 min
+    const interval = setInterval(fetchLive, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const setGroupScore = (groupId, matchIdx, side, value) => {
@@ -1309,27 +1327,7 @@ export default function Home() {
   const champion = bracketPicks.final;
   const championObj = champion ? GROUPS.flatMap(g => g.teams).find(t => t.name === champion) : null;
 
-  const recentMatches = useMemo(() => {
-    return Object.entries(lockedGroupScores)
-      .map(([key, score]) => {
-        const [groupId, matchIdxStr] = key.split('_');
-        const matchIdx = parseInt(matchIdxStr);
-        const group = GROUPS.find(g => g.id === groupId);
-        if (!group || isNaN(matchIdx) || !GROUP_MATCH_PAIRS[matchIdx]) return null;
-        const [hi, ai] = GROUP_MATCH_PAIRS[matchIdx];
-        return {
-          group: groupId,
-          homeTeam: group.teams[hi].name,
-          awayTeam: group.teams[ai].name,
-          homeTeamObj: group.teams[hi],
-          awayTeamObj: group.teams[ai],
-          homeScore: parseInt(score.home),
-          awayScore: parseInt(score.away),
-        };
-      })
-      .filter(m => m && !isNaN(m.homeScore) && !isNaN(m.awayScore))
-      .slice(-6);
-  }, [lockedGroupScores]);
+  // recentMatches populated from live-scores API (includes goalscorer data)
 
   const reset = () => {
     if (confirm('Clear all picks?')) {
