@@ -1400,3 +1400,20 @@ a { color: inherit; }
   text-align: center;
   margin-top: 5px;
 }
+.ticker-scorers {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+.ticker-scorers-col { flex: 1; min-width: 0; }
+.ticker-scorers-col--r { text-align: right; }
+.ticker-scorer {
+  font-size: 10px;
+  color: var(--dim);
+  line-height: 1.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
