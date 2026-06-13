@@ -60,65 +60,6 @@ function calcGroupStandings(group, groupScores) {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
-function debounce(fn, delay) {
-  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), delay); };
-}
-
-// ─── Scoring Engine ───────────────────────────────────────────────────────
-const BRACKET_PTS = { r32: 1, r16: 2, qf: 4, sf: 8, final: 16, thirdPlace: 4 };
-
-function computeUserScore(prediction, lockedGroupScores) {
-  const { picks = {}, bracket_picks = {}, bold_picks = {} } = prediction;
-  let score = 0;
-
-  // ── Group stage: score completed groups only ──────────────────────────
-  for (const group of GROUPS) {
-    const allLocked = GROUP_MATCH_PAIRS.every((_, idx) =>
-      !!lockedGroupScores[`${group.id}_${idx}`]
-    );
-    if (!allLocked) continue;
-
-    const standings = calcGroupStandings(group, lockedGroupScores);
-    const groupPicks = picks[group.id] || {};
-
-    for (const [teamName, userRank] of Object.entries(groupPicks)) {
-      if (!userRank) continue;
-      const actualPos = standings.findIndex(s => s.name === teamName); // 0-indexed
-      if (actualPos === -1) continue;
-      // 2 pts: correctly predicted team to advance (top 2)
-      if (userRank <= 2 && actualPos <= 1) score += 2;
-      // +1 pt bonus: exact rank match (1st or 2nd)
-      if (userRank <= 2 && userRank === actualPos + 1) score += 1;
-    }
-  }
-
-  // ── Bracket: score each stage against locked bracket results ─────────
-  // lockedBracketResults will be populated when knockout stage starts.
-  // Bold picks apply: correct bold = 2× pts.
-  const br = lockedGroupScores._bracket || {}; // placeholder key for future knockout data
-  for (const stage of ['r32','r16','qf','sf','thirdPlace','final']) {
-    const userPicks = Array.isArray(bracket_picks[stage])
-      ? bracket_picks[stage]
-      : bracket_picks[stage] != null ? [bracket_picks[stage]] : [];
-    const actual = Array.isArray(br[stage])
-      ? br[stage]
-      : br[stage] != null ? [br[stage]] : [];
-
-    userPicks.forEach((pick, idx) => {
-      if (!pick || !actual[idx] || pick !== actual[idx]) return;
-      const base = BRACKET_PTS[stage] || 1;
-      const isBold = stage === 'final'
-        ? !!bold_picks.final
-        : stage === 'thirdPlace'
-          ? !!bold_picks.thirdPlace
-          : !!bold_picks[stage]?.[idx];
-      score += isBold ? base * 2 : base;
-    });
-  }
-
-  return score;
-}
-
 function getTeamByRank(picks, groupId, rank) {
   const p = picks[groupId] || {};
   return Object.keys(p).find(t => p[t] === rank) || null;
@@ -458,7 +399,7 @@ function ThirdPlacePicker({ candidates, picks, allGroupsDone, onToggle }) {
 }
 
 // ─── Bracket components ────────────────────────────────────────────────────
-function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreChange, isBold, onToggleBold, boldDisabled }) {
+function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreChange }) {
   const { home, away } = matchup;
   const bothKnown = home.name && away.name;
   const info = matchNum ? MATCH_SCHEDULE[matchNum] : null;
@@ -480,7 +421,7 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
   };
 
   return (
-    <div className={`slot ${wide ? 'slot--wide' : ''} ${isBold ? 'slot--bold' : ''}`} title={title}>
+    <div className={`slot ${wide ? 'slot--wide' : ''}`} title={title}>
       {[home, away].map((team, i) => {
         const isPicked = team.name !== null && picked === team.name;
         const isOther = picked && picked !== team.name;
@@ -507,15 +448,6 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
           </div>
         );
       })}
-      {picked && onToggleBold && (
-        <button
-          className={`slot-bold-btn ${isBold ? 'slot-bold-btn--on' : ''}`}
-          disabled={!isBold && boldDisabled}
-          onClick={e => { e.stopPropagation(); onToggleBold(); }}
-          title={isBold ? 'Remove bold call' : boldDisabled ? 'Bold call limit reached (5 max)' : 'Mark as bold call — correct pick scores 2×'}>
-          ⚡
-        </button>
-      )}
     </div>
   );
 }
@@ -622,74 +554,6 @@ function RoundSection({ title, subtitle, matchups, picks, onPick, matchNumStart,
             home={m.home} away={m.away} picked={picks[i]} onPick={n => onPick(i, n)} />
         ))}
       </div>
-    </div>
-  );
-}
-
-// ─── Leaderboard ──────────────────────────────────────────────────────────
-function Leaderboard({ lockedGroupScores, currentUserId }) {
-  const [open, setOpen] = useState(false);
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [lastFetch, setLastFetch] = useState(0);
-
-  const load = async () => {
-    if (Date.now() - lastFetch < 30000) return; // throttle: 30s min between fetches
-    setLoading(true);
-    try {
-      const res = await fetch('/api/predictions');
-      const data = await res.json();
-      const scored = (data.predictions || [])
-        .map(p => ({ ...p, score: computeUserScore(p, lockedGroupScores) }))
-        .sort((a, b) => b.score - a.score || a.display_name.localeCompare(b.display_name));
-      setEntries(scored);
-      setLastFetch(Date.now());
-    } catch {}
-    setLoading(false);
-  };
-
-  const toggle = () => {
-    const next = !open;
-    setOpen(next);
-    if (next) load();
-  };
-
-  const medals = ['🥇','🥈','🥉'];
-
-  return (
-    <div className="lb-wrap">
-      <button className="lb-toggle" onClick={toggle}>
-        <span>🏆 Leaderboard</span>
-        <span className="lb-toggle-meta">
-          {entries.length > 0 && !loading ? `${entries.length} player${entries.length!==1?'s':''}` : ''}
-          <span className="lb-chevron">{open ? '▲' : '▼'}</span>
-        </span>
-      </button>
-      {open && (
-        <div className="lb-body">
-          {loading && <div className="lb-status">Loading…</div>}
-          {!loading && entries.length === 0 && (
-            <div className="lb-status">No predictions saved yet — sign in and lock in your picks.</div>
-          )}
-          {!loading && entries.map((e, i) => {
-            const isMe = e.user_id === currentUserId;
-            const tied = i > 0 && entries[i-1].score === e.score;
-            return (
-              <div key={e.user_id} className={`lb-row ${isMe ? 'lb-row--me' : ''}`}>
-                <span className="lb-pos">{tied ? '' : medals[i] || `${i+1}.`}</span>
-                <span className="lb-name">{e.display_name}{isMe ? ' (you)' : ''}</span>
-                <span className="lb-score">{e.score} <span className="lb-pts">pts</span></span>
-              </div>
-            );
-          })}
-          {!loading && entries.length > 0 && (
-            <div className="lb-footer">
-              <button className="lb-refresh" onClick={load}>↻ Refresh</button>
-              <span className="lb-note">Scores update as matches lock · Bold picks ⚡ double bracket points</span>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -920,7 +784,7 @@ function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bra
       {/* Final match */}
       <div className="champ-match">
         <div className="champ-match-label champ-final-label">FINAL · JUL 19 · NY/NJ</div>
-        <BracketSlot matchup={finalMatchup} picked={bracketPicks.final} onPick={n => pickBracket('final',0,n)} matchNum={104} wide isBold={!!boldPicks.final} onToggleBold={()=>toggleBold('final')} boldDisabled={boldCount>=MAX_BOLD} />
+        <BracketSlot matchup={finalMatchup} picked={bracketPicks.final} onPick={n => pickBracket('final',0,n)} matchNum={104} wide />
 
         {/* Score prediction — shown when both finalists are known */}
         {finalMatchup.home.name && finalMatchup.away.name && (
@@ -951,7 +815,7 @@ function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bra
       {/* 3rd place */}
       <div className="champ-match">
         <div className="champ-match-label">3rd Place · Jul 18 · Miami</div>
-        <BracketSlot matchup={thirdMatchup} picked={bracketPicks.thirdPlace} onPick={n => pickBracket('thirdPlace',0,n)} matchNum={103} wide isBold={!!boldPicks.thirdPlace} onToggleBold={()=>toggleBold('thirdPlace')} boldDisabled={boldCount>=MAX_BOLD} />
+        <BracketSlot matchup={thirdMatchup} picked={bracketPicks.thirdPlace} onPick={n => pickBracket('thirdPlace',0,n)} matchNum={103} wide />
       </div>
     </div>
   );
@@ -974,32 +838,32 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
             {GROUPS.slice(0,6).map(g => <GroupBox key={g.id} group={g} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_L.r32.map(idx => <BracketSlot key={idx} matchup={r32Matchups[idx]} picked={bracketPicks.r32[idx]} onPick={n=>pickBracket('r32',idx,n)} matchNum={73+idx} score={bracketScores[`r32_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r32',idx,s,v)} isBold={!!boldPicks.r32?.[idx]} onToggleBold={()=>toggleBold('r32',idx)} boldDisabled={boldCount>=MAX_BOLD} />)}
+            {BRACKET_L.r32.map(idx => <BracketSlot key={idx} matchup={r32Matchups[idx]} picked={bracketPicks.r32[idx]} onPick={n=>pickBracket('r32',idx,n)} matchNum={73+idx} score={bracketScores[`r32_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r32',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_L.r16.map(idx => <BracketSlot key={idx} matchup={r16Matchups[idx]} picked={bracketPicks.r16[idx]} onPick={n=>pickBracket('r16',idx,n)} matchNum={89+idx} score={bracketScores[`r16_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r16',idx,s,v)} isBold={!!boldPicks.r16?.[idx]} onToggleBold={()=>toggleBold('r16',idx)} boldDisabled={boldCount>=MAX_BOLD} />)}
+            {BRACKET_L.r16.map(idx => <BracketSlot key={idx} matchup={r16Matchups[idx]} picked={bracketPicks.r16[idx]} onPick={n=>pickBracket('r16',idx,n)} matchNum={89+idx} score={bracketScores[`r16_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r16',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_L.qf.map(idx => <BracketSlot key={idx} matchup={qfMatchups[idx]} picked={bracketPicks.qf[idx]} onPick={n=>pickBracket('qf',idx,n)} matchNum={97+idx} score={bracketScores[`qf_${idx}`]} onScoreChange={(s,v)=>setBracketScore('qf',idx,s,v)} isBold={!!boldPicks.qf?.[idx]} onToggleBold={()=>toggleBold('qf',idx)} boldDisabled={boldCount>=MAX_BOLD} />)}
+            {BRACKET_L.qf.map(idx => <BracketSlot key={idx} matchup={qfMatchups[idx]} picked={bracketPicks.qf[idx]} onPick={n=>pickBracket('qf',idx,n)} matchNum={97+idx} score={bracketScores[`qf_${idx}`]} onScoreChange={(s,v)=>setBracketScore('qf',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            <BracketSlot matchup={sfMatchups[0]} picked={bracketPicks.sf[0]} onPick={n=>pickBracket('sf',0,n)} matchNum={101} score={bracketScores['sf_0']} onScoreChange={(s,v)=>setBracketScore('sf',0,s,v)} isBold={!!boldPicks.sf?.[0]} onToggleBold={()=>toggleBold('sf',0)} boldDisabled={boldCount>=MAX_BOLD} />
+            <BracketSlot matchup={sfMatchups[0]} picked={bracketPicks.sf[0]} onPick={n=>pickBracket('sf',0,n)} matchNum={101} score={bracketScores['sf_0']} onScoreChange={(s,v)=>setBracketScore('sf',0,s,v)} />
           </div>
           <ChampionReveal champion={champion} championObj={championObj}
             finalMatchup={finalMatchup} thirdMatchup={thirdMatchup}
             bracketPicks={bracketPicks} pickBracket={pickBracket}
             finalScore={finalScore} onFinalScoreChange={onFinalScoreChange} />
           <div className="tree-col">
-            <BracketSlot matchup={sfMatchups[1]} picked={bracketPicks.sf[1]} onPick={n=>pickBracket('sf',1,n)} matchNum={102} score={bracketScores['sf_1']} onScoreChange={(s,v)=>setBracketScore('sf',1,s,v)} isBold={!!boldPicks.sf?.[1]} onToggleBold={()=>toggleBold('sf',1)} boldDisabled={boldCount>=MAX_BOLD} />
+            <BracketSlot matchup={sfMatchups[1]} picked={bracketPicks.sf[1]} onPick={n=>pickBracket('sf',1,n)} matchNum={102} score={bracketScores['sf_1']} onScoreChange={(s,v)=>setBracketScore('sf',1,s,v)} />
           </div>
           <div className="tree-col">
-            {BRACKET_R.qf.map(idx => <BracketSlot key={idx} matchup={qfMatchups[idx]} picked={bracketPicks.qf[idx]} onPick={n=>pickBracket('qf',idx,n)} matchNum={97+idx} score={bracketScores[`qf_${idx}`]} onScoreChange={(s,v)=>setBracketScore('qf',idx,s,v)} isBold={!!boldPicks.qf?.[idx]} onToggleBold={()=>toggleBold('qf',idx)} boldDisabled={boldCount>=MAX_BOLD} />)}
+            {BRACKET_R.qf.map(idx => <BracketSlot key={idx} matchup={qfMatchups[idx]} picked={bracketPicks.qf[idx]} onPick={n=>pickBracket('qf',idx,n)} matchNum={97+idx} score={bracketScores[`qf_${idx}`]} onScoreChange={(s,v)=>setBracketScore('qf',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_R.r16.map(idx => <BracketSlot key={idx} matchup={r16Matchups[idx]} picked={bracketPicks.r16[idx]} onPick={n=>pickBracket('r16',idx,n)} matchNum={89+idx} score={bracketScores[`r16_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r16',idx,s,v)} isBold={!!boldPicks.r16?.[idx]} onToggleBold={()=>toggleBold('r16',idx)} boldDisabled={boldCount>=MAX_BOLD} />)}
+            {BRACKET_R.r16.map(idx => <BracketSlot key={idx} matchup={r16Matchups[idx]} picked={bracketPicks.r16[idx]} onPick={n=>pickBracket('r16',idx,n)} matchNum={89+idx} score={bracketScores[`r16_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r16',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_R.r32.map(idx => <BracketSlot key={idx} matchup={r32Matchups[idx]} picked={bracketPicks.r32[idx]} onPick={n=>pickBracket('r32',idx,n)} matchNum={73+idx} score={bracketScores[`r32_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r32',idx,s,v)} isBold={!!boldPicks.r32?.[idx]} onToggleBold={()=>toggleBold('r32',idx)} boldDisabled={boldCount>=MAX_BOLD} />)}
+            {BRACKET_R.r32.map(idx => <BracketSlot key={idx} matchup={r32Matchups[idx]} picked={bracketPicks.r32[idx]} onPick={n=>pickBracket('r32',idx,n)} matchNum={73+idx} score={bracketScores[`r32_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r32',idx,s,v)} />)}
           </div>
           <div className="tree-col tree-groups">
             {GROUPS.slice(6).map(g => <GroupBox key={g.id} group={g} />)}
@@ -1124,8 +988,6 @@ export default function Home() {
   const [scoreOpenGroup, setScoreOpenGroup] = useState(null);
   const [liveActive, setLiveActive] = useState(false);
   const [recentMatches, setRecentMatches] = useState([]);
-  const [boldPicks, setBoldPicks] = useState({ r32:{}, r16:{}, qf:{}, sf:{}, final:false, thirdPlace:false });
-  const MAX_BOLD = 5;
   const [finalScore, setFinalScore] = useState({ home: '', away: '' });
   const pendingGroupRef = useRef(null);
 
@@ -1156,7 +1018,6 @@ export default function Home() {
           if (data.groupScores) setGroupScores(data.groupScores);
           if (data.bracketScores) setBracketScores(data.bracketScores);
           if (data.finalScore) setFinalScore(data.finalScore);
-          if (data.boldPicks) setBoldPicks(data.boldPicks);
         }
       }
     } catch {}
@@ -1169,7 +1030,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem('wc2026-v2', JSON.stringify({ picks, thirdPlacePicks, bracketPicks, analyses, groupScores, bracketScores, finalScore, boldPicks }));
+    localStorage.setItem('wc2026-v2', JSON.stringify({ picks, thirdPlacePicks, bracketPicks, analyses, groupScores, bracketScores, finalScore }));
   }, [picks, thirdPlacePicks, bracketPicks, analyses, hydrated]);
 
   // Auth state
@@ -1245,50 +1106,6 @@ export default function Home() {
       [key]: { ...(prev[key] || { home:'', away:'' }), [side]: value },
     }));
   };
-
-  // ── Bold calls ────────────────────────────────────────────────────────
-  const boldCount = ['r32','r16','qf','sf'].reduce((sum, stage) =>
-    sum + Object.values(boldPicks[stage] || {}).filter(Boolean).length, 0
-  ) + (boldPicks.final ? 1 : 0) + (boldPicks.thirdPlace ? 1 : 0);
-
-  const toggleBold = (stage, idx) => {
-    setBoldPicks(prev => {
-      if (idx === undefined) {
-        if (!prev[stage] && boldCount >= MAX_BOLD) return prev;
-        return { ...prev, [stage]: !prev[stage] };
-      }
-      const current = !!prev[stage]?.[idx];
-      if (!current && boldCount >= MAX_BOLD) return prev;
-      return { ...prev, [stage]: { ...prev[stage], [idx]: !current } };
-    });
-  };
-
-  // ── Auto-save predictions to Supabase (logged-in users only) ─────────
-  const savePredictions = useMemo(() => debounce(async (payload) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      await fetch('/api/predictions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-    } catch {}
-  }, 2500), []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!user || !hydrated) return;
-    savePredictions({
-      displayName: user.email?.split('@')[0] || 'Player',
-      picks,
-      thirdPlacePicks,
-      bracketPicks,
-      boldPicks,
-    });
-  }, [picks, thirdPlacePicks, bracketPicks, boldPicks, user, hydrated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-fill picks from group scores ─────────────────────────────────
   useEffect(() => {
@@ -1861,9 +1678,6 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
       {/* ── Score Carousel ── */}
       <ScoreCarousel matches={recentMatches} />
 
-      {/* ── Leaderboard ── */}
-      <Leaderboard lockedGroupScores={lockedGroupScores} currentUserId={user?.id} />
-
       {/* ── Group Stage ── */}
       <section className="section">
         <div className="section-head">
@@ -1949,12 +1763,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
       <section ref={bracketRef} style={{ background:'var(--bg)', paddingTop:48, paddingBottom:48 }}>
         <div style={{ maxWidth:1280, margin:'0 auto', padding:'0 24px 24px' }}>
           <div className="section-head">
-            <div className="eyebrow" style={{ color:'#f5c142', display:'flex', alignItems:'center', gap:10 }}>
-              Stage 03 · Knockout
-              <span className="bold-counter" title="Bold calls double your points for that pick">
-                ⚡ {boldCount}/{MAX_BOLD} bold calls
-              </span>
-            </div>
+            <div className="eyebrow" style={{ color:'#f5c142' }}>Stage 03 · Knockout</div>
             <h2 className="section-title">The Road to the Final</h2>
             <p className="section-desc">
               Click a team to advance them. Every pick cascades through all downstream rounds — right to the champion.
