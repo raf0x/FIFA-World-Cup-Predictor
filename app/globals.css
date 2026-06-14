@@ -1345,16 +1345,6 @@ a { color: inherit; }
   min-width: 270px;
   flex-shrink: 0;
 }
-.ticker-card-group {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .12em;
-  color: var(--text);
-  text-transform: uppercase;
-  text-align: center;
-  margin-bottom: 8px;
-  opacity: .7;
-}
 .ticker-card-match {
   display: flex;
   align-items: center;
@@ -1553,4 +1543,42 @@ a { color: inherit; }
   letter-spacing: .12em;
   color: var(--dim);
   text-transform: uppercase;
+}
+
+/* ─── Live match carousel card ───────────────────────────────────────────── */
+.ticker-card--live {
+  border-color: rgba(239,68,68,.4);
+  background: rgba(239,68,68,.05);
+}
+.ticker-live-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239,68,68,.6);
+  animation: pulse 1.2s ease-in-out infinite;
+  margin-right: 5px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.ticker-clock {
+  margin-left: 5px;
+  color: #ef4444;
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: .05em;
+}
+.ticker-card-group {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  color: var(--text);
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 8px;
+  opacity: .7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
