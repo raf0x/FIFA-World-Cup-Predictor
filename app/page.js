@@ -203,9 +203,12 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores 
   );
 }
 
-function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, scoreOpen, onToggleScore, onScoreChange, lockedGroupScores }) {
+// ─── Group Stage Card ─────────────────────────────────────────────────────
+function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, onScoreChange, lockedGroupScores }) {
+  const [showPicks, setShowPicks] = useState(false);
   const color = GROUP_COLORS[group.id];
   const rankedCount = Object.keys(groupPicks).length;
+
   return (
     <div className={`gcard ${complete ? 'gcard--done' : ''}`} style={complete ? { '--gc': color } : {}}>
       <div className="gcard-head">
@@ -216,52 +219,52 @@ function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, s
             <div className="gcard-meta">
               {complete
                 ? <span className="gcard-done-tag">✓ Complete</span>
-                : <span>{rankedCount}/3 ranked · top 2 advance</span>}
+                : <span>{rankedCount}/3 picked · top 2 advance</span>}
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="gcard-teams">
-        {group.teams.map(team => {
-          const rank = groupPicks[team.name];
-          const m = rank ? MEDAL[rank] : null;
-          return (
-            <div key={team.name} className="trow"
-              style={m ? { background:m.tint, boxShadow:`inset 0 0 0 1px ${m.ring}` } : {}}>
-              <div className="trow-id">
-                <Flag team={team} size={18} />
-                <span className="trow-name">{team.name}</span>
-                <span className="trow-rank">#{team.rank}</span>
-                {m && <span className="trow-tag" style={{ color:m.text }}>{m.label}</span>}
-              </div>
-              <div className="rankbtns">
-                {[1,2,3].map(r => {
-                  const active = rank === r;
-                  const rm = MEDAL[r];
-                  return (
-                    <button key={r} className={`rankbtn ${active ? 'rankbtn--on' : ''}`}
-                      onClick={() => onSetRank(group.id, team.name, r)}
-                      style={active ? { background:rm.solid, color:'#0a0a12', boxShadow:`0 0 12px ${rm.solid}66` } : {}}>
-                      {r}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Score entry toggle */}
-      <div className="score-toggle-row">
-        <button className={`score-toggle-btn ${scoreOpen ? 'score-toggle-btn--on' : ''}`} onClick={onToggleScore}>
-          {scoreOpen ? '▴ Hide match scores' : '⚽ Enter scores → auto-ranks your group'}
+        <button
+          className={`score-toggle-btn score-toggle-btn--sm ${showPicks ? 'score-toggle-btn--on' : ''}`}
+          onClick={() => setShowPicks(p => !p)}>
+          {showPicks ? '▴ Hide picks' : '✎ My picks'}
         </button>
       </div>
-      {scoreOpen && (
-        <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} lockedGroupScores={lockedGroupScores} />
+
+      {showPicks && (
+        <div className="gcard-teams">
+          {group.teams.map(team => {
+            const rank = groupPicks[team.name];
+            const m = rank ? MEDAL[rank] : null;
+            return (
+              <div key={team.name} className="trow"
+                style={m ? { background:m.tint, boxShadow:`inset 0 0 0 1px ${m.ring}` } : {}}>
+                <div className="trow-id">
+                  <Flag team={team} size={18} />
+                  <span className="trow-name">{team.name}</span>
+                  <span className="trow-rank">#{team.rank}</span>
+                  {m && <span className="trow-tag" style={{ color:m.text }}>{m.label}</span>}
+                </div>
+                <div className="rankbtns">
+                  {[1,2,3].map(r => {
+                    const active = rank === r;
+                    const rm = MEDAL[r];
+                    return (
+                      <button key={r} className={`rankbtn ${active ? 'rankbtn--on' : ''}`}
+                        onClick={() => onSetRank(group.id, team.name, r)}
+                        style={active ? { background:rm.solid, color:'#0a0a12', boxShadow:`0 0 12px ${rm.solid}66` } : {}}>
+                        {r}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
+
+      {/* Score panel always visible */}
+      <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} lockedGroupScores={lockedGroupScores} />
     </div>
   );
 }
@@ -901,7 +904,6 @@ export default function Home() {
   const [groupScores, setGroupScores] = useState({});
   const [lockedGroupScores, setLockedGroupScores] = useState({});
   const [bracketScores, setBracketScores] = useState({});
-  const [scoreOpenGroup, setScoreOpenGroup] = useState(null);
   const [recentMatches, setRecentMatches] = useState([]);
   const [finalScore, setFinalScore] = useState({ home: '', away: '' });
 
@@ -1544,8 +1546,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
               </div>
               <h2 className="section-title">Group Stage</h2>
               <p className="section-desc">
-                Rank each group 1–2–3. Top two qualify directly; third place enters the best-eight race.
-                Tap <b>AI Analysis</b> for a live scouting briefing.
+                Live scores update automatically as matches are played. Use <b>My picks</b> on each group to set your bracket predictions.
               </p>
             </div>
             <button
@@ -1562,8 +1563,6 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
             <GroupStageCard key={group.id} group={group}
               groupPicks={picks[group.id] || {}} complete={groupComplete(group.id)}
               groupScores={groupScores}
-              scoreOpen={scoreOpenGroup === group.id}
-              onToggleScore={() => setScoreOpenGroup(scoreOpenGroup === group.id ? null : group.id)}
               onScoreChange={setGroupScore}
               lockedGroupScores={lockedGroupScores}
               onSetRank={setRank} />
