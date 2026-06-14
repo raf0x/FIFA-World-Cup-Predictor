@@ -1418,7 +1418,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
               <span className="hero-title-2">20<span className="hero-26">26</span></span>
             </h1>
             <div className="hero-sub-row">
-              <span className="hero-pill">AI PREDICTOR</span>
+              
               <p className="hero-sub">
                 Call all 104 matches — group winners, the eight best third-place teams,
                 and the full bracket through the Final at MetLife Stadium.
@@ -1544,7 +1544,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
       </section>
 
       <footer className="footer">
-        <span>World Cup 2026 AI Predictor · fan-made, not affiliated with FIFA</span>
+        <span>World Cup 2026 Predictor · fan-made, not affiliated with FIFA</span>
         <span className="footer-dim">Predictions are for entertainment only</span>
       </footer>
     </main>
