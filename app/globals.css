@@ -1119,6 +1119,18 @@ a { color: inherit; }
   100%  { left: 150%;  }
 }
 
+/* Compact variant for card header placement */
+.score-toggle-btn--sm {
+  width: auto;
+  font-size: 10px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  letter-spacing: .04em;
+  text-shadow: none;
+  flex-shrink: 0;
+}
+.score-toggle-btn--sm::before { display: none; }
+
 .score-panel { padding: 12px 16px 16px; }
 
 .score-matches { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
