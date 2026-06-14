@@ -131,6 +131,88 @@ function Flag({ team, size = 18 }) {
 }
 
 // ─── AI Panel ─────────────────────────────────────────────────────────────
+// ─── Group Score Panel ────────────────────────────────────────────────────
+function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores }) {
+  const standings = calcGroupStandings(group, groupScores);
+  const hasScores = standings.some(s => s.played > 0);
+  const allFilled = GROUP_MATCH_PAIRS.every((_,i) => {
+    const sc = groupScores[`${group.id}_${i}`];
+    return sc && sc.home!=='' && sc.away!=='' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
+  });
+
+  return (
+    <div className="score-panel">
+      <div className="score-matches">
+        {GROUP_MATCH_PAIRS.map(([hi,ai], idx) => {
+          const home = group.teams[hi], away = group.teams[ai];
+          const key = `${group.id}_${idx}`;
+          const sc = groupScores[key] || { home:'', away:'' };
+          const hg = sc.home==='' ? null : Number(sc.home);
+          const ag = sc.away==='' ? null : Number(sc.away);
+          const result = hg!==null && ag!==null ? (hg>ag?'home':hg<ag?'away':'draw') : null;
+          const locked = !!lockedGroupScores?.[key];
+          return (
+            <div key={idx} className={`score-row ${locked ? 'score-row--locked' : ''}`}>
+              <span className={`score-team score-team--l ${result==='home'?'score-team--w':result==='away'?'score-team--l2':''}`}>
+                <Flag team={home} size={13}/><span className="score-team-name">{home.name}</span>
+              </span>
+              <div className="score-inputs">
+                <input
+                  className={`score-input ${locked ? 'score-input--locked' : ''}`}
+                  type="number" min="0" max="20" placeholder="–"
+                  value={sc.home} disabled={locked}
+                  onChange={e => !locked && onScoreChange(group.id,idx,'home',e.target.value)}/>
+                <span className="score-colon">{locked ? '–' : ':'}</span>
+                <input
+                  className={`score-input ${locked ? 'score-input--locked' : ''}`}
+                  type="number" min="0" max="20" placeholder="–"
+                  value={sc.away} disabled={locked}
+                  onChange={e => !locked && onScoreChange(group.id,idx,'away',e.target.value)}/>
+              </div>
+              <span className={`score-team score-team--r ${result==='away'?'score-team--w':result==='home'?'score-team--l2':''}`}>
+                <span className="score-team-name">{away.name}</span><Flag team={away} size={13}/>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      {hasScores && (
+        <div className="score-standings">
+          <table className="standings-tbl">
+            <thead>
+              <tr>
+                <th className="sth" />
+                <th className="sth">TEAM</th>
+                <th className="sth">P</th>
+                <th className="sth">W</th>
+                <th className="sth">D</th>
+                <th className="sth">L</th>
+                <th className="sth">GD</th>
+                <th className="sth">PTS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {standings.map((s, i) => (
+                <tr key={s.name} className={i < 2 ? 'standingsrow--adv' : ''}>
+                  <td className="std">{i+1}</td>
+                  <td className="std std--team">{s.name}</td>
+                  <td className="std">{s.played}</td>
+                  <td className="std">{s.w}</td>
+                  <td className="std">{s.d}</td>
+                  <td className="std">{s.l}</td>
+                  <td className="std" style={{ color: s.gd>0?'var(--green)':s.gd<0?'#fb7185':'' }}>{s.gd>0?'+':''}{s.gd}</td>
+                  <td className="std std--pts">{s.pts}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {allFilled && <div className="standings-auto-note">✓ Rankings auto-filled from scores</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, scoreOpen, onToggleScore, onScoreChange, lockedGroupScores }) {
   const color = GROUP_COLORS[group.id];
   const rankedCount = Object.keys(groupPicks).length;
