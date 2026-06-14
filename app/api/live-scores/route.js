@@ -1,6 +1,6 @@
 import { GROUPS } from '../../../lib/groups';
 
-export const revalidate = 600;
+export const revalidate = 180; // 3-minute route cache
 
 const MATCH_PAIRS = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
 
@@ -150,7 +150,7 @@ async function fetchESPN() {
     try {
       const res = await fetch(
         `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${date}&limit=20`,
-        { next: { revalidate: date === days[days.length - 1] ? 600 : 86400 } }
+        { cache: 'no-store' } // always fresh — route-level cache controls staleness
       );
       if (!res.ok) return;
       const data = await res.json();
