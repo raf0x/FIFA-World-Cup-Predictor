@@ -180,7 +180,6 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores 
         <div className="score-standings">
           <div className="standings-wrap">
             <div className="standings-head">
-              <span />
               <span className="sth-team">TEAM</span>
               <span>P</span><span>W</span><span>D</span><span>L</span>
               <span>GD</span>
