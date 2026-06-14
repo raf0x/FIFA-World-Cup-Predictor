@@ -571,16 +571,25 @@ const TICKER_SHORT = {
 };
 const tickerName = name => TICKER_SHORT[name] || name;
 
-function ScoreCarousel({ matches }) {
-  if (!matches?.length) return null;
+function ScoreCarousel({ matches, liveMatches }) {
+  const hasLive = liveMatches?.length > 0;
+  const hasCompleted = matches?.length > 0;
+  if (!hasLive && !hasCompleted) return null;
 
-  const shouldAnimate = matches.length >= 4;
-  const items = shouldAnimate ? [...matches, ...matches] : matches;
-  const duration = `${matches.length * 6}s`;
+  // Live cards first, then completed
+  const liveCards = (liveMatches || []).map(m => ({ ...m, isLive: true }));
+  const completedCards = (matches || []).map(m => ({ ...m, isLive: false }));
+  const allCards = [...liveCards, ...completedCards];
+
+  const shouldAnimate = allCards.length >= 4;
+  const items = shouldAnimate ? [...allCards, ...allCards] : allCards;
+  const duration = `${allCards.length * 6}s`;
 
   return (
     <div className="ticker-section">
-      <div className="ticker-label">⚽ Latest Results</div>
+      <div className="ticker-label">
+        {hasLive ? <><span className="livedot" style={{display:'inline-block',marginRight:5}} />Live & Latest Results</> : '⚽ Latest Results'}
+      </div>
       <div className="ticker-track">
         <div className={`ticker-cards ${shouldAnimate ? 'ticker-cards--animate' : 'ticker-cards--static'}`}
           style={shouldAnimate ? { animationDuration: duration } : {}}>
@@ -588,16 +597,19 @@ function ScoreCarousel({ matches }) {
             const hWin = m.homeScore > m.awayScore;
             const aWin = m.awayScore > m.homeScore;
             const draw = m.homeScore === m.awayScore;
-            const hasScorers = (m.homeScorers?.length || 0) + (m.awayScorers?.length || 0) > 0;
-            // Upset: winner has a meaningfully worse FIFA rank (higher number = worse)
+            const hasScorers = !m.isLive && ((m.homeScorers?.length || 0) + (m.awayScorers?.length || 0) > 0);
             const hRank = m.homeTeamObj?.rank || 999;
             const aRank = m.awayTeamObj?.rank || 999;
-            const upset = !draw && (
+            const upset = !draw && !m.isLive && (
               (hWin && hRank > aRank + 12) || (aWin && aRank > hRank + 12)
             );
             return (
-              <div key={i} className="ticker-card">
-                <div className="ticker-card-group">Group {m.group}</div>
+              <div key={i} className={`ticker-card ${m.isLive ? 'ticker-card--live' : ''}`}>
+                <div className="ticker-card-group">
+                  {m.isLive && <span className="ticker-live-dot" />}
+                  Group {m.group}
+                  {m.isLive && <span className="ticker-clock">{m.clock}</span>}
+                </div>
                 <div className="ticker-card-match">
                   <div className={`ticker-team ${hWin?'ticker-team--win':!draw?'ticker-team--loss':''}`}>
                     <Flag team={m.homeTeamObj} size={13}/>
@@ -625,7 +637,7 @@ function ScoreCarousel({ matches }) {
                 )}
                 <div className="ticker-badges">
                   {upset && <span className="ticker-upset">⚡ UPSET</span>}
-                  {draw && <span className="ticker-draw">Draw</span>}
+                  {draw && !m.isLive && <span className="ticker-draw">Draw</span>}
                 </div>
               </div>
             );
@@ -988,6 +1000,7 @@ export default function Home() {
   const [scoreOpenGroup, setScoreOpenGroup] = useState(null);
   const [liveActive, setLiveActive] = useState(false);
   const [recentMatches, setRecentMatches] = useState([]);
+  const [liveMatches, setLiveMatches] = useState([]);
   const [finalScore, setFinalScore] = useState({ home: '', away: '' });
   const pendingGroupRef = useRef(null);
 
@@ -1063,29 +1076,31 @@ export default function Home() {
 
   // ── Live score polling ────────────────────────────────────────────────
   useEffect(() => {
+    const allTeams = GROUPS.flatMap(g => g.teams);
+    const enrich = (m) => ({
+      ...m,
+      homeTeamObj: allTeams.find(t => t.name === m.homeTeam) || { name: m.homeTeam },
+      awayTeamObj: allTeams.find(t => t.name === m.awayTeam) || { name: m.awayTeam },
+    });
+
     const fetchLive = () => {
       fetch('/api/live-scores')
         .then(r => r.json())
         .then(data => {
-          if (data.active && data.count > 0) {
-            setLiveActive(true);
+          if (!data.active) return;
+          setLiveActive(true);
+          if (data.groupScores && Object.keys(data.groupScores).length > 0) {
             setLockedGroupScores(prev => ({ ...prev, ...data.groupScores }));
             setGroupScores(prev => ({ ...prev, ...data.groupScores }));
-            if (data.recentMatches?.length > 0) {
-              const allTeams = GROUPS.flatMap(g => g.teams);
-              const enriched = data.recentMatches.map(m => ({
-                ...m,
-                homeTeamObj: allTeams.find(t => t.name === m.homeTeam) || { name: m.homeTeam },
-                awayTeamObj: allTeams.find(t => t.name === m.awayTeam) || { name: m.awayTeam },
-              }));
-              setRecentMatches(enriched.slice(-6));
-            }
           }
+          if (data.recentMatches?.length > 0)
+            setRecentMatches(data.recentMatches.map(enrich).slice(-6));
+          setLiveMatches((data.liveMatches || []).map(enrich));
         })
         .catch(() => {});
     };
     fetchLive();
-    const interval = setInterval(fetchLive, 5 * 60 * 1000);
+    const interval = setInterval(fetchLive, 60 * 1000); // 60s — tracks live matches
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const setGroupScore = (groupId, matchIdx, side, value) => {
@@ -1676,7 +1691,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
       </section>
 
       {/* ── Score Carousel ── */}
-      <ScoreCarousel matches={recentMatches} />
+      <ScoreCarousel matches={recentMatches} liveMatches={liveMatches} />
 
       {/* ── Group Stage ── */}
       <section className="section">
