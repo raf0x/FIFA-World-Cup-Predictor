@@ -178,35 +178,25 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores 
       </div>
       {hasScores && (
         <div className="score-standings">
-          <table className="standings-tbl">
-            <thead>
-              <tr>
-                <th className="sth" />
-                <th className="sth">TEAM</th>
-                <th className="sth">P</th>
-                <th className="sth">W</th>
-                <th className="sth">D</th>
-                <th className="sth">L</th>
-                <th className="sth">GD</th>
-                <th className="sth">PTS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {standings.map((s, i) => (
-                <tr key={s.name} className={i < 2 ? 'standingsrow--adv' : ''}>
-                  <td className="std">{i+1}</td>
-                  <td className="std std--team">{s.name}</td>
-                  <td className="std">{s.played}</td>
-                  <td className="std">{s.w}</td>
-                  <td className="std">{s.d}</td>
-                  <td className="std">{s.l}</td>
-                  <td className="std" style={{ color: s.gd>0?'var(--green)':s.gd<0?'#fb7185':'' }}>{s.gd>0?'+':''}{s.gd}</td>
-                  <td className="std std--pts">{s.pts}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {allFilled && <div className="standings-auto-note">✓ Rankings auto-filled from scores</div>}
+          <div className="standings-wrap">
+            <div className="standings-head">
+              <span />
+              <span className="sth-team">TEAM</span>
+              <span>P</span><span>W</span><span>D</span><span>L</span>
+              <span>GD</span>
+              <span className="sth-pts">PTS</span>
+            </div>
+            {standings.map((s, i) => (
+              <div key={s.name} className={`standings-row ${i<2?'standings-row--q':i===2?'standings-row--3':'standings-row--e'}`}>
+                <span className="st-pos">{i+1}</span>
+                <span className="st-name">{s.name}</span>
+                <span>{s.played}</span><span>{s.w}</span><span>{s.d}</span><span>{s.l}</span>
+                <span className={s.gd>0?'gd-pos':s.gd<0?'gd-neg':''}>{s.gd>0?'+':''}{s.gd}</span>
+                <span className="st-pts">{s.pts}</span>
+              </div>
+            ))}
+            {allFilled && <div className="standings-auto-note">✓ Rankings auto-filled from scores</div>}
+          </div>
         </div>
       )}
     </div>
