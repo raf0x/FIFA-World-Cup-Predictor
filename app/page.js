@@ -131,148 +131,7 @@ function Flag({ team, size = 18 }) {
 }
 
 // ─── AI Panel ─────────────────────────────────────────────────────────────
-function AIPanel({ loading, analysis, color }) {
-  if (loading) {
-    return (
-      <div className="aipanel">
-        <div className="ai-loading">
-          <span className="ai-spinner" />
-          <div>
-            <div className="ai-load-1">Researching live data…</div>
-            <div className="ai-load-2">Scanning results, squads & rankings · 15–40s</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  if (!analysis?.teams?.length) {
-    return <div className="aipanel"><p className="ai-empty">No analysis yet.</p></div>;
-  }
-  const ranked = [...analysis.teams].sort((a, b) => a.rank - b.rank);
-  return (
-    <div className="aipanel">
-      <div className="ai-head">
-        <span className="ai-badge" style={{ color }}>◆ AI BRIEFING</span>
-        {analysis.confidence && (
-          <span className="ai-conf" style={{ color: CONF[analysis.confidence] }}>
-            <span className="ai-conf-dot" style={{ background: CONF[analysis.confidence] }} />
-            {analysis.confidence} confidence
-          </span>
-        )}
-      </div>
-      {analysis.summary && <p className="ai-summary">{analysis.summary}</p>}
-      <div className="ai-teams">
-        {ranked.map(t => {
-          const m = MEDAL[t.rank] || { tint:'rgba(120,120,150,.1)', ring:'#1e1e30', text:'#7a7a9a', solid:'#55556e' };
-          return (
-            <div key={t.name} className="ai-team">
-              <span className="ai-rank" style={{ background:m.tint, color:m.text, boxShadow:`inset 0 0 0 1px ${m.ring}` }}>{t.rank}</span>
-              <div>
-                <p className="ai-note"><b>{t.name}.</b> {t.note}</p>
-                {t.lastMatch && t.lastMatch !== 'Last result unverified' && (() => {
-                  const color = t.lastMatch.includes('WON') ? 'var(--green)' : t.lastMatch.includes('LOST') ? '#fb7185' : t.lastMatch.includes('DREW') ? '#f5c142' : 'var(--dim)';
-                  return (
-                    <p className="ai-last-match" style={{ color }}>
-                      ⚽ <span className="ai-last-match-label">Last match:</span> {t.lastMatch}
-                    </p>
-                  );
-                })()}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="ai-foot">
-        {analysis.advance?.length > 0 && (
-          <div className="ai-foot-row">
-            <span className="ai-foot-k" style={{ color:'#39ff14' }}>Advance</span>
-            <span className="ai-chips">{analysis.advance.map(a => <span key={a} className="ai-chip">{a}</span>)}</span>
-          </div>
-        )}
-        {analysis.thirdPlaceShot && (
-          <div className="ai-foot-row"><span className="ai-foot-k">Wildcard</span><span className="ai-foot-v">{analysis.thirdPlaceShot}</span></div>
-        )}
-        {analysis.upset && (
-          <div className="ai-foot-row"><span className="ai-foot-k" style={{ color:'#fb923c' }}>Upset risk</span><span className="ai-foot-v">{analysis.upset}</span></div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Group Stage Card ──────────────────────────────────────────────────────
-// ─── Group Score Panel ─────────────────────────────────────────────────────
-function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores }) {
-  const standings = calcGroupStandings(group, groupScores);
-  const hasScores = standings.some(s => s.played > 0);
-  const allFilled = GROUP_MATCH_PAIRS.every((_,i) => {
-    const sc = groupScores[`${group.id}_${i}`];
-    return sc && sc.home!=='' && sc.away!=='' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
-  });
-
-  return (
-    <div className="score-panel">
-      <div className="score-matches">
-        {GROUP_MATCH_PAIRS.map(([hi,ai], idx) => {
-          const home = group.teams[hi], away = group.teams[ai];
-          const key = `${group.id}_${idx}`;
-          const sc = groupScores[key] || { home:'', away:'' };
-          const hg = sc.home==='' ? null : Number(sc.home);
-          const ag = sc.away==='' ? null : Number(sc.away);
-          const result = hg!==null && ag!==null ? (hg>ag?'home':hg<ag?'away':'draw') : null;
-          const locked = !!lockedGroupScores?.[key];
-          return (
-            <div key={idx} className={`score-row ${locked ? 'score-row--locked' : ''}`}>
-              <span className={`score-team score-team--l ${result==='home'?'score-team--w':result==='away'?'score-team--l2':''}`}>
-                <Flag team={home} size={13}/><span className="score-team-name">{home.name}</span>
-              </span>
-              <div className="score-inputs">
-                <input
-                  className={`score-input ${locked ? 'score-input--locked' : ''}`}
-                  type="number" min="0" max="20" placeholder="–"
-                  value={sc.home} disabled={locked}
-                  onChange={e => !locked && onScoreChange(group.id,idx,'home',e.target.value)}/>
-                <span className="score-colon">{locked ? '–' : ':'}</span>
-                <input
-                  className={`score-input ${locked ? 'score-input--locked' : ''}`}
-                  type="number" min="0" max="20" placeholder="–"
-                  value={sc.away} disabled={locked}
-                  onChange={e => !locked && onScoreChange(group.id,idx,'away',e.target.value)}/>
-              </div>
-              <span className={`score-team score-team--r ${result==='away'?'score-team--w':result==='home'?'score-team--l2':''}`}>
-                <span className="score-team-name">{away.name}</span><Flag team={away} size={13}/>
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {hasScores && (
-        <div className="standings-wrap">
-          <div className="standings-head">
-            <span className="sth-team">Team</span>
-            <span>P</span><span>W</span><span>D</span><span>L</span>
-            <span>GD</span><span className="sth-pts">Pts</span>
-          </div>
-          {standings.map((s,i) => (
-            <div key={s.name} className={`standings-row ${i<2?'standings-row--q':i===2?'standings-row--3':'standings-row--e'}`}>
-              <span className="st-pos">{i+1}</span>
-              <span className="st-name">{s.name}</span>
-              <span>{s.played}</span><span>{s.w}</span><span>{s.d}</span><span>{s.l}</span>
-              <span className={s.gd>0?'gd-pos':s.gd<0?'gd-neg':''}>{s.gd>0?'+':''}{s.gd}</span>
-              <span className="st-pts">{s.pts}</span>
-            </div>
-          ))}
-          {allFilled && (
-            <div className="standings-auto-note">✓ Rankings auto-filled from scores</div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading, onToggleAI, onSetRank, limitReached, contactMsg, groupScores, scoreOpen, onToggleScore, onScoreChange, lockedGroupScores }) {
+function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, scoreOpen, onToggleScore, onScoreChange, lockedGroupScores }) {
   const color = GROUP_COLORS[group.id];
   const rankedCount = Object.keys(groupPicks).length;
   return (
@@ -289,30 +148,7 @@ function GroupStageCard({ group, groupPicks, complete, isOpen, analysis, loading
             </div>
           </div>
         </div>
-        <button
-          className={`ai-toggle ${isOpen ? 'ai-toggle--on' : ''}`}
-          onClick={onToggleAI}
-          title={limitReached && !analysis ? 'AI analysis limit reached' : undefined}
-        >
-          {loading
-            ? <><span className="ai-spinner ai-spinner--sm" /> Analyzing</>
-            : isOpen ? 'Hide AI'
-            : analysis ? '◆ AI Analysis'
-            : limitReached ? '◆ Want more AI?'
-            : '◆ AI Analysis'}
-        </button>
       </div>
-
-      {isOpen && (
-        contactMsg
-          ? <div className="aipanel" style={{ textAlign:'center', padding:'24px 20px' }}>
-              <div style={{ fontSize:24, marginBottom:10 }}>😅</div>
-              <p style={{ fontSize:13, color:'var(--dim)', lineHeight:1.7 }}>
-                If you want to use more AI Analysis, contact Rafa because this costs him money 💸
-              </p>
-            </div>
-          : <AIPanel loading={loading} analysis={analysis} color={color} />
-      )}
 
       <div className="gcard-teams">
         {group.teams.map(team => {
@@ -705,17 +541,16 @@ function AuthModal({ show, onClose }) {
             <div style={{ fontSize: 48, marginBottom: 12 }}>✓</div>
             <div className="auth-title">You're in.</div>
             <p className="auth-desc">
-              You now have <b>3 AI analyses</b>. Close this and click <b>◆ AI Analysis</b> on any group.
+              Your picks are now saved. Close this and keep building your bracket.
             </p>
-            <button className="btn btn-green auth-submit" onClick={onClose}>Start analyzing →</button>
+            <button className="btn btn-green auth-submit" onClick={onClose}>Continue →</button>
           </div>
         ) : (
           <>
-            <div style={{ fontSize: 36, textAlign: 'center', marginBottom: 10 }}>🔒</div>
-            <h2 className="auth-title">Unlock AI Analysis</h2>
+            <div style={{ fontSize: 36, textAlign: 'center', marginBottom: 10 }}>⚽</div>
+            <h2 className="auth-title">Sign in</h2>
             <p className="auth-desc">
-              Create a free account to unlock <b>3 AI analyses</b> — live squad data,
-              form guides and group predictions.
+              Create a free account to save your picks across devices.
             </p>
             <div className="auth-tabs">
               <button className={`auth-tab ${tab==='signup'?'auth-tab--on':''}`} onClick={() => setTab('signup')}>Create Account</button>
@@ -982,10 +817,7 @@ export default function Home() {
   const [picks, setPicks] = useState({});
   const [thirdPlacePicks, setThirdPlacePicks] = useState([]);
   const [bracketPicks, setBracketPicks] = useState(initBracket());
-  const [analyses, setAnalyses] = useState({});
-  const [loadingAnalysis, setLoadingAnalysis] = useState({});
-  const [aiCallsUsed, setAiCallsUsed] = useState(0);
-  const AI_LIMIT = 1;
+  const [liveActive, setLiveActive] = useState(false);
   const [openGroup, setOpenGroup] = useState(null);
   const [hydrated, setHydrated] = useState(false);
   const [days, setDays] = useState(null);
@@ -993,16 +825,13 @@ export default function Home() {
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [user, setUser] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [contactMsgGroup, setContactMsgGroup] = useState(null);
+  const [liveMatches, setLiveMatches] = useState([]);
   const [groupScores, setGroupScores] = useState({});
   const [lockedGroupScores, setLockedGroupScores] = useState({});
   const [bracketScores, setBracketScores] = useState({});
   const [scoreOpenGroup, setScoreOpenGroup] = useState(null);
-  const [liveActive, setLiveActive] = useState(false);
   const [recentMatches, setRecentMatches] = useState([]);
-  const [liveMatches, setLiveMatches] = useState([]);
   const [finalScore, setFinalScore] = useState({ home: '', away: '' });
-  const pendingGroupRef = useRef(null);
 
   const thirdRef      = useRef(null);
   const bracketRef    = useRef(null);
@@ -1027,24 +856,19 @@ export default function Home() {
           if (data.picks) setPicks(data.picks);
           if (data.thirdPlacePicks) setThirdPlacePicks(data.thirdPlacePicks);
           if (data.bracketPicks) setBracketPicks(data.bracketPicks);
-          if (data.analyses) setAnalyses(data.analyses);
           if (data.groupScores) setGroupScores(data.groupScores);
           if (data.bracketScores) setBracketScores(data.bracketScores);
           if (data.finalScore) setFinalScore(data.finalScore);
         }
       }
     } catch {}
-    try {
-      const savedCalls = localStorage.getItem('wc2026-ai-calls');
-      if (savedCalls) setAiCallsUsed(parseInt(savedCalls, 10) || 0);
-    } catch {}
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem('wc2026-v2', JSON.stringify({ picks, thirdPlacePicks, bracketPicks, analyses, groupScores, bracketScores, finalScore }));
-  }, [picks, thirdPlacePicks, bracketPicks, analyses, hydrated]);
+    localStorage.setItem('wc2026-v2', JSON.stringify({ picks, thirdPlacePicks, bracketPicks, groupScores, bracketScores, finalScore }));
+  }, [picks, thirdPlacePicks, bracketPicks, hydrated]);
 
   // Auth state
   useEffect(() => {
@@ -1053,26 +877,9 @@ export default function Home() {
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
-      if (event === 'SIGNED_IN') {
-        // Reset client counter — server is authoritative for logged-in users
-        setAiCallsUsed(0);
-        localStorage.removeItem('wc2026-ai-calls');
-        // Auto-open pending group if user just signed in to unlock it
-        if (pendingGroupRef.current) {
-          setOpenGroup(pendingGroupRef.current);
-          pendingGroupRef.current = null;
-        }
-      }
-      if (event === 'SIGNED_OUT') {
-        // Restore anon counter
-        try {
-          const saved = localStorage.getItem('wc2026-ai-calls');
-          setAiCallsUsed(parseInt(saved, 10) || 0);
-        } catch {}
-      }
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [])
 
   // ── Live score polling ────────────────────────────────────────────────
   useEffect(() => {
@@ -1204,49 +1011,6 @@ export default function Home() {
   };
   const thirdPlaceDone = thirdPlacePicks.length === 8;
 
-  const fetchAnalysis = async (groupId) => {
-    // Anonymous: 1 free call, then login wall
-    if (!user && aiCallsUsed >= AI_LIMIT) {
-      pendingGroupRef.current = groupId;
-      setShowAuthModal(true);
-      return;
-    }
-    // Logged-in: client-side guard (server is authoritative via 429)
-    if (user && aiCallsUsed >= AI_LIMIT) return;
-
-    const teams = GROUPS.find(g => g.id === groupId)?.teams.map(t => t.name) || [];
-    setLoadingAnalysis(prev => ({ ...prev, [groupId]: true }));
-    try {
-      const headers = { 'Content-Type': 'application/json' };
-      if (user) {
-        const { data } = await supabase.auth.getSession();
-        if (data.session?.access_token) headers['Authorization'] = `Bearer ${data.session.access_token}`;
-      }
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ groupId, teams }),
-      });
-      if (res.status === 429) {
-        setAiCallsUsed(AI_LIMIT); // server confirmed limit reached
-        return;
-      }
-      const data = await res.json();
-      setAnalyses(prev => ({ ...prev, [groupId]: data.result }));
-      // Only count as a used call if the analysis actually returned data
-      if (data.result?.teams?.length > 0) {
-        setAiCallsUsed(prev => {
-          const next = prev + 1;
-          if (!user) localStorage.setItem('wc2026-ai-calls', String(next));
-          return next;
-        });
-      }
-    } catch {
-      setAnalyses(prev => ({ ...prev, [groupId]: { summary: 'Analysis unavailable. Try again.', teams: [] } }));
-    } finally {
-      setLoadingAnalysis(prev => ({ ...prev, [groupId]: false }));
-    }
-  };
 
   const thirdAssignment = useMemo(() => {
     const key = [...thirdPlacePicks].sort().join('');
@@ -1725,27 +1489,11 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
           {GROUPS.map(group => (
             <GroupStageCard key={group.id} group={group}
               groupPicks={picks[group.id] || {}} complete={groupComplete(group.id)}
-              isOpen={openGroup === group.id} analysis={analyses[group.id]} loading={loadingAnalysis[group.id]}
-              limitReached={aiCallsUsed >= AI_LIMIT}
-              contactMsg={contactMsgGroup === group.id}
               groupScores={groupScores}
               scoreOpen={scoreOpenGroup === group.id}
               onToggleScore={() => setScoreOpenGroup(scoreOpenGroup === group.id ? null : group.id)}
               onScoreChange={setGroupScore}
               lockedGroupScores={lockedGroupScores}
-              onToggleAI={() => {
-                const isNowOpen = openGroup !== group.id;
-                const atLimit = aiCallsUsed >= AI_LIMIT;
-                if (isNowOpen && atLimit && !analyses[group.id]) {
-                  // At limit with no cache: show contact message instead
-                  setOpenGroup(group.id);
-                  setContactMsgGroup(group.id);
-                } else {
-                  setContactMsgGroup(null);
-                  setOpenGroup(isNowOpen ? group.id : null);
-                  if (isNowOpen && !analyses[group.id] && !loadingAnalysis[group.id]) fetchAnalysis(group.id);
-                }
-              }}
               onSetRank={setRank} />
           ))}
         </div>
