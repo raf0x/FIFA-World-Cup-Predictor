@@ -72,10 +72,9 @@ async function fetchScorers(eventId, homeTeamId, awayTeamId) {
       const minute = evt.clock?.displayValue || '';
       const label = `${shortName} ${minute}${isOwnGoal ? ' (OG)' : ''}`.trim();
 
-      // Match by team.id — no homeAway field on keyEvents
+      // ESPN sets team.id = benefiting team for own goals — no flip needed
       const isHome = String(evt.team?.id) === String(homeTeamId);
-      // Own goal benefits the OTHER team
-      const creditHome = isOwnGoal ? !isHome : isHome;
+      const creditHome = isHome;
 
       if (creditHome) homeScorers.push(label);
       else awayScorers.push(label);
