@@ -1632,7 +1632,8 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
             <div className="eyebrow" style={{ color:'#f5c142' }}>Stage 03 · Knockout</div>
             <h2 className="section-title">The Road to the Final</h2>
             <p className="section-desc">
-              Click a team to advance them. Every pick cascades through all downstream rounds — right to the champion.
+              Pairings reflect group standings <b>as they stand today</b> — updated automatically as matches are played.
+              Click a team to advance them through the bracket.
             </p>
           </div>
         </div>
