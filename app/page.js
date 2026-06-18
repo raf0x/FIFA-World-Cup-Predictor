@@ -747,9 +747,6 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
                    champion, championObj, r32Done, r16Done, qfDone, sfDone,
                    finalScore, onFinalScoreChange,
                    bracketScores, setBracketScore }) {
-  if (!thirdPlaceDone) {
-    return <div className="locked locked--dark locked--big">Select your 8 third-place teams above to unlock the bracket.</div>;
-  }
   return (
     <>
       <div className="tree-scroll">
