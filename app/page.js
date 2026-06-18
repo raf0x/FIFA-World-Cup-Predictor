@@ -1056,12 +1056,12 @@ export default function Home() {
     setBracketPicks(initBracket());
   };
 
-  // ── Live-driven picks: use standings only when a group is COMPLETE ────
+  // ── Live-driven picks: show current standings the moment any match locks ──
   const effectivePicks = useMemo(() => {
     const result = {};
     for (const group of GROUPS) {
-      const allLocked = GROUP_MATCH_PAIRS.every((_, idx) => !!lockedGroupScores[`${group.id}_${idx}`]);
-      if (allLocked) {
+      const hasAny = GROUP_MATCH_PAIRS.some((_, idx) => !!lockedGroupScores[`${group.id}_${idx}`]);
+      if (hasAny) {
         const standings = calcGroupStandings(group, lockedGroupScores);
         result[group.id] = {};
         standings.forEach((team, pos) => { result[group.id][team.name] = pos + 1; });
@@ -1072,24 +1072,21 @@ export default function Home() {
     return result;
   }, [lockedGroupScores, picks]);
 
-  // ── Auto best-8 third-place from COMPLETE groups only ───────────────
+  // ── Auto best-8 third-place: rank current 3rd-place teams across groups ─
   const effectiveThirdGroupIds = useMemo(() => {
-    // User manually selected 8 → respect it
     if (thirdPlacePicks.length === 8) return thirdPlacePicks;
-    // Auto-rank: only consider groups where all 6 matches are final
     const thirds = GROUPS
       .map(group => {
-        const allLocked = GROUP_MATCH_PAIRS.every((_, idx) => !!lockedGroupScores[`${group.id}_${idx}`]);
-        if (!allLocked) return null;
+        const hasAny = GROUP_MATCH_PAIRS.some((_, idx) => !!lockedGroupScores[`${group.id}_${idx}`]);
+        if (!hasAny) return null;
         const standings = calcGroupStandings(group, lockedGroupScores);
         const t = standings[2];
         return { groupId: group.id, pts: t?.pts || 0, gd: t?.gd || 0, gf: t?.gf || 0 };
       })
       .filter(Boolean)
       .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
-    // Only auto-fill once 8+ complete groups exist; before that, defer to manual picks
-    if (thirds.length >= 8) return thirds.slice(0, 8).map(t => t.groupId);
-    return thirdPlacePicks;
+    // Return up to 8 — thirdAssignment returns {} for <8, showing TBD in those slots
+    return thirds.slice(0, 8).map(t => t.groupId);
   }, [lockedGroupScores, thirdPlacePicks]);
 
   const groupComplete = (groupId) => {
