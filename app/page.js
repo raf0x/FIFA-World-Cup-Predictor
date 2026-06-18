@@ -1059,7 +1059,47 @@ export default function Home() {
     setBracketPicks(initBracket());
   };
 
+  // ── Live-driven picks: use standings only when a group is COMPLETE ────
+  const effectivePicks = useMemo(() => {
+    const result = {};
+    for (const group of GROUPS) {
+      const allLocked = GROUP_MATCH_PAIRS.every((_, idx) => !!lockedGroupScores[`${group.id}_${idx}`]);
+      if (allLocked) {
+        const standings = calcGroupStandings(group, lockedGroupScores);
+        result[group.id] = {};
+        standings.forEach((team, pos) => { result[group.id][team.name] = pos + 1; });
+      } else {
+        result[group.id] = picks[group.id] || {};
+      }
+    }
+    return result;
+  }, [lockedGroupScores, picks]);
+
+  // ── Auto best-8 third-place from COMPLETE groups only ───────────────
+  const effectiveThirdGroupIds = useMemo(() => {
+    // User manually selected 8 → respect it
+    if (thirdPlacePicks.length === 8) return thirdPlacePicks;
+    // Auto-rank: only consider groups where all 6 matches are final
+    const thirds = GROUPS
+      .map(group => {
+        const allLocked = GROUP_MATCH_PAIRS.every((_, idx) => !!lockedGroupScores[`${group.id}_${idx}`]);
+        if (!allLocked) return null;
+        const standings = calcGroupStandings(group, lockedGroupScores);
+        const t = standings[2];
+        return { groupId: group.id, pts: t?.pts || 0, gd: t?.gd || 0, gf: t?.gf || 0 };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
+    // Only auto-fill once 8+ complete groups exist; before that, defer to manual picks
+    if (thirds.length >= 8) return thirds.slice(0, 8).map(t => t.groupId);
+    return thirdPlacePicks;
+  }, [lockedGroupScores, thirdPlacePicks]);
+
   const groupComplete = (groupId) => {
+    // Complete = all 6 group matches locked by live data
+    const allLocked = GROUP_MATCH_PAIRS.every((_, idx) => !!lockedGroupScores[`${groupId}_${idx}`]);
+    if (allLocked) return true;
+    // Fallback: user has ranked all 3 positions manually
     const g = picks[groupId] || {};
     const r = Object.values(g);
     return r.includes(1) && r.includes(2) && r.includes(3);
@@ -1068,11 +1108,11 @@ export default function Home() {
   const allGroupsDone = completedCount === 12;
 
   const thirdPlaceCandidates = useMemo(() => GROUPS.map(g => {
-    const name = getTeamByRank(picks, g.id, 3);
+    const name = getTeamByRank(effectivePicks, g.id, 3);
     if (!name) return null;
     const obj = getTeamObj(g.id, name);
     return { groupId: g.id, name, flag: obj?.flag || '' };
-  }).filter(Boolean), [picks]);
+  }).filter(Boolean), [effectivePicks]);
 
   const toggleThirdPlace = (groupId) => {
     setThirdPlacePicks(prev => {
@@ -1082,18 +1122,20 @@ export default function Home() {
     });
     setBracketPicks(initBracket());
   };
-  const thirdPlaceDone = thirdPlacePicks.length === 8;
+  const thirdPlaceDone = effectiveThirdGroupIds.length === 8;
 
 
   const thirdAssignment = useMemo(() => {
-    const key = [...thirdPlacePicks].sort().join('');
+    const ids = effectiveThirdGroupIds;
+    if (ids.length < 8) return {};
+    const key = [...ids].sort().join('');
     const scenario = ANNEX_C[key];
     if (scenario) return scenario;
     const result = {};
     function backtrack(slotIdx, used) {
       if (slotIdx === 8) return true;
       for (const g of SLOT_ELIGIBLE[slotIdx]) {
-        if (thirdPlacePicks.includes(g) && !used.has(g)) {
+        if (ids.includes(g) && !used.has(g)) {
           used.add(g); result[slotIdx] = g;
           if (backtrack(slotIdx + 1, used)) return true;
           used.delete(g); delete result[slotIdx];
@@ -1103,9 +1145,9 @@ export default function Home() {
     }
     backtrack(0, new Set());
     return result;
-  }, [thirdPlacePicks]);
+  }, [effectiveThirdGroupIds]);
 
-  const r32Matchups = useMemo(() => R32_DEFS.map(([h,a]) => ({ home:resolveDesc(h,picks,thirdAssignment), away:resolveDesc(a,picks,thirdAssignment) })), [picks, thirdAssignment]);
+  const r32Matchups = useMemo(() => R32_DEFS.map(([h,a]) => ({ home:resolveDesc(h,effectivePicks,thirdAssignment), away:resolveDesc(a,effectivePicks,thirdAssignment) })), [effectivePicks, thirdAssignment]);
   const r16Matchups = useMemo(() => R16_PAIRS.map(([hi,ai]) => ({ home:resolveWinner(r32Matchups[hi],bracketPicks.r32[hi]), away:resolveWinner(r32Matchups[ai],bracketPicks.r32[ai]) })), [r32Matchups, bracketPicks.r32]);
   const qfMatchups  = useMemo(() => QF_PAIRS.map(([hi,ai]) => ({ home:resolveWinner(r16Matchups[hi],bracketPicks.r16[hi]), away:resolveWinner(r16Matchups[ai],bracketPicks.r16[ai]) })), [r16Matchups, bracketPicks.r16]);
   const sfMatchups  = useMemo(() => SF_PAIRS.map(([hi,ai]) => ({ home:resolveWinner(qfMatchups[hi],bracketPicks.qf[hi]), away:resolveWinner(qfMatchups[ai],bracketPicks.qf[ai]) })), [qfMatchups, bracketPicks.qf]);
@@ -1224,7 +1266,7 @@ export default function Home() {
     const lc = '#252538';
     const fl = t => (t?.flag && !/^[a-z]{2,3}$/.test(t.flag)) ? t.flag + ' ' : '';
     const teamOf = (gid, rank) => {
-      const name = getTeamByRank(picks, gid, rank);
+      const name = getTeamByRank(effectivePicks, gid, rank);
       const obj  = name ? getTeamObj(gid, name) : null;
       return name ? `${fl(obj)}${name}` : '—';
     };
@@ -1340,7 +1382,7 @@ export default function Home() {
       </div>`).join('');
 
     const thirdPills = thirdPlacePicks.map(gid => {
-      const name = getTeamByRank(picks, gid, 3);
+      const name = getTeamByRank(effectivePicks, gid, 3);
       const obj  = name ? getTeamObj(gid, name) : null;
       return `<span style="background:#0c0c1c;border:1px solid #181828;border-radius:6px;
         padding:4px 10px;font-size:12px;color:#c8d0de">${fl(obj)}${name||gid}</span>`;
@@ -1449,9 +1491,6 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
             </div>
           </div>
           <div className="phead-right">
-            {allGroupsDone && !thirdPlaceDone && (
-              <button className="btn btn-ghost" onClick={() => scrollTo(thirdRef)}>Pick 3rd places</button>
-            )}
             {thirdPlaceDone && (
               <button className="btn btn-green" onClick={() => scrollTo(bracketRef)}>Open bracket</button>
             )}
@@ -1580,8 +1619,8 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
               Choose decisively — placement sets your bracket path.
             </p>
           </div>
-          <ThirdPlacePicker candidates={thirdPlaceCandidates} picks={thirdPlacePicks}
-            allGroupsDone={allGroupsDone} onToggle={toggleThirdPlace} />
+          <ThirdPlacePicker candidates={thirdPlaceCandidates} picks={effectiveThirdGroupIds}
+            allGroupsDone={true} onToggle={toggleThirdPlace} />
           {thirdPlaceDone && (
             <div className="third-cta">
               <button className="btn btn-green btn-lg" onClick={() => scrollTo(bracketRef)}>
