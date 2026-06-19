@@ -1658,3 +1658,4 @@ a { color: inherit; }
 .rscore--win  { color: var(--text); }
 .rscore--draw { color: #c8d0de; }
 .rscore--loss { color: var(--muted); }
+.rscore--draw { color: #c8d0de !important; }
