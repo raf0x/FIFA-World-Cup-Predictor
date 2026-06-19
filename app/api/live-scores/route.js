@@ -36,60 +36,78 @@ function findTeamIdx(group, name) {
   return group.teams.findIndex(t => strip(t.name) === s);
 }
 
-// ── Goalscorer fetch (one call per completed match) ───────────────────────
+// ── Goalscorer + card fetch (one call per completed match) ────────────────
+// Card → conduct points per FIFA Annex C rules (computed per player, then summed):
+//   Single yellow: -1 | Second yellow (= indirect red): -3 total | Direct red: -4 | Yellow + direct red: -5 total
 async function fetchScorers(eventId, homeTeamId, awayTeamId) {
   try {
     const res = await fetch(
       `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${eventId}`,
       { next: { revalidate: 86400 } } // completed match — never changes
     );
-    if (!res.ok) return { homeScorers: [], awayScorers: [] };
+    if (!res.ok) return { homeScorers: [], awayScorers: [], homeCardPts: 0, awayCardPts: 0 };
     const data = await res.json();
 
     const homeScorers = [];
     const awayScorers = [];
+    // Per-player tally within this match: { team: 'home'|'away', yellows: n, directRed: bool }
+    const players = {};
 
     for (const evt of (data.keyEvents || [])) {
-      // Only process actual scoring plays
-      if (!evt.scoringPlay) continue;
       const typeText = (evt.type?.text || '').toLowerCase();
-      if (!typeText.includes('goal')) continue;
 
-      const isOwnGoal = typeText.includes('own');
+      // ── Goals ──
+      if (evt.scoringPlay && typeText.includes('goal')) {
+        const isOwnGoal = typeText.includes('own');
+        const athlete = evt.participants?.[0]?.athlete;
+        if (athlete) {
+          const fullName = athlete.displayName || '';
+          const parts = fullName.trim().split(' ');
+          const shortName = parts.length > 1 ? `${parts[0][0]}. ${parts[parts.length - 1]}` : fullName;
+          const minute = evt.clock?.displayValue || '';
+          const label = `${shortName} ${minute}${isOwnGoal ? ' (OG)' : ''}`.trim();
+          const isHome = String(evt.team?.id) === String(homeTeamId);
+          if (isHome) homeScorers.push(label); else awayScorers.push(label);
+        }
+        continue;
+      }
 
-      // ESPN uses participants[0].athlete.displayName (not athletesInvolved)
+      // ── Cards ── (accumulate raw events per player; convert to points after the loop)
+      const isYellow = typeText.includes('yellow card') && !typeText.includes('second yellow');
+      const isSecondYellow = typeText.includes('second yellow');
+      const isDirectRed = typeText.includes('red card') && !isSecondYellow;
+      if (!isYellow && !isSecondYellow && !isDirectRed) continue;
+
       const athlete = evt.participants?.[0]?.athlete;
-      if (!athlete) continue;
-
-      const fullName = athlete.displayName || '';
-      // "Julián Quiñones" → "J. Quiñones"
-      const parts = fullName.trim().split(' ');
-      const shortName = parts.length > 1
-        ? `${parts[0][0]}. ${parts[parts.length - 1]}`
-        : fullName;
-
-      // Clock is already formatted as "9'" by ESPN
-      const minute = evt.clock?.displayValue || '';
-      const label = `${shortName} ${minute}${isOwnGoal ? ' (OG)' : ''}`.trim();
-
-      // ESPN sets team.id = benefiting team for own goals — no flip needed
+      const athleteId = athlete?.id || `${evt.team?.id}-${athlete?.displayName}-${Math.random()}`;
       const isHome = String(evt.team?.id) === String(homeTeamId);
-      const creditHome = isHome;
 
-      if (creditHome) homeScorers.push(label);
-      else awayScorers.push(label);
+      if (!players[athleteId]) players[athleteId] = { team: isHome ? 'home' : 'away', yellows: 0, directRed: false };
+      if (isYellow || isSecondYellow) players[athleteId].yellows += 1;
+      if (isDirectRed) players[athleteId].directRed = true;
     }
 
-    return { homeScorers, awayScorers };
+    // Convert each player's card history into a single conduct-point total
+    let homeCardPts = 0, awayCardPts = 0;
+    for (const p of Object.values(players)) {
+      let pts = 0;
+      if (p.yellows >= 2) pts = -3;        // second yellow = indirect red
+      else if (p.yellows === 1) pts = -1;  // single yellow
+      if (p.directRed) pts -= 4;            // direct red always adds -4 (combines with yellow → -5 total)
+      if (p.team === 'home') homeCardPts += pts; else awayCardPts += pts;
+    }
+
+    return { homeScorers, awayScorers, homeCardPts, awayCardPts };
   } catch {
-    return { homeScorers: [], awayScorers: [] };
+    return { homeScorers: [], awayScorers: [], homeCardPts: 0, awayCardPts: 0 };
   }
 }
 
-// ── Map raw matches → groupScores + recentMatches ────────────────────────
+// ── Map raw matches → groupScores + recentMatches + cardScores ───────────
 function processMatches(rawMatches) {
   const groupScores = {};
   const recentMatches = [];
+  const cardScores = {}; // teamName -> cumulative conduct points across all group matches
   let count = 0;
 
   for (const m of rawMatches) {
@@ -118,10 +136,18 @@ function processMatches(rawMatches) {
       away: String(flipped ? m.homeScore : m.awayScore),
     };
 
+    const homeTeamName = group.teams[flipped ? ai : hi].name;
+    const awayTeamName = group.teams[flipped ? hi : ai].name;
+    const homeCardPts = flipped ? (m.awayCardPts || 0) : (m.homeCardPts || 0);
+    const awayCardPts = flipped ? (m.homeCardPts || 0) : (m.awayCardPts || 0);
+
+    cardScores[homeTeamName] = (cardScores[homeTeamName] || 0) + homeCardPts;
+    cardScores[awayTeamName] = (cardScores[awayTeamName] || 0) + awayCardPts;
+
     recentMatches.push({
       group: group.id,
-      homeTeam: group.teams[flipped ? ai : hi].name,
-      awayTeam: group.teams[flipped ? hi : ai].name,
+      homeTeam: homeTeamName,
+      awayTeam: awayTeamName,
       homeScore: flipped ? m.awayScore : m.homeScore,
       awayScore: flipped ? m.homeScore : m.awayScore,
       homeScorers: flipped ? (m.awayScorers || []) : (m.homeScorers || []),
@@ -130,7 +156,7 @@ function processMatches(rawMatches) {
     count++;
   }
 
-  return { groupScores, recentMatches, count };
+  return { groupScores, recentMatches, cardScores, count };
 }
 
 // ── ESPN scoreboard + summary ─────────────────────────────────────────────
@@ -183,6 +209,8 @@ async function fetchESPN() {
             eventId:    event.id || null,
             homeScorers: [],
             awayScorers: [],
+            homeCardPts: 0,
+            awayCardPts: 0,
           });
         } else if (inProgress) {
           // Parse clock: "90:00" → "90'", halftime → "HT"
@@ -209,12 +237,14 @@ async function fetchESPN() {
     } catch {}
   }));
 
-  // Step 2: fetch goalscorers in parallel for all completed matches
+  // Step 2: fetch goalscorers + cards in parallel for all completed matches
   await Promise.all(rawMatches.map(async (m) => {
     if (!m.eventId) return;
-    const { homeScorers, awayScorers } = await fetchScorers(m.eventId, m.homeTeamId, m.awayTeamId);
+    const { homeScorers, awayScorers, homeCardPts, awayCardPts } = await fetchScorers(m.eventId, m.homeTeamId, m.awayTeamId);
     m.homeScorers = homeScorers;
     m.awayScorers = awayScorers;
+    m.homeCardPts = homeCardPts;
+    m.awayCardPts = awayCardPts;
   }));
 
   return { rawMatches, liveRawMatches };
@@ -238,6 +268,8 @@ async function fetchFDO(apiKey) {
       awayScore:   m.score?.fullTime?.away,
       homeScorers: [],
       awayScorers: [],
+      homeCardPts: 0,
+      awayCardPts: 0,
     }))
     .filter(m => m.homeScore !== null && m.awayScore !== null);
 }
@@ -257,11 +289,11 @@ export async function GET() {
       try { rawMatches = await fetchFDO(apiKey); } catch {}
     }
 
-    // Process completed matches → groupScores + recentMatches
-    const { groupScores, recentMatches, count } =
+    // Process completed matches → groupScores + recentMatches + cardScores
+    const { groupScores, recentMatches, cardScores, count } =
       rawMatches.length > 0
         ? processMatches(rawMatches)
-        : { groupScores: {}, recentMatches: [], count: 0 };
+        : { groupScores: {}, recentMatches: [], cardScores: {}, count: 0 };
 
     // Process live matches → normalize names and find group
     const liveMatches = liveRawMatches
@@ -285,8 +317,8 @@ export async function GET() {
       .filter(Boolean);
 
     const active = count > 0 || liveMatches.length > 0;
-    return Response.json({ groupScores, recentMatches, liveMatches, count, active });
+    return Response.json({ groupScores, recentMatches, liveMatches, cardScores, count, active });
   } catch (err) {
-    return Response.json({ groupScores: {}, recentMatches: [], liveMatches: [], count: 0, active: false, error: err.message });
+    return Response.json({ groupScores: {}, recentMatches: [], liveMatches: [], cardScores: {}, count: 0, active: false, error: err.message });
   }
 }
