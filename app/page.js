@@ -1088,8 +1088,9 @@ export default function Home() {
       })
       .filter(Boolean)
       .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
-    // Return up to 8 — thirdAssignment returns {} for <8, showing TBD in those slots
-    return thirds.slice(0, 8).map(t => t.groupId);
+    // Manual picks come first, then auto-ranked fill the rest — no duplicates, max 8
+    const autoIds = thirds.map(t => t.groupId).filter(id => !thirdPlacePicks.includes(id));
+    return [...thirdPlacePicks, ...autoIds].slice(0, 8);
   }, [lockedGroupScores, thirdPlacePicks]);
 
   const groupComplete = (groupId) => {
