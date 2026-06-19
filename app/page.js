@@ -39,10 +39,10 @@ const initBracket = () => ({ r32:Array(16).fill(null), r16:Array(8).fill(null), 
 // All 6 round-robin match combos for a 4-team group (indices into group.teams)
 const GROUP_MATCH_PAIRS = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
 
-function calcGroupStandings(group, groupScores) {
+function calcGroupStandings(group, groupScores, cardScores = {}) {
   const s = {};
   group.teams.forEach(t => {
-    s[t.name] = { name:t.name, pts:0, gf:0, ga:0, gd:0, played:0, w:0, d:0, l:0, rank:t.rank ?? 999 };
+    s[t.name] = { name:t.name, pts:0, gf:0, ga:0, gd:0, played:0, w:0, d:0, l:0, rank:t.rank ?? 999, conduct: cardScores[t.name] ?? 0 };
   });
   // Track raw results for head-to-head lookups: h2h[teamA][teamB] = { pts, gd, gf }
   const h2h = {};
@@ -68,8 +68,7 @@ function calcGroupStandings(group, groupScores) {
 
   // ── Official FIFA tiebreaker order ────────────────────────────────────
   // 1. Points → 2. Head-to-head mini-table (pts/gd/gf among tied teams only)
-  // → 3. Overall GD → 4. Overall goals scored → 5. FIFA World Ranking
-  // (Team conduct/cards omitted — not tracked by available data sources.)
+  // → 3. Overall GD → 4. Overall goals scored → 5. Team conduct score → 6. FIFA World Ranking
   teams.sort((a, b) => {
     if (b.pts !== a.pts) return b.pts - a.pts;
     return 0; // same-points teams get re-sorted as a group below
@@ -85,8 +84,6 @@ function calcGroupStandings(group, groupScores) {
     if (block.length > 1) {
       block.sort((a, b) => {
         // Head-to-head only valid if every pair in the block has played each other
-        const ab = h2h[a.name]?.[b.name];
-        const ba = h2h[b.name]?.[a.name];
         const allPlayed = block.every(t1 =>
           block.every(t2 => t1.name === t2.name || h2h[t1.name]?.[t2.name])
         );
@@ -108,6 +105,7 @@ function calcGroupStandings(group, groupScores) {
         // Fall through to overall criteria
         if (b.gd !== a.gd) return b.gd - a.gd;
         if (b.gf !== a.gf) return b.gf - a.gf;
+        if (b.conduct !== a.conduct) return b.conduct - a.conduct; // higher (less negative) conduct score wins
         return a.rank - b.rank; // lower FIFA rank number = better
       });
     }
@@ -191,8 +189,8 @@ function Flag({ team, size = 18 }) {
 
 // ─── AI Panel ─────────────────────────────────────────────────────────────
 // ─── Group Score Panel ────────────────────────────────────────────────────
-function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores }) {
-  const standings = calcGroupStandings(group, groupScores);
+function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores, cardScores }) {
+  const standings = calcGroupStandings(group, groupScores, cardScores);
   const hasScores = standings.some(s => s.played > 0);
   const allFilled = GROUP_MATCH_PAIRS.every((_,i) => {
     const sc = groupScores[`${group.id}_${i}`];
@@ -262,7 +260,7 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores 
 }
 
 // ─── Group Stage Card ─────────────────────────────────────────────────────
-function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, onScoreChange, lockedGroupScores }) {
+function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, onScoreChange, lockedGroupScores, cardScores }) {
   const [showPicks, setShowPicks] = useState(false);
   const color = GROUP_COLORS[group.id];
   const rankedCount = Object.keys(groupPicks).length;
@@ -322,7 +320,7 @@ function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, o
       )}
 
       {/* Score panel always visible */}
-      <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} lockedGroupScores={lockedGroupScores} />
+      <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} lockedGroupScores={lockedGroupScores} cardScores={cardScores} />
     </div>
   );
 }
@@ -963,6 +961,7 @@ export default function Home() {
   const [lockedGroupScores, setLockedGroupScores] = useState({});
   const [bracketScores, setBracketScores] = useState({});
   const [recentMatches, setRecentMatches] = useState([]);
+  const [cardScores, setCardScores] = useState({}); // teamName -> conduct points (negative)
   const [finalScore, setFinalScore] = useState({ home: '', away: '' });
 
   const thirdRef      = useRef(null);
@@ -1035,6 +1034,7 @@ export default function Home() {
           if (data.recentMatches?.length > 0)
             setRecentMatches(data.recentMatches.map(enrich).slice(-6));
           setLiveMatches((data.liveMatches || []).map(enrich));
+          if (data.cardScores) setCardScores(data.cardScores); // full snapshot each poll, not incremental
         })
         .catch(() => {});
     };
@@ -1070,7 +1070,7 @@ export default function Home() {
         return sc && sc.home!=='' && sc.away!=='' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away)) && Number(sc.home)>=0 && Number(sc.away)>=0;
       });
       if (!allFilled) return;
-      const standings = calcGroupStandings(group, groupScores);
+      const standings = calcGroupStandings(group, groupScores, cardScores);
       if (standings.length < 3) return;
       updates[group.id] = {
         [standings[0].name]: 1,
@@ -1081,7 +1081,7 @@ export default function Home() {
     if (Object.keys(updates).length === 0) return;
     setPicks(prev => ({ ...prev, ...updates }));
     setBracketPicks(initBracket());
-  }, [groupScores]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [groupScores, cardScores]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-select best 8 third-place teams when all groups complete ──────
   useEffect(() => {
@@ -1093,17 +1093,17 @@ export default function Home() {
     );
     if (!allComplete) return;
     const thirds = GROUPS.map(group => {
-      const standings = calcGroupStandings(group, groupScores);
+      const standings = calcGroupStandings(group, groupScores, cardScores);
       const t = standings[2];
       return t ? { groupId: group.id, ...t } : null;
     }).filter(Boolean);
     if (thirds.length < 12) return;
     const top8 = [...thirds]
-      .sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf)
+      .sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf || b.conduct-a.conduct || a.rank-b.rank)
       .slice(0,8)
       .map(t => t.groupId);
     setThirdPlacePicks(top8);
-  }, [groupScores]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [groupScores, cardScores]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setRank = (groupId, team, rank) => {
     setPicks(prev => {
@@ -1139,7 +1139,7 @@ export default function Home() {
         return sc && sc.home !== '' && sc.away !== '' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
       });
       if (hasAny) {
-        const standings = calcGroupStandings(group, merged);
+        const standings = calcGroupStandings(group, merged, cardScores);
         result[group.id] = {};
         standings.forEach((team, pos) => { result[group.id][team.name] = pos + 1; });
       } else {
@@ -1147,7 +1147,7 @@ export default function Home() {
       }
     }
     return result;
-  }, [lockedGroupScores, groupScores, picks]);
+  }, [lockedGroupScores, groupScores, picks, cardScores]);
 
   // ── Auto best-8 third-place: rank current 3rd-place teams across groups ─
   const effectiveThirdGroupIds = useMemo(() => {
@@ -1163,16 +1163,16 @@ export default function Home() {
           return sc && sc.home !== '' && sc.away !== '' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
         });
         if (!hasAny) return null;
-        const standings = calcGroupStandings(group, merged);
+        const standings = calcGroupStandings(group, merged, cardScores);
         const t = standings[2];
-        return { groupId: group.id, pts: t?.pts || 0, gd: t?.gd || 0, gf: t?.gf || 0, rank: t?.rank ?? 999 };
+        return { groupId: group.id, pts: t?.pts || 0, gd: t?.gd || 0, gf: t?.gf || 0, conduct: t?.conduct ?? 0, rank: t?.rank ?? 999 };
       })
       .filter(Boolean)
-      .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.rank - b.rank);
+      .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || b.conduct - a.conduct || a.rank - b.rank);
     // Manual picks come first, then auto-ranked fill the rest — no duplicates, max 8
     const autoIds = thirds.map(t => t.groupId).filter(id => !thirdPlacePicks.includes(id));
     return [...thirdPlacePicks, ...autoIds].slice(0, 8);
-  }, [lockedGroupScores, groupScores, thirdPlacePicks]);
+  }, [lockedGroupScores, groupScores, thirdPlacePicks, cardScores]);
 
   const groupComplete = (groupId) => {
     // Complete = all 6 group matches locked by live data
@@ -1688,6 +1688,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
               groupScores={groupScores}
               onScoreChange={setGroupScore}
               lockedGroupScores={lockedGroupScores}
+              cardScores={cardScores}
               onSetRank={setRank} />
           ))}
         </div>
@@ -1701,8 +1702,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
             <h2 className="section-title">Best 8 Third-Place Teams</h2>
             <p className="section-desc">
               The eight strongest third-place finishers join the 24 group qualifiers in the Round of 32.
-              Ranked by points → goal difference → goals scored → FIFA World Ranking.
-              <span style={{ opacity:.6 }}> (Official team conduct/card tiebreaker not modeled — extremely rare to matter.)</span>
+              Ranked by points → goal difference → goals scored → team conduct (cards) → FIFA World Ranking — the official FIFA criteria.
             </p>
           </div>
           <ThirdPlacePicker candidates={thirdPlaceCandidates} picks={effectiveThirdGroupIds}
