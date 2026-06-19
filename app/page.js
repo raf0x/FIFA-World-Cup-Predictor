@@ -1225,9 +1225,15 @@ export default function Home() {
   // recentMatches populated from live-scores API (includes goalscorer data)
 
   const reset = () => {
-    if (confirm('Clear all picks?')) {
+    if (confirm('Clear all your picks? Live match results will stay.')) {
       setPicks({}); setThirdPlacePicks([]); setBracketPicks(initBracket());
-      setGroupScores({}); setBracketScores({}); setLockedGroupScores({}); setFinalScore({ home:'', away:'' });
+      setBracketScores({}); setFinalScore({ home:'', away:'' });
+      // Keep only locked (live) scores in groupScores — drop manual entries
+      setGroupScores(prev => {
+        const kept = {};
+        for (const key of Object.keys(lockedGroupScores)) kept[key] = lockedGroupScores[key];
+        return kept;
+      });
       localStorage.removeItem('wc2026-v2');
     }
   };
