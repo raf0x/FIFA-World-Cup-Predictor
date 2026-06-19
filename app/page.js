@@ -42,8 +42,12 @@ const GROUP_MATCH_PAIRS = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
 function calcGroupStandings(group, groupScores) {
   const s = {};
   group.teams.forEach(t => {
-    s[t.name] = { name:t.name, pts:0, gf:0, ga:0, gd:0, played:0, w:0, d:0, l:0 };
+    s[t.name] = { name:t.name, pts:0, gf:0, ga:0, gd:0, played:0, w:0, d:0, l:0, rank:t.rank ?? 999 };
   });
+  // Track raw results for head-to-head lookups: h2h[teamA][teamB] = { pts, gd, gf }
+  const h2h = {};
+  group.teams.forEach(t => { h2h[t.name] = {}; });
+
   GROUP_MATCH_PAIRS.forEach(([hi, ai], idx) => {
     const sc = groupScores[`${group.id}_${idx}`];
     if (!sc || sc.home==='' || sc.away==='' || sc.home===null || sc.away===null) return;
@@ -52,11 +56,66 @@ function calcGroupStandings(group, groupScores) {
     const hn = group.teams[hi].name, an = group.teams[ai].name;
     s[hn].gf+=hg; s[hn].ga+=ag; s[hn].gd+=(hg-ag); s[hn].played++;
     s[an].gf+=ag; s[an].ga+=hg; s[an].gd+=(ag-hg); s[an].played++;
-    if (hg>ag)      { s[hn].pts+=3; s[hn].w++; s[an].l++; }
-    else if (hg<ag) { s[an].pts+=3; s[an].w++; s[hn].l++; }
-    else            { s[hn].pts++; s[an].pts++; s[hn].d++; s[an].d++; }
+    let hPts = 0, aPts = 0;
+    if (hg>ag)      { s[hn].pts+=3; s[hn].w++; s[an].l++; hPts=3; }
+    else if (hg<ag) { s[an].pts+=3; s[an].w++; s[hn].l++; aPts=3; }
+    else            { s[hn].pts++; s[an].pts++; s[hn].d++; s[an].d++; hPts=1; aPts=1; }
+    h2h[hn][an] = { pts: hPts, gd: hg-ag, gf: hg };
+    h2h[an][hn] = { pts: aPts, gd: ag-hg, gf: ag };
   });
-  return Object.values(s).sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf);
+
+  const teams = Object.values(s);
+
+  // ── Official FIFA tiebreaker order ────────────────────────────────────
+  // 1. Points → 2. Head-to-head mini-table (pts/gd/gf among tied teams only)
+  // → 3. Overall GD → 4. Overall goals scored → 5. FIFA World Ranking
+  // (Team conduct/cards omitted — not tracked by available data sources.)
+  teams.sort((a, b) => {
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    return 0; // same-points teams get re-sorted as a group below
+  });
+
+  // Group consecutive same-points teams and apply head-to-head within each block
+  const result = [];
+  let i = 0;
+  while (i < teams.length) {
+    let j = i;
+    while (j < teams.length && teams[j].pts === teams[i].pts) j++;
+    const block = teams.slice(i, j);
+    if (block.length > 1) {
+      block.sort((a, b) => {
+        // Head-to-head only valid if every pair in the block has played each other
+        const ab = h2h[a.name]?.[b.name];
+        const ba = h2h[b.name]?.[a.name];
+        const allPlayed = block.every(t1 =>
+          block.every(t2 => t1.name === t2.name || h2h[t1.name]?.[t2.name])
+        );
+        if (allPlayed && block.length <= 4) {
+          // Build mini-table among tied teams for this specific pair comparison
+          const miniPts = (t) => block.reduce((sum, opp) =>
+            opp.name === t.name ? sum : sum + (h2h[t.name]?.[opp.name]?.pts ?? 0), 0);
+          const miniGd = (t) => block.reduce((sum, opp) =>
+            opp.name === t.name ? sum : sum + (h2h[t.name]?.[opp.name]?.gd ?? 0), 0);
+          const miniGf = (t) => block.reduce((sum, opp) =>
+            opp.name === t.name ? sum : sum + (h2h[t.name]?.[opp.name]?.gf ?? 0), 0);
+          const aMP = miniPts(a), bMP = miniPts(b);
+          if (aMP !== bMP) return bMP - aMP;
+          const aMG = miniGd(a), bMG = miniGd(b);
+          if (aMG !== bMG) return bMG - aMG;
+          const aMF = miniGf(a), bMF = miniGf(b);
+          if (aMF !== bMF) return bMF - aMF;
+        }
+        // Fall through to overall criteria
+        if (b.gd !== a.gd) return b.gd - a.gd;
+        if (b.gf !== a.gf) return b.gf - a.gf;
+        return a.rank - b.rank; // lower FIFA rank number = better
+      });
+    }
+    result.push(...block);
+    i = j;
+  }
+
+  return result;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -1106,10 +1165,10 @@ export default function Home() {
         if (!hasAny) return null;
         const standings = calcGroupStandings(group, merged);
         const t = standings[2];
-        return { groupId: group.id, pts: t?.pts || 0, gd: t?.gd || 0, gf: t?.gf || 0 };
+        return { groupId: group.id, pts: t?.pts || 0, gd: t?.gd || 0, gf: t?.gf || 0, rank: t?.rank ?? 999 };
       })
       .filter(Boolean)
-      .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
+      .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.rank - b.rank);
     // Manual picks come first, then auto-ranked fill the rest — no duplicates, max 8
     const autoIds = thirds.map(t => t.groupId).filter(id => !thirdPlacePicks.includes(id));
     return [...thirdPlacePicks, ...autoIds].slice(0, 8);
@@ -1642,7 +1701,8 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
             <h2 className="section-title">Best 8 Third-Place Teams</h2>
             <p className="section-desc">
               The eight strongest third-place finishers join the 24 group qualifiers in the Round of 32.
-              Choose decisively — placement sets your bracket path.
+              Ranked by points → goal difference → goals scored → FIFA World Ranking.
+              <span style={{ opacity:.6 }}> (Official team conduct/card tiebreaker not modeled — extremely rare to matter.)</span>
             </p>
           </div>
           <ThirdPlacePicker candidates={thirdPlaceCandidates} picks={effectiveThirdGroupIds}
