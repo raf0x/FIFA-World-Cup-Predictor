@@ -331,8 +331,9 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
   };
 
   return (
-    <div className={`slot ${wide ? 'slot--wide' : ''}`} title={title}>
+    <div className="slot-wrap">
       {matchNum && <span className="slot-matchnum">M{matchNum}</span>}
+      <div className={`slot ${wide ? 'slot--wide' : ''}`} title={title}>
       {[home, away].map((team, i) => {
         const isPicked = team.name !== null && picked === team.name;
         const isOther = picked && picked !== team.name;
@@ -359,6 +360,7 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
