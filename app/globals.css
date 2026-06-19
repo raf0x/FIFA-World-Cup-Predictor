@@ -1655,3 +1655,6 @@ a { color: inherit; }
 .rscore--win  { color: var(--text); }
 .rscore--draw { color: #f5c142; }
 .rscore--loss { color: var(--muted); }
+.rscore--win  { color: var(--text); }
+.rscore--draw { color: #c8d0de; }
+.rscore--loss { color: var(--muted); }
