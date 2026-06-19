@@ -1652,10 +1652,4 @@ a { color: inherit; }
 .ticker-card--live { border-color:rgba(57,255,20,.3); background:rgba(57,255,20,.035); }
 .ticker-upset-wrap { display:flex; justify-content:center; margin-top:2px; }
 .ticker-upset { display:inline-flex; align-items:center; font-size:10px; font-weight:900; letter-spacing:.1em; color:#07070e; background:#f5c142; border-radius:5px; padding:3px 10px; box-shadow:0 0 16px rgba(245,193,66,.45); text-transform:uppercase; }
-.rscore--win  { color: var(--text); }
-.rscore--draw { color: #f5c142; }
-.rscore--loss { color: var(--muted); }
-.rscore--win  { color: var(--text); }
-.rscore--draw { color: #c8d0de; }
-.rscore--loss { color: var(--muted); }
-.rscore--draw { color: #c8d0de !important; }
+
