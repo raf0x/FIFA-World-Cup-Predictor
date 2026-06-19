@@ -1063,26 +1063,48 @@ export default function Home() {
   const effectivePicks = useMemo(() => {
     const result = {};
     for (const group of GROUPS) {
-      const hasAny = GROUP_MATCH_PAIRS.some((_, idx) => !!lockedGroupScores[`${group.id}_${idx}`]);
+      // Manual rank-toggle picks for this group always win — explicit user choice
+      const manualRanks = Object.values(picks[group.id] || {});
+      const hasManualPick = manualRanks.length > 0;
+      if (hasManualPick) {
+        result[group.id] = picks[group.id];
+        continue;
+      }
+      // No manual picks for this group — derive from scores (live + manually-typed)
+      const merged = { ...groupScores };
+      for (const key of Object.keys(lockedGroupScores)) {
+        if (key.startsWith(`${group.id}_`)) merged[key] = lockedGroupScores[key];
+      }
+      const hasAny = GROUP_MATCH_PAIRS.some((_, idx) => {
+        const sc = merged[`${group.id}_${idx}`];
+        return sc && sc.home !== '' && sc.away !== '' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
+      });
       if (hasAny) {
-        const standings = calcGroupStandings(group, lockedGroupScores);
+        const standings = calcGroupStandings(group, merged);
         result[group.id] = {};
         standings.forEach((team, pos) => { result[group.id][team.name] = pos + 1; });
       } else {
-        result[group.id] = picks[group.id] || {};
+        result[group.id] = {};
       }
     }
     return result;
-  }, [lockedGroupScores, picks]);
+  }, [lockedGroupScores, groupScores, picks]);
 
   // ── Auto best-8 third-place: rank current 3rd-place teams across groups ─
   const effectiveThirdGroupIds = useMemo(() => {
     if (thirdPlacePicks.length === 8) return thirdPlacePicks;
     const thirds = GROUPS
       .map(group => {
-        const hasAny = GROUP_MATCH_PAIRS.some((_, idx) => !!lockedGroupScores[`${group.id}_${idx}`]);
+        const merged = { ...groupScores };
+        for (const key of Object.keys(lockedGroupScores)) {
+          if (key.startsWith(`${group.id}_`)) merged[key] = lockedGroupScores[key];
+        }
+        const hasAny = GROUP_MATCH_PAIRS.some((_, idx) => {
+          const sc = merged[`${group.id}_${idx}`];
+          return sc && sc.home !== '' && sc.away !== '' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
+        });
         if (!hasAny) return null;
-        const standings = calcGroupStandings(group, lockedGroupScores);
+        const standings = calcGroupStandings(group, merged);
         const t = standings[2];
         return { groupId: group.id, pts: t?.pts || 0, gd: t?.gd || 0, gf: t?.gf || 0 };
       })
@@ -1091,7 +1113,7 @@ export default function Home() {
     // Manual picks come first, then auto-ranked fill the rest — no duplicates, max 8
     const autoIds = thirds.map(t => t.groupId).filter(id => !thirdPlacePicks.includes(id));
     return [...thirdPlacePicks, ...autoIds].slice(0, 8);
-  }, [lockedGroupScores, thirdPlacePicks]);
+  }, [lockedGroupScores, groupScores, thirdPlacePicks]);
 
   const groupComplete = (groupId) => {
     // Complete = all 6 group matches locked by live data
