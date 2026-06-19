@@ -244,23 +244,15 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores,
               <span>GD</span>
               <span className="sth-pts">PTS</span>
             </div>
-            {standings.map((s, i) => {
-              const teamObj = group.teams.find(t => t.name === s.name);
-              const qualifier = i < 2 ? 'Q' : i === 2 ? '3' : null;
-              return (
-                <div key={s.name} className={`standings-row ${i < 2 ? 'standings-row--q' : i === 2 ? 'standings-row--3' : 'standings-row--e'}`}>
-                  <span className="st-team-cell">
-                    <span className="st-pos">{i + 1}</span>
-                    {teamObj && <Flag team={teamObj} size={11} />}
-                    <span className="st-name">{s.name}</span>
-                    {qualifier && <span className={`st-q ${i < 2 ? 'st-q--q' : 'st-q--3'}`}>{qualifier}</span>}
-                  </span>
-                  <span>{s.played}</span><span>{s.w}</span><span>{s.d}</span><span>{s.l}</span>
-                  <span className={s.gd > 0 ? 'gd-pos' : s.gd < 0 ? 'gd-neg' : ''}>{s.gd > 0 ? '+' : ''}{s.gd}</span>
-                  <span className="st-pts">{s.pts}</span>
-                </div>
-              );
-            })}
+            {standings.map((s, i) => (
+              <div key={s.name} className={`standings-row ${i < 2 ? 'standings-row--q' : i === 2 ? 'standings-row--3' : 'standings-row--e'}`}>
+                <span className="st-pos">{i + 1}</span>
+                <span className="st-name">{s.name}</span>
+                <span>{s.played}</span><span>{s.w}</span><span>{s.d}</span><span>{s.l}</span>
+                <span className={s.gd > 0 ? 'gd-pos' : s.gd < 0 ? 'gd-neg' : ''}>{s.gd > 0 ? '+' : ''}{s.gd}</span>
+                <span className="st-pts">{s.pts}</span>
+              </div>
+            ))}
             {allFilled && <div className="standings-auto-note">✓ Rankings auto-filled from scores</div>}
           </div>
         </div>
