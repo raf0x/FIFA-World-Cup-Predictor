@@ -22,6 +22,17 @@ function calcStandings(group, scores) {
   return Object.values(s).sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf);
 }
 
+const NAME_FIX = {
+  'South Korea': 'Korea Republic', 'Czech Republic': 'Czechia',
+  'Bosnia-Herzegovina': 'Bosnia and Herzegovina', 'Bosnia & Herzegovina': 'Bosnia and Herzegovina',
+  'United States of America': 'United States', 'USA': 'United States',
+  'Turkey': 'Türkiye', 'Curacao': 'Curaçao', 'Ivory Coast': 'Ivory Coast',
+};
+function findTeam(group, espnName) {
+  const name = NAME_FIX[espnName] || espnName;
+  return group.teams.findIndex(t => t.name === name || t.name.toLowerCase() === name.toLowerCase());
+}
+
 export async function GET() {
   try {
     // Fetch completed scores from ESPN
@@ -49,14 +60,10 @@ export async function GET() {
           const hName = homeC.team?.displayName || '';
           const aName = awayC.team?.displayName || '';
           // Find group and match index
-          const group = GROUPS.find(g => {
-            const hi = g.teams.findIndex(t => t.name === hName || hName.includes(t.name.split(' ')[0]));
-            const ai = g.teams.findIndex(t => t.name === aName || aName.includes(t.name.split(' ')[0]));
-            return hi !== -1 && ai !== -1;
-          });
+          const group = GROUPS.find(g => findTeam(g, hName) !== -1 && findTeam(g, aName) !== -1);
           if (!group) continue;
-          const hi = group.teams.findIndex(t => t.name === hName || hName.includes(t.name.split(' ')[0]));
-          const ai = group.teams.findIndex(t => t.name === aName || aName.includes(t.name.split(' ')[0]));
+          const hi = findTeam(group, hName);
+          const ai = findTeam(group, aName);
           const matchIdx = MATCH_PAIRS.findIndex(([ph,pa]) => (ph===hi&&pa===ai)||(ph===ai&&pa===hi));
           if (matchIdx === -1) continue;
           const [pairH] = MATCH_PAIRS[matchIdx];
