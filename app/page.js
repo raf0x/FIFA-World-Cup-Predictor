@@ -332,6 +332,7 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
 
   return (
     <div className={`slot ${wide ? 'slot--wide' : ''}`} title={title}>
+      {matchNum && <span className="slot-matchnum">M{matchNum}</span>}
       {[home, away].map((team, i) => {
         const isPicked = team.name !== null && picked === team.name;
         const isOther = picked && picked !== team.name;
