@@ -169,9 +169,9 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores,
                   <span className="result-name">{home.name}</span>
                 </span>
                 <div className="result-score">
-                  <span className={result === 'home' ? 'rscore--win' : result === 'draw' ? 'rscore--draw' : 'rscore--loss'}>{hg}</span>
+                  <span style={{ color: result === 'home' ? '#ffffff' : result === 'draw' ? '#c8d0de' : 'var(--muted)' }}>{hg}</span>
                   <span className="rscore-sep">–</span>
-                  <span className={result === 'away' ? 'rscore--win' : result === 'draw' ? 'rscore--draw' : 'rscore--loss'}>{ag}</span>
+                  <span style={{ color: result === 'away' ? '#ffffff' : result === 'draw' ? '#c8d0de' : 'var(--muted)' }}>{ag}</span>
                 </div>
                 <span className={`result-team result-team--r ${result === 'away' ? 'result-team--win' : result !== 'draw' ? 'result-team--loss' : ''}`}>
                   <span className="result-name">{away.name}</span>
@@ -260,6 +260,7 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores,
     </div>
   );
 }
+
 
 // ─── Group Stage Card ─────────────────────────────────────────────────────
 function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, onScoreChange, lockedGroupScores, liveMatches }) {
