@@ -309,7 +309,7 @@ function ThirdPlacePicker({ candidates, picks, allGroupsDone, onToggle }) {
 }
 
 // ─── Bracket components ────────────────────────────────────────────────────
-function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreChange }) {
+function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreChange, badgePos = 'top' }) {
   const { home, away } = matchup;
   const bothKnown = home.name && away.name;
   const info = matchNum ? MATCH_SCHEDULE[matchNum] : null;
@@ -331,7 +331,7 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
   };
 
   return (
-    <div className="slot-wrap">
+    <div className="slot-wrap" data-badgepos={badgePos}>
       {matchNum && <span className="slot-matchnum">M{matchNum}</span>}
       <div className={`slot ${wide ? 'slot--wide' : ''}`} title={title}>
       {[home, away].map((team, i) => {
@@ -708,7 +708,7 @@ function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bra
       {/* Final match */}
       <div className="champ-match">
         <div className="champ-match-label champ-final-label">FINAL · JUL 19 · NY/NJ</div>
-        <BracketSlot matchup={finalMatchup} picked={bracketPicks.final} onPick={n => pickBracket('final',0,n)} matchNum={104} wide />
+        <BracketSlot matchup={finalMatchup} picked={bracketPicks.final} onPick={n => pickBracket('final',0,n)} matchNum={104} wide badgePos="bottom" />
 
         {/* Score prediction — shown when both finalists are known */}
         {finalMatchup.home.name && finalMatchup.away.name && (
@@ -739,7 +739,7 @@ function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bra
       {/* 3rd place */}
       <div className="champ-match">
         <div className="champ-match-label">3rd Place · Jul 18 · Miami</div>
-        <BracketSlot matchup={thirdMatchup} picked={bracketPicks.thirdPlace} onPick={n => pickBracket('thirdPlace',0,n)} matchNum={103} wide />
+        <BracketSlot matchup={thirdMatchup} picked={bracketPicks.thirdPlace} onPick={n => pickBracket('thirdPlace',0,n)} matchNum={103} wide badgePos="bottom" />
       </div>
     </div>
   );
