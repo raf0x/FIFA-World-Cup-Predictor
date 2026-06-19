@@ -132,68 +132,134 @@ function Flag({ team, size = 18 }) {
 
 // ─── AI Panel ─────────────────────────────────────────────────────────────
 // ─── Group Score Panel ────────────────────────────────────────────────────
-function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores }) {
+function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores, liveMatches }) {
   const standings = calcGroupStandings(group, groupScores);
   const hasScores = standings.some(s => s.played > 0);
-  const allFilled = GROUP_MATCH_PAIRS.every((_,i) => {
+  const allFilled = GROUP_MATCH_PAIRS.every((_, i) => {
     const sc = groupScores[`${group.id}_${i}`];
-    return sc && sc.home!=='' && sc.away!=='' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
+    return sc && sc.home !== '' && sc.away !== '' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
   });
 
   return (
     <div className="score-panel">
       <div className="score-matches">
-        {GROUP_MATCH_PAIRS.map(([hi,ai], idx) => {
+        {GROUP_MATCH_PAIRS.map(([hi, ai], idx) => {
           const home = group.teams[hi], away = group.teams[ai];
           const key = `${group.id}_${idx}`;
-          const sc = groupScores[key] || { home:'', away:'' };
-          const hg = sc.home==='' ? null : Number(sc.home);
-          const ag = sc.away==='' ? null : Number(sc.away);
-          const result = hg!==null && ag!==null ? (hg>ag?'home':hg<ag?'away':'draw') : null;
+          const sc = groupScores[key] || { home: '', away: '' };
+          const hg = sc.home === '' ? null : Number(sc.home);
+          const ag = sc.away === '' ? null : Number(sc.away);
+          const result = hg !== null && ag !== null ? (hg > ag ? 'home' : hg < ag ? 'away' : 'draw') : null;
           const locked = !!lockedGroupScores?.[key];
+
+          const liveMatch = liveMatches?.find(m =>
+            m.group === group.id && (
+              (m.homeTeam === home.name && m.awayTeam === away.name) ||
+              (m.homeTeam === away.name && m.awayTeam === home.name)
+            )
+          );
+          const isLive = !!liveMatch;
+          const isCompleted = locked && hg !== null && ag !== null && !isNaN(hg) && !isNaN(ag);
+
+          if (isCompleted) {
+            return (
+              <div key={idx} className="match-result">
+                <span className={`result-team ${result === 'home' ? 'result-team--win' : result !== 'draw' ? 'result-team--loss' : ''}`}>
+                  <Flag team={home} size={13} />
+                  <span className="result-name">{home.name}</span>
+                </span>
+                <div className="result-score">
+                  <span className={result === 'home' ? 'rscore--win' : result === 'draw' ? 'rscore--draw' : 'rscore--loss'}>{hg}</span>
+                  <span className="rscore-sep">–</span>
+                  <span className={result === 'away' ? 'rscore--win' : result === 'draw' ? 'rscore--draw' : 'rscore--loss'}>{ag}</span>
+                </div>
+                <span className={`result-team result-team--r ${result === 'away' ? 'result-team--win' : result !== 'draw' ? 'result-team--loss' : ''}`}>
+                  <span className="result-name">{away.name}</span>
+                  <Flag team={away} size={13} />
+                </span>
+                <span className="result-ft">FT</span>
+              </div>
+            );
+          }
+
+          if (isLive) {
+            const lhScore = liveMatch.homeTeam === home.name ? liveMatch.homeScore : liveMatch.awayScore;
+            const laScore = liveMatch.homeTeam === away.name ? liveMatch.homeScore : liveMatch.awayScore;
+            const lResult = lhScore > laScore ? 'home' : lhScore < laScore ? 'away' : 'draw';
+            return (
+              <div key={idx} className="match-live">
+                <span className={`result-team ${lResult === 'home' ? 'result-team--win' : ''}`}>
+                  <Flag team={home} size={13} />
+                  <span className="result-name">{home.name}</span>
+                </span>
+                <div className="result-score result-score--live">
+                  <div className="live-badge-inline">
+                    <span className="live-dot" />
+                    LIVE{liveMatch.clock ? <span className="live-clock"> {liveMatch.clock}&apos;</span> : null}
+                  </div>
+                  <div className="live-scoreline">
+                    <span className={lResult === 'home' ? 'rscore--win' : lResult === 'draw' ? 'rscore--draw' : 'rscore--loss'}>{lhScore}</span>
+                    <span className="rscore-sep">–</span>
+                    <span className={lResult === 'away' ? 'rscore--win' : lResult === 'draw' ? 'rscore--draw' : 'rscore--loss'}>{laScore}</span>
+                  </div>
+                </div>
+                <span className={`result-team result-team--r ${lResult === 'away' ? 'result-team--win' : ''}`}>
+                  <span className="result-name">{away.name}</span>
+                  <Flag team={away} size={13} />
+                </span>
+              </div>
+            );
+          }
+
           return (
             <div key={idx} className={`score-row ${locked ? 'score-row--locked' : ''}`}>
-              <span className={`score-team score-team--l ${result==='home'?'score-team--w':result==='away'?'score-team--l2':''}`}>
-                <Flag team={home} size={13}/><span className="score-team-name">{home.name}</span>
+              <span className={`score-team score-team--l ${result === 'home' ? 'score-team--w' : result === 'away' ? 'score-team--l2' : ''}`}>
+                <Flag team={home} size={13} /><span className="score-team-name">{home.name}</span>
               </span>
               <div className="score-inputs">
-                <input
-                  className={`score-input ${locked ? 'score-input--locked' : ''}`}
+                <input className={`score-input ${locked ? 'score-input--locked' : ''}`}
                   type="number" min="0" max="20" placeholder="–"
                   value={sc.home} disabled={locked}
-                  onChange={e => !locked && onScoreChange(group.id,idx,'home',e.target.value)}/>
+                  onChange={e => !locked && onScoreChange(group.id, idx, 'home', e.target.value)} />
                 <span className="score-colon">{locked ? '–' : ':'}</span>
-                <input
-                  className={`score-input ${locked ? 'score-input--locked' : ''}`}
+                <input className={`score-input ${locked ? 'score-input--locked' : ''}`}
                   type="number" min="0" max="20" placeholder="–"
                   value={sc.away} disabled={locked}
-                  onChange={e => !locked && onScoreChange(group.id,idx,'away',e.target.value)}/>
+                  onChange={e => !locked && onScoreChange(group.id, idx, 'away', e.target.value)} />
               </div>
-              <span className={`score-team score-team--r ${result==='away'?'score-team--w':result==='home'?'score-team--l2':''}`}>
-                <span className="score-team-name">{away.name}</span><Flag team={away} size={13}/>
+              <span className={`score-team score-team--r ${result === 'away' ? 'score-team--w' : result === 'home' ? 'score-team--l2' : ''}`}>
+                <span className="score-team-name">{away.name}</span><Flag team={away} size={13} />
               </span>
             </div>
           );
         })}
       </div>
+
       {hasScores && (
         <div className="score-standings">
           <div className="standings-wrap">
             <div className="standings-head">
+              <span className="sth-pos">#</span>
               <span className="sth-team">TEAM</span>
               <span>P</span><span>W</span><span>D</span><span>L</span>
               <span>GD</span>
               <span className="sth-pts">PTS</span>
             </div>
-            {standings.map((s, i) => (
-              <div key={s.name} className={`standings-row ${i<2?'standings-row--q':i===2?'standings-row--3':'standings-row--e'}`}>
-                <span className="st-pos">{i+1}</span>
-                <span className="st-name">{s.name}</span>
-                <span>{s.played}</span><span>{s.w}</span><span>{s.d}</span><span>{s.l}</span>
-                <span className={s.gd>0?'gd-pos':s.gd<0?'gd-neg':''}>{s.gd>0?'+':''}{s.gd}</span>
-                <span className="st-pts">{s.pts}</span>
-              </div>
-            ))}
+            {standings.map((s, i) => {
+              const teamObj = group.teams.find(t => t.name === s.name);
+              const qualifier = i < 2 ? 'Q' : i === 2 ? '3' : null;
+              return (
+                <div key={s.name} className={`standings-row ${i < 2 ? 'standings-row--q' : i === 2 ? 'standings-row--3' : 'standings-row--e'}`}>
+                  <span className="st-pos">{i + 1}</span>
+                  <span className="st-flag">{teamObj && <Flag team={teamObj} size={11} />}</span>
+                  <span className="st-name">{s.name}</span>
+                  {qualifier && <span className={`st-q ${i < 2 ? 'st-q--q' : 'st-q--3'}`}>{qualifier}</span>}
+                  <span>{s.played}</span><span>{s.w}</span><span>{s.d}</span><span>{s.l}</span>
+                  <span className={s.gd > 0 ? 'gd-pos' : s.gd < 0 ? 'gd-neg' : ''}>{s.gd > 0 ? '+' : ''}{s.gd}</span>
+                  <span className="st-pts">{s.pts}</span>
+                </div>
+              );
+            })}
             {allFilled && <div className="standings-auto-note">✓ Rankings auto-filled from scores</div>}
           </div>
         </div>
@@ -203,29 +269,38 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores 
 }
 
 // ─── Group Stage Card ─────────────────────────────────────────────────────
-function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, onScoreChange, lockedGroupScores }) {
+function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, onScoreChange, lockedGroupScores, liveMatches }) {
   const [showPicks, setShowPicks] = useState(false);
+  const [showMatches, setShowMatches] = useState(false);
   const color = GROUP_COLORS[group.id];
   const rankedCount = Object.keys(groupPicks).length;
 
+  const isSettled = GROUP_MATCH_PAIRS.every((_, idx) =>
+    !!lockedGroupScores?.[`${group.id}_${idx}`]
+  );
+  const settledStandings = isSettled ? calcGroupStandings(group, groupScores) : null;
+
   return (
-    <div className={`gcard ${complete ? 'gcard--done' : ''}`} style={complete ? { '--gc': color } : {}}>
+    <div className={`gcard ${complete ? 'gcard--done' : ''} ${isSettled ? 'gcard--settled' : ''}`}
+      style={{ '--gc': color }}>
       <div className="gcard-head">
         <div className="gcard-id">
-          <span className="gchip" style={{ background: color, boxShadow:`0 0 10px ${color}33` }}>{group.id}</span>
+          <span className="gchip" style={{ background: color, boxShadow: `0 0 10px ${color}33` }}>{group.id}</span>
           <div>
             <div className="gcard-title">Group {group.id}</div>
             <div className="gcard-meta">
-              {complete
-                ? <span className="gcard-done-tag">✓ Complete</span>
-                : <span>{rankedCount}/3 picked · top 2 advance</span>}
+              {isSettled
+                ? <span className="gcard-settled-tag">FINAL STANDINGS</span>
+                : complete
+                  ? <span className="gcard-done-tag">✓ Complete</span>
+                  : <span>{rankedCount}/3 picked · top 2 advance</span>}
             </div>
           </div>
         </div>
         <button
           className={`score-toggle-btn score-toggle-btn--sm ${showPicks ? 'score-toggle-btn--on' : ''}`}
           onClick={() => setShowPicks(p => !p)}>
-          {showPicks ? '▴ Hide picks' : '✎ My picks'}
+          {showPicks ? '▴ Picks' : '✎ Picks'}
         </button>
       </div>
 
@@ -236,21 +311,21 @@ function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, o
             const m = rank ? MEDAL[rank] : null;
             return (
               <div key={team.name} className="trow"
-                style={m ? { background:m.tint, boxShadow:`inset 0 0 0 1px ${m.ring}` } : {}}>
+                style={m ? { background: m.tint, boxShadow: `inset 0 0 0 1px ${m.ring}` } : {}}>
                 <div className="trow-id">
                   <Flag team={team} size={18} />
                   <span className="trow-name">{team.name}</span>
                   <span className="trow-rank">#{team.rank}</span>
-                  {m && <span className="trow-tag" style={{ color:m.text }}>{m.label}</span>}
+                  {m && <span className="trow-tag" style={{ color: m.text }}>{m.label}</span>}
                 </div>
                 <div className="rankbtns">
-                  {[1,2,3].map(r => {
+                  {[1, 2, 3].map(r => {
                     const active = rank === r;
                     const rm = MEDAL[r];
                     return (
                       <button key={r} className={`rankbtn ${active ? 'rankbtn--on' : ''}`}
                         onClick={() => onSetRank(group.id, team.name, r)}
-                        style={active ? { background:rm.solid, color:'#0a0a12', boxShadow:`0 0 12px ${rm.solid}66` } : {}}>
+                        style={active ? { background: rm.solid, color: '#0a0a12', boxShadow: `0 0 12px ${rm.solid}66` } : {}}>
                         {r}
                       </button>
                     );
@@ -262,8 +337,47 @@ function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, o
         </div>
       )}
 
-      {/* Score panel always visible */}
-      <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} lockedGroupScores={lockedGroupScores} />
+      {isSettled && settledStandings ? (
+        <div className="settled-body">
+          {settledStandings.map((s, i) => {
+            const teamObj = group.teams.find(t => t.name === s.name);
+            const m = MEDAL[i + 1];
+            const advancing = i < 2;
+            return (
+              <div key={s.name}
+                className={`settled-row ${advancing ? 'settled-row--adv' : i === 2 ? 'settled-row--3rd' : 'settled-row--out'}`}
+                style={advancing ? { background: m?.tint, boxShadow: `inset 0 0 0 1px ${m?.ring}` } : {}}>
+                <span className="settled-pos" style={m ? { color: m.text } : {}}>{i + 1}</span>
+                <span className="settled-flag">{teamObj && <Flag team={teamObj} size={15} />}</span>
+                <span className="settled-name">{s.name}</span>
+                <div className="settled-stats">
+                  <span className="settled-stat">{s.w}W {s.d}D {s.l}L</span>
+                  <span className={`settled-gd ${s.gd > 0 ? 'settled-gd--pos' : s.gd < 0 ? 'settled-gd--neg' : ''}`}>
+                    {s.gd > 0 ? '+' : ''}{s.gd}
+                  </span>
+                  <span className="settled-pts">{s.pts}pt</span>
+                </div>
+                {advancing && (
+                  <span className="settled-adv-badge"
+                    style={{ color: m?.text, background: m?.tint, boxShadow: `inset 0 0 0 1px ${m?.ring}` }}>
+                    {i === 0 ? '1ST' : '2ND'}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+          <button className="settled-toggle" onClick={() => setShowMatches(p => !p)}>
+            {showMatches ? '▴ Hide results' : '▾ Show results'}
+          </button>
+          {showMatches && (
+            <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange}
+              lockedGroupScores={lockedGroupScores} liveMatches={liveMatches} />
+          )}
+        </div>
+      ) : (
+        <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange}
+          lockedGroupScores={lockedGroupScores} liveMatches={liveMatches} />
+      )}
     </div>
   );
 }
@@ -1597,6 +1711,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
               groupScores={groupScores}
               onScoreChange={setGroupScore}
               lockedGroupScores={lockedGroupScores}
+liveMatches={liveMatches}
               onSetRank={setRank} />
           ))}
         </div>
