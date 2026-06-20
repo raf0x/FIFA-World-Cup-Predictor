@@ -968,6 +968,7 @@ export default function Home() {
   const [openGroup, setOpenGroup] = useState(null);
   const [hydrated, setHydrated] = useState(false);
   const [days, setDays] = useState(null);
+  const [daysRemaining, setDaysRemaining] = useState(null); // days left until the Final (July 19, 2026)
   const [showChampionReveal, setShowChampionReveal] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [user, setUser] = useState(null);
@@ -987,6 +988,8 @@ export default function Home() {
   useEffect(() => {
     const d = Math.ceil((new Date('2026-06-11') - new Date()) / 86400000);
     setDays(d);
+    const remaining = Math.ceil((new Date('2026-07-19') - new Date()) / 86400000);
+    setDaysRemaining(Math.max(0, remaining));
     try {
       // URL share param takes priority over localStorage
       const params = new URLSearchParams(window.location.search);
@@ -1657,7 +1660,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
             )}
           </div>
           <div className="hero-stats">
-            {[{ n:'48',label:'Teams'},{n:'12',label:'Groups'},{n:'104',label:'Matches'},{n:'16',label:'Venues'},{n:'3',label:'Host Nations'},{n:'39',label:'Days'}].map(s => (
+            {[{ n:'48',label:'Teams'},{n:'12',label:'Groups'},{n:'104',label:'Matches'},{n:'16',label:'Venues'},{n:'3',label:'Host Nations'},{ n: daysRemaining !== null ? String(daysRemaining) : '–', label:'Days Left' }].map(s => (
               <div key={s.label} className="stat-tile">
                 <div className="stat-n">{s.n}</div>
                 <div className="stat-l">{s.label}</div>
