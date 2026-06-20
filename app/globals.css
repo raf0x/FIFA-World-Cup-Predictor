@@ -1333,6 +1333,10 @@ a { color: inherit; }
   padding: 12px 0 14px;
   overflow: hidden;
 }
+.ticker-section--live {
+  background: rgba(239,68,68,.04);
+  border-bottom: none;
+}
 .ticker-label {
   font-size: 9px;
   font-weight: 800;
