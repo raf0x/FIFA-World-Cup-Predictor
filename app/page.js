@@ -959,6 +959,40 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
   );
 }
 
+// ─── Bracket Preview (compact, top-of-page teaser) ────────────────────────
+function BracketPreview({ r32Matchups, onOpenBracket }) {
+  const filledCount = r32Matchups.filter(m => m.home.name && m.away.name).length;
+  return (
+    <div className="bp-wrap">
+      <div className="bp-head">
+        <div>
+          <div className="bp-eyebrow">⚡ Live Bracket</div>
+          <div className="bp-title">Round of 32 — as it stands today</div>
+        </div>
+        <button className="btn btn-green bp-open" onClick={onOpenBracket}>
+          Open full bracket ↓
+        </button>
+      </div>
+      <div className="bp-grid">
+        {r32Matchups.map((m, i) => (
+          <div key={i} className="bp-match">
+            <div className="bp-side">
+              <Flag team={m.home} size={13}/>
+              <span className="bp-name">{m.home.display || m.home.name || 'TBD'}</span>
+            </div>
+            <span className="bp-vs">vs</span>
+            <div className="bp-side bp-side--r">
+              <span className="bp-name">{m.away.display || m.away.name || 'TBD'}</span>
+              <Flag team={m.away} size={13}/>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="bp-foot">{filledCount}/16 matchups locked in · updates automatically as groups finish</div>
+    </div>
+  );
+}
+
 // ─── Main component ────────────────────────────────────────────────────────
 export default function Home() {
   const [picks, setPicks] = useState({});
@@ -1669,6 +1703,9 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
           </div>
         </div>
       </section>
+
+      {/* ── Bracket Preview ── */}
+      <BracketPreview r32Matchups={r32Matchups} onOpenBracket={() => scrollTo(bracketRef)} />
 
       {/* ── Score Carousel ── */}
       <ScoreCarousel matches={recentMatches} liveMatches={liveMatches} />
