@@ -299,6 +299,16 @@ a { color: inherit; }
 .stat-n { font-size: 32px; font-weight: 900; color: var(--text); line-height: 1; }
 .stat-l { font-size: 10px; font-weight: 700; letter-spacing: .12em; color: var(--dim); text-transform: uppercase; margin-top: 4px; }
 
+.stat-tile--accent { background: color-mix(in srgb, var(--gold) 10%, var(--surface)); }
+.stat-tile--accent:hover { background: color-mix(in srgb, var(--gold) 16%, var(--surface)); }
+.stat-n--accent { color: var(--gold); text-shadow: 0 0 16px color-mix(in srgb, var(--gold) 50%, transparent); }
+.stat-l--accent {
+  color: var(--gold);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--gold) 60%, transparent);
+  text-underline-offset: 3px;
+}
+
 /* ─── Groups grid ─────────────────────────────────────────────────────────── */
 .groups-grid {
   display: grid;
