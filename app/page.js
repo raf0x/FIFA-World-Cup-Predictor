@@ -1660,10 +1660,10 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
             )}
           </div>
           <div className="hero-stats">
-            {[{ n:'48',label:'Teams'},{n:'12',label:'Groups'},{n:'104',label:'Matches'},{n:'16',label:'Venues'},{n:'3',label:'Host Nations'},{ n: daysRemaining !== null ? String(daysRemaining) : '–', label:'Days Left' }].map(s => (
-              <div key={s.label} className="stat-tile">
-                <div className="stat-n">{s.n}</div>
-                <div className="stat-l">{s.label}</div>
+            {[{ n:'48',label:'Teams'},{n:'12',label:'Groups'},{n:'104',label:'Matches'},{n:'16',label:'Venues'},{n:'3',label:'Host Nations'},{ n: daysRemaining !== null ? String(daysRemaining) : '–', label:'Days Left', accent:true }].map(s => (
+              <div key={s.label} className={`stat-tile ${s.accent ? 'stat-tile--accent' : ''}`}>
+                <div className={`stat-n ${s.accent ? 'stat-n--accent' : ''}`}>{s.n}</div>
+                <div className={`stat-l ${s.accent ? 'stat-l--accent' : ''}`}>{s.label}</div>
               </div>
             ))}
           </div>
