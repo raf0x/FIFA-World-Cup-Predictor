@@ -541,80 +541,96 @@ const TICKER_SHORT = {
 };
 const tickerName = name => TICKER_SHORT[name] || name;
 
+function TickerMatchCard({ m }) {
+  const hWin = m.homeScore > m.awayScore;
+  const aWin = m.awayScore > m.homeScore;
+  const draw = m.homeScore === m.awayScore;
+  const hasScorers = !m.isLive && ((m.homeScorers?.length || 0) + (m.awayScorers?.length || 0) > 0);
+  const hRank = m.homeTeamObj?.rank || 999;
+  const aRank = m.awayTeamObj?.rank || 999;
+  const upset = !draw && !m.isLive && (
+    (hWin && hRank > aRank + 12) || (aWin && aRank > hRank + 12)
+  );
+  return (
+    <div className={`ticker-card ${m.isLive ? 'ticker-card--live' : ''}`}>
+      <div className="ticker-card-group">
+        {m.isLive && <span className="ticker-live-dot" />}
+        Group {m.group}
+        {m.isLive && <span className="ticker-clock">{m.clock}</span>}
+      </div>
+      <div className="ticker-card-match">
+        <div className={`ticker-team ${hWin?'ticker-team--win':!draw?'ticker-team--loss':''}`}>
+          <Flag team={m.homeTeamObj} size={13}/>
+          <span className="ticker-name">{tickerName(m.homeTeam)}</span>
+        </div>
+        <div className="ticker-score">
+          <span className={hWin?'ticker-score--win':draw?'ticker-score--draw':'ticker-score--loss'}>{m.homeScore}</span>
+          <span className="ticker-score-sep">–</span>
+          <span className={aWin?'ticker-score--win':draw?'ticker-score--draw':'ticker-score--loss'}>{m.awayScore}</span>
+        </div>
+        <div className={`ticker-team ticker-team--r ${aWin?'ticker-team--win':!draw?'ticker-team--loss':''}`}>
+          <span className="ticker-name">{tickerName(m.awayTeam)}</span>
+          <Flag team={m.awayTeamObj} size={13}/>
+        </div>
+      </div>
+      {hasScorers && (
+        <div className="ticker-scorers">
+          <div className="ticker-scorers-col">
+            {(m.homeScorers || []).map((s, j) => <div key={j} className="ticker-scorer">{s}</div>)}
+          </div>
+          <div className="ticker-scorers-col ticker-scorers-col--r">
+            {(m.awayScorers || []).map((s, j) => <div key={j} className="ticker-scorer">{s}</div>)}
+          </div>
+        </div>
+      )}
+      <div className="ticker-badges">
+        {upset && <span className="ticker-upset">⚡ UPSET</span>}
+        {draw && !m.isLive && <span className="ticker-draw">Draw</span>}
+      </div>
+    </div>
+  );
+}
+
 function ScoreCarousel({ matches, liveMatches }) {
   const hasLive = liveMatches?.length > 0;
   const hasCompleted = matches?.length > 0;
   if (!hasLive && !hasCompleted) return null;
 
-  // Live cards first, then completed
-  const liveCards = (liveMatches || []).map(m => ({ ...m, isLive: true }));
+  // Completed matches stay strictly chronological (oldest → newest) — never reordered for animation.
   const completedCards = (matches || []).map(m => ({ ...m, isLive: false }));
-  const allCards = [...liveCards, ...completedCards];
-
-  const shouldAnimate = allCards.length >= 4;
-  const items = shouldAnimate ? [...allCards, ...allCards] : allCards;
-  const duration = `${allCards.length * 6}s`;
+  const shouldAnimate = completedCards.length >= 4;
+  // Loop is built by appending the SAME chronological sequence again — order inside each
+  // copy is identical, so the seam reads as "wrap to the start" rather than "duplicate team."
+  const items = shouldAnimate ? [...completedCards, ...completedCards] : completedCards;
+  const duration = `${completedCards.length * 6}s`;
 
   return (
-    <div className="ticker-section">
-      <div className="ticker-label">
-        {hasLive ? <><span className="livedot" style={{display:'inline-block',marginRight:5}} />Live & Latest Results</> : '⚽ Latest Results'}
-      </div>
-      <div className="ticker-track">
-        <div className={`ticker-cards ${shouldAnimate ? 'ticker-cards--animate' : 'ticker-cards--static'}`}
-          style={shouldAnimate ? { animationDuration: duration } : {}}>
-          {items.map((m, i) => {
-            const hWin = m.homeScore > m.awayScore;
-            const aWin = m.awayScore > m.homeScore;
-            const draw = m.homeScore === m.awayScore;
-            const hasScorers = !m.isLive && ((m.homeScorers?.length || 0) + (m.awayScorers?.length || 0) > 0);
-            const hRank = m.homeTeamObj?.rank || 999;
-            const aRank = m.awayTeamObj?.rank || 999;
-            const upset = !draw && !m.isLive && (
-              (hWin && hRank > aRank + 12) || (aWin && aRank > hRank + 12)
-            );
-            return (
-              <div key={i} className={`ticker-card ${m.isLive ? 'ticker-card--live' : ''}`}>
-                <div className="ticker-card-group">
-                  {m.isLive && <span className="ticker-live-dot" />}
-                  Group {m.group}
-                  {m.isLive && <span className="ticker-clock">{m.clock}</span>}
-                </div>
-                <div className="ticker-card-match">
-                  <div className={`ticker-team ${hWin?'ticker-team--win':!draw?'ticker-team--loss':''}`}>
-                    <Flag team={m.homeTeamObj} size={13}/>
-                    <span className="ticker-name">{tickerName(m.homeTeam)}</span>
-                  </div>
-                  <div className="ticker-score">
-                    <span className={hWin?'ticker-score--win':draw?'ticker-score--draw':'ticker-score--loss'}>{m.homeScore}</span>
-                    <span className="ticker-score-sep">–</span>
-                    <span className={aWin?'ticker-score--win':draw?'ticker-score--draw':'ticker-score--loss'}>{m.awayScore}</span>
-                  </div>
-                  <div className={`ticker-team ticker-team--r ${aWin?'ticker-team--win':!draw?'ticker-team--loss':''}`}>
-                    <span className="ticker-name">{tickerName(m.awayTeam)}</span>
-                    <Flag team={m.awayTeamObj} size={13}/>
-                  </div>
-                </div>
-                {hasScorers && (
-                  <div className="ticker-scorers">
-                    <div className="ticker-scorers-col">
-                      {(m.homeScorers || []).map((s, j) => <div key={j} className="ticker-scorer">{s}</div>)}
-                    </div>
-                    <div className="ticker-scorers-col ticker-scorers-col--r">
-                      {(m.awayScorers || []).map((s, j) => <div key={j} className="ticker-scorer">{s}</div>)}
-                    </div>
-                  </div>
-                )}
-                <div className="ticker-badges">
-                  {upset && <span className="ticker-upset">⚡ UPSET</span>}
-                  {draw && !m.isLive && <span className="ticker-draw">Draw</span>}
-                </div>
-              </div>
-            );
-          })}
+    <>
+      {hasLive && (
+        <div className="ticker-section ticker-section--live">
+          <div className="ticker-label">
+            <span className="livedot" style={{display:'inline-block',marginRight:5}} />Live Now
+          </div>
+          <div className="ticker-track">
+            <div className="ticker-cards ticker-cards--static">
+              {liveMatches.map((m, i) => <TickerMatchCard key={i} m={{ ...m, isLive: true }} />)}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+
+      {hasCompleted && (
+        <div className="ticker-section">
+          <div className="ticker-label">⚽ Latest Results</div>
+          <div className="ticker-track">
+            <div className={`ticker-cards ${shouldAnimate ? 'ticker-cards--animate' : 'ticker-cards--static'}`}
+              style={shouldAnimate ? { animationDuration: duration } : {}}>
+              {items.map((m, i) => <TickerMatchCard key={i} m={m} />)}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
