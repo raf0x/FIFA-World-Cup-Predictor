@@ -116,6 +116,44 @@ function calcGroupStandings(group, groupScores, cardScores = {}) {
   return result;
 }
 
+// Mathematical elimination check: does this team have ANY realistic path to a top-3
+// group finish, simulating every plausible outcome of all remaining matches in the group
+// (its own and every other team's), using the exact same tiebreaker logic as the live
+// standings above? This is the only correct way to know a team is "OUT" before its own
+// group has fully finished — points-ceiling shortcuts give false positives/negatives
+// whenever a tie at the ceiling is actually winnable or losable on tiebreakers.
+function isGroupTeamEliminated(targetTeamName, group, groupScores, cardScores = {}) {
+  const remainingIdx = [];
+  GROUP_MATCH_PAIRS.forEach((_, idx) => {
+    const sc = groupScores[`${group.id}_${idx}`];
+    const played = sc && sc.home !== '' && sc.away !== '' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
+    if (!played) remainingIdx.push(idx);
+  });
+  if (remainingIdx.length === 0) {
+    // Group is fully finished — just check the team's actual final position.
+    const standings = calcGroupStandings(group, groupScores, cardScores);
+    return standings.findIndex(t => t.name === targetTeamName) >= 3;
+  }
+  // Cap simulated scorelines at 0-5 each way — realistic bound for a single match's plausible outcomes.
+  const scorelines = [];
+  for (let a = 0; a <= 5; a++) for (let b = 0; b <= 5; b++) scorelines.push([String(a), String(b)]);
+
+  function canSurvive(remaining, overlay) {
+    if (remaining.length === 0) {
+      const merged = { ...groupScores, ...overlay };
+      const standings = calcGroupStandings(group, merged, cardScores);
+      return standings.findIndex(t => t.name === targetTeamName) < 3;
+    }
+    const [idx, ...rest] = remaining;
+    const key = `${group.id}_${idx}`;
+    for (const [a, b] of scorelines) {
+      if (canSurvive(rest, { ...overlay, [key]: { home: a, away: b } })) return true;
+    }
+    return false;
+  }
+  return !canSurvive(remainingIdx, {});
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────
 function getTeamByRank(picks, groupId, rank) {
   const p = picks[groupId] || {};
@@ -206,13 +244,14 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores,
   //   pos 0,1 -> through (top 2 always qualify)
   //   pos 2   -> currentlyIn (3rd place, currently sits in the live best-8 — still provisional)
   //              or currentlyOut (3rd place, not currently in the best-8 — still alive, not safe)
-  //   pos 3   -> out ONLY once the group is fully complete (all 6 matches played).
-  //              While the group is still in progress, 4th place is just as provisional as
-  //              3rd place — they have the same number of games left to change things.
-  const statusFor = (pos) => {
+  //   pos 3   -> out, but ONLY if mathematically eliminated (no realistic remaining-match outcome
+  //              can put them top-3) — checked by full simulation, not just "group finished."
+  //              A team can be confirmed OUT well before its group's last match is played.
+  const statusFor = (pos, teamName) => {
     if (pos < 2) return 'through';
     if (pos === 2) return isThirdQualified ? 'currentlyIn' : 'currentlyOut';
-    return complete ? 'out' : 'currentlyOut';
+    const eliminated = isGroupTeamEliminated(teamName, group, displayScores, cardScores);
+    return eliminated ? 'out' : 'currentlyOut';
   };
   const STATUS_LABEL = { through: 'THROUGH', currentlyIn: 'CURRENTLY IN', currentlyOut: 'CURRENTLY OUT', out: 'OUT' };
 
@@ -264,7 +303,7 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores,
               <span className="sth-status"></span>
             </div>
             {standings.map((s, i) => {
-              const status = statusFor(i);
+              const status = statusFor(i, s.name);
               return (
                 <div key={s.name} className={`standings-row standings-row--${status}`}>
                   <span className="st-pos">{i+1}</span>
