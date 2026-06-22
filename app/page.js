@@ -189,8 +189,13 @@ function Flag({ team, size = 18 }) {
 
 // ─── AI Panel ─────────────────────────────────────────────────────────────
 // ─── Group Score Panel ────────────────────────────────────────────────────
-function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores, cardScores }) {
-  const standings = calcGroupStandings(group, groupScores, cardScores);
+function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores, liveGroupScores, cardScores }) {
+  // Merge in live in-progress scores so standings reflect the match as it's happening
+  const displayScores = { ...groupScores };
+  for (const key of Object.keys(liveGroupScores || {})) {
+    if (key.startsWith(`${group.id}_`)) displayScores[key] = liveGroupScores[key];
+  }
+  const standings = calcGroupStandings(group, displayScores, cardScores);
   const hasScores = standings.some(s => s.played > 0);
   const allFilled = GROUP_MATCH_PAIRS.every((_,i) => {
     const sc = groupScores[`${group.id}_${i}`];
@@ -203,25 +208,26 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores,
         {GROUP_MATCH_PAIRS.map(([hi,ai], idx) => {
           const home = group.teams[hi], away = group.teams[ai];
           const key = `${group.id}_${idx}`;
-          const sc = groupScores[key] || { home:'', away:'' };
+          const isLive = !!liveGroupScores?.[key];
+          const sc = displayScores[key] || { home:'', away:'' };
           const hg = sc.home==='' ? null : Number(sc.home);
           const ag = sc.away==='' ? null : Number(sc.away);
           const result = hg!==null && ag!==null ? (hg>ag?'home':hg<ag?'away':'draw') : null;
-          const locked = !!lockedGroupScores?.[key];
+          const locked = !!lockedGroupScores?.[key] || isLive;
           return (
-            <div key={idx} className={`score-row ${locked ? 'score-row--locked' : ''}`}>
+            <div key={idx} className={`score-row ${locked ? 'score-row--locked' : ''} ${isLive ? 'score-row--live' : ''}`}>
               <span className={`score-team score-team--l ${result==='home'?'score-team--w':result==='away'?'score-team--l2':''}`}>
                 <Flag team={home} size={13}/><span className="score-team-name">{home.name}</span>
               </span>
               <div className="score-inputs">
                 <input
-                  className={`score-input ${locked ? 'score-input--locked' : ''}`}
+                  className={`score-input ${locked ? 'score-input--locked' : ''} ${isLive ? 'score-input--live' : ''}`}
                   type="number" min="0" max="20" placeholder="–"
                   value={sc.home} disabled={locked}
                   onChange={e => !locked && onScoreChange(group.id,idx,'home',e.target.value)}/>
-                <span className="score-colon">{locked ? '–' : ':'}</span>
+                <span className="score-colon">{isLive ? '⚡' : locked ? '–' : ':'}</span>
                 <input
-                  className={`score-input ${locked ? 'score-input--locked' : ''}`}
+                  className={`score-input ${locked ? 'score-input--locked' : ''} ${isLive ? 'score-input--live' : ''}`}
                   type="number" min="0" max="20" placeholder="–"
                   value={sc.away} disabled={locked}
                   onChange={e => !locked && onScoreChange(group.id,idx,'away',e.target.value)}/>
@@ -260,7 +266,7 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores,
 }
 
 // ─── Group Stage Card ─────────────────────────────────────────────────────
-function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, onScoreChange, lockedGroupScores, cardScores }) {
+function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, onScoreChange, lockedGroupScores, liveGroupScores, cardScores }) {
   const [showPicks, setShowPicks] = useState(false);
   const color = GROUP_COLORS[group.id];
   const rankedCount = Object.keys(groupPicks).length;
@@ -320,7 +326,7 @@ function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, o
       )}
 
       {/* Score panel always visible */}
-      <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} lockedGroupScores={lockedGroupScores} cardScores={cardScores} />
+      <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} lockedGroupScores={lockedGroupScores} liveGroupScores={liveGroupScores} cardScores={cardScores} />
     </div>
   );
 }
@@ -1010,6 +1016,7 @@ export default function Home() {
   const [liveMatches, setLiveMatches] = useState([]);
   const [groupScores, setGroupScores] = useState({});
   const [lockedGroupScores, setLockedGroupScores] = useState({});
+  const [liveGroupScores, setLiveGroupScores] = useState({}); // provisional, in-progress match scores
   const [bracketScores, setBracketScores] = useState({});
   const [recentMatches, setRecentMatches] = useState([]);
   const [cardScores, setCardScores] = useState({}); // teamName -> conduct points (negative)
@@ -1087,6 +1094,7 @@ export default function Home() {
           if (data.recentMatches?.length > 0)
             setRecentMatches(data.recentMatches.map(enrich).slice(-6));
           setLiveMatches((data.liveMatches || []).map(enrich));
+          setLiveGroupScores(data.liveGroupScores || {}); // full snapshot — clears once a match finishes (moves to lockedGroupScores instead)
           if (data.cardScores) setCardScores(data.cardScores); // full snapshot each poll, not incremental
         })
         .catch(() => {});
@@ -1182,10 +1190,13 @@ export default function Home() {
         result[group.id] = picks[group.id];
         continue;
       }
-      // No manual picks for this group — derive from scores (live + manually-typed)
+      // No manual picks for this group — derive from scores (locked + live in-progress + manually-typed)
       const merged = { ...groupScores };
       for (const key of Object.keys(lockedGroupScores)) {
         if (key.startsWith(`${group.id}_`)) merged[key] = lockedGroupScores[key];
+      }
+      for (const key of Object.keys(liveGroupScores)) {
+        if (key.startsWith(`${group.id}_`)) merged[key] = liveGroupScores[key];
       }
       const hasAny = GROUP_MATCH_PAIRS.some((_, idx) => {
         const sc = merged[`${group.id}_${idx}`];
@@ -1200,7 +1211,7 @@ export default function Home() {
       }
     }
     return result;
-  }, [lockedGroupScores, groupScores, picks, cardScores]);
+  }, [lockedGroupScores, liveGroupScores, groupScores, picks, cardScores]);
 
   // ── Auto best-8 third-place: rank current 3rd-place teams across groups ─
   const effectiveThirdGroupIds = useMemo(() => {
@@ -1210,6 +1221,9 @@ export default function Home() {
         const merged = { ...groupScores };
         for (const key of Object.keys(lockedGroupScores)) {
           if (key.startsWith(`${group.id}_`)) merged[key] = lockedGroupScores[key];
+        }
+        for (const key of Object.keys(liveGroupScores)) {
+          if (key.startsWith(`${group.id}_`)) merged[key] = liveGroupScores[key];
         }
         const hasAny = GROUP_MATCH_PAIRS.some((_, idx) => {
           const sc = merged[`${group.id}_${idx}`];
@@ -1225,7 +1239,7 @@ export default function Home() {
     // Manual picks come first, then auto-ranked fill the rest — no duplicates, max 8
     const autoIds = thirds.map(t => t.groupId).filter(id => !thirdPlacePicks.includes(id));
     return [...thirdPlacePicks, ...autoIds].slice(0, 8);
-  }, [lockedGroupScores, groupScores, thirdPlacePicks, cardScores]);
+  }, [lockedGroupScores, liveGroupScores, groupScores, thirdPlacePicks, cardScores]);
 
   const groupComplete = (groupId) => {
     // Complete = all 6 group matches locked by live data
@@ -1744,6 +1758,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
               groupScores={groupScores}
               onScoreChange={setGroupScore}
               lockedGroupScores={lockedGroupScores}
+              liveGroupScores={liveGroupScores}
               cardScores={cardScores}
               onSetRank={setRank} />
           ))}
