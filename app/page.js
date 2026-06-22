@@ -189,7 +189,7 @@ function Flag({ team, size = 18 }) {
 
 // ─── AI Panel ─────────────────────────────────────────────────────────────
 // ─── Group Score Panel ────────────────────────────────────────────────────
-function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores, liveGroupScores, cardScores }) {
+function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores, liveGroupScores, cardScores, isThirdQualified }) {
   // Merge in live in-progress scores so standings reflect the match as it's happening
   const displayScores = { ...groupScores };
   for (const key of Object.keys(liveGroupScores || {})) {
@@ -201,6 +201,18 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores,
     const sc = groupScores[`${group.id}_${i}`];
     return sc && sc.home!=='' && sc.away!=='' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
   });
+
+  // Per-row qualification status, independent of the existing tint classes:
+  //   pos 0,1 -> through (top 2 always qualify)
+  //   pos 2   -> through-3rd (this group's 3rd place currently sits in the live best-8)
+  //              or bubble (3rd place, but not currently in the best-8 — still alive, not safe)
+  //   pos 3   -> out (bottom of group)
+  const statusFor = (pos) => {
+    if (pos < 2) return 'through';
+    if (pos === 2) return isThirdQualified ? 'through3' : 'bubble';
+    return 'out';
+  };
+  const STATUS_LABEL = { through: 'THROUGH', through3: 'THROUGH', bubble: 'BUBBLE', out: 'OUT' };
 
   return (
     <div className="score-panel">
@@ -247,16 +259,21 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores,
               <span>P</span><span>W</span><span>D</span><span>L</span>
               <span>GD</span>
               <span className="sth-pts">PTS</span>
+              <span className="sth-status"></span>
             </div>
-            {standings.map((s, i) => (
-              <div key={s.name} className={`standings-row ${i<2?'standings-row--q':i===2?'standings-row--3':'standings-row--e'}`}>
-                <span className="st-pos">{i+1}</span>
-                <span className="st-name">{s.name}</span>
-                <span>{s.played}</span><span>{s.w}</span><span>{s.d}</span><span>{s.l}</span>
-                <span className={s.gd>0?'gd-pos':s.gd<0?'gd-neg':''}>{s.gd>0?'+':''}{s.gd}</span>
-                <span className="st-pts">{s.pts}</span>
-              </div>
-            ))}
+            {standings.map((s, i) => {
+              const status = statusFor(i);
+              return (
+                <div key={s.name} className={`standings-row standings-row--${status}`}>
+                  <span className="st-pos">{i+1}</span>
+                  <span className="st-name">{s.name}</span>
+                  <span>{s.played}</span><span>{s.w}</span><span>{s.d}</span><span>{s.l}</span>
+                  <span className={s.gd>0?'gd-pos':s.gd<0?'gd-neg':''}>{s.gd>0?'+':''}{s.gd}</span>
+                  <span className="st-pts">{s.pts}</span>
+                  <span className={`st-status st-status--${status}`}>{STATUS_LABEL[status]}</span>
+                </div>
+              );
+            })}
             {allFilled && <div className="standings-auto-note">✓ Rankings auto-filled from scores</div>}
           </div>
         </div>
@@ -266,7 +283,7 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores,
 }
 
 // ─── Group Stage Card ─────────────────────────────────────────────────────
-function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, onScoreChange, lockedGroupScores, liveGroupScores, cardScores }) {
+function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, onScoreChange, lockedGroupScores, liveGroupScores, cardScores, isThirdQualified }) {
   const [showPicks, setShowPicks] = useState(false);
   const color = GROUP_COLORS[group.id];
   const rankedCount = Object.keys(groupPicks).length;
@@ -326,7 +343,7 @@ function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, o
       )}
 
       {/* Score panel always visible */}
-      <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} lockedGroupScores={lockedGroupScores} liveGroupScores={liveGroupScores} cardScores={cardScores} />
+      <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} lockedGroupScores={lockedGroupScores} liveGroupScores={liveGroupScores} cardScores={cardScores} isThirdQualified={isThirdQualified} />
     </div>
   );
 }
@@ -1760,6 +1777,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
               lockedGroupScores={lockedGroupScores}
               liveGroupScores={liveGroupScores}
               cardScores={cardScores}
+              isThirdQualified={effectiveThirdGroupIds.includes(group.id)}
               onSetRank={setRank} />
           ))}
         </div>
