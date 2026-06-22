@@ -650,6 +650,8 @@ a { color: inherit; }
 .slotrow--out  { color: var(--dim-2) !important; }
 .slot-flag { flex-shrink: 0; display: flex; align-items: center; }
 .slot-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.slot-name--confirmed { color: var(--green); font-weight: 800; }
+.slotrow--confirmed:not(.slotrow--pick) { box-shadow: inset 2px 0 0 var(--green); }
 .slot-adv  { font-size: 10px; color: var(--green); flex-shrink: 0; }
 
 /* Inline score inputs — right of each team row, no extra height */
@@ -1414,6 +1416,7 @@ a { color: inherit; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.bp-name--confirmed { color: var(--green); font-weight: 800; }
 .bp-vs { font-size: 10px; color: var(--dim); flex-shrink: 0; }
 .bp-foot {
   font-size: 11px;
