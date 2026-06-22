@@ -176,12 +176,12 @@ function isGroupTeamEliminated(targetTeamName, group, groupScores, cardScores = 
   return !canSurvive(remainingIdx, {});
 }
 
-// Confirmation check: is this team GUARANTEED a top-2 group finish no matter what happens
-// in the remaining matches? Mirrors isGroupTeamEliminated — but here a team is only
-// confirmed "THROUGH" if EVERY simulated outcome keeps them top-2; a single outcome that
-// drops them to 3rd or worse means they are not yet mathematically safe, regardless of
+// General confirmation check: is this team GUARANTEED to land in `positionTest` (a function
+// taking a 0-indexed standings position and returning true/false) no matter what happens in
+// the remaining matches? A team is only confirmed if EVERY simulated outcome satisfies the
+// test — a single outcome that fails it means not yet mathematically safe, regardless of
 // how many points they currently have or how few matches remain.
-function isGroupTeamConfirmedTop2(targetTeamName, group, groupScores, cardScores = {}) {
+function isGroupTeamConfirmedAt(targetTeamName, group, groupScores, cardScores, positionTest) {
   const remainingIdx = [];
   GROUP_MATCH_PAIRS.forEach((_, idx) => {
     const sc = groupScores[`${group.id}_${idx}`];
@@ -189,25 +189,40 @@ function isGroupTeamConfirmedTop2(targetTeamName, group, groupScores, cardScores
     if (!played) remainingIdx.push(idx);
   });
   if (remainingIdx.length === 0) {
-    // Group is fully finished — just check the team's actual final position.
     const standings = calcGroupStandings(group, groupScores, cardScores);
-    return standings.findIndex(t => t.name === targetTeamName) < 2;
+    return positionTest(standings.findIndex(t => t.name === targetTeamName));
   }
   function survivesEverywhere(remaining, overlay) {
     if (remaining.length === 0) {
       const merged = { ...groupScores, ...overlay };
       const standings = calcGroupStandings(group, merged, cardScores);
-      return standings.findIndex(t => t.name === targetTeamName) < 2;
+      return positionTest(standings.findIndex(t => t.name === targetTeamName));
     }
     const [idx, ...rest] = remaining;
     const key = `${group.id}_${idx}`;
     for (const [a, b] of SIMULATION_SCORELINES) {
-      // ANY failing outcome means not yet confirmed — short-circuit immediately.
       if (!survivesEverywhere(rest, { ...overlay, [key]: { home: a, away: b } })) return false;
     }
     return true;
   }
   return survivesEverywhere(remainingIdx, {});
+}
+
+// Confirmation check: is this team GUARANTEED a top-2 group finish no matter what happens
+// in the remaining matches? Mirrors isGroupTeamEliminated — but here a team is only
+// confirmed "THROUGH" if EVERY simulated outcome keeps them top-2; a single outcome that
+// drops them to 3rd or worse means they are not yet mathematically safe, regardless of
+// how many points they currently have or how few matches remain.
+function isGroupTeamConfirmedTop2(targetTeamName, group, groupScores, cardScores = {}) {
+  return isGroupTeamConfirmedAt(targetTeamName, group, groupScores, cardScores, pos => pos < 2);
+}
+
+// Confirmation check: is this team GUARANTEED this EXACT rank (0-indexed: 0 = group winner,
+// 1 = runner-up) regardless of remaining results? This is stricter than top-2 — two teams can
+// both be confirmed top-2 (qualified) while the order between them is still undecided, in
+// which case NEITHER is confirmed at their current exact rank yet.
+function isGroupTeamConfirmedExactRank(targetTeamName, group, groupScores, cardScores, targetRank) {
+  return isGroupTeamConfirmedAt(targetTeamName, group, groupScores, cardScores, pos => pos === targetRank);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -223,13 +238,15 @@ function resolveDesc(desc, picks, thirdAssignment, scoreCtx) {
     const name = getTeamByRank(picks, desc.group, desc.rank);
     if (!name) return { name:null, flag:null, display:`${desc.rank}${desc.group}`, confirmed:false };
     const obj = getTeamObj(desc.group, name);
-    // Top-2 confirmation only — 3rd-place (best-8) confirmation needs a larger cross-group
-    // simulation and isn't computed here yet, so those slots stay unhighlighted for now.
+    // Exact-rank confirmation, not just top-2: a bracket slot that says "1st place from Group B"
+    // needs to know this SPECIFIC team is locked at rank 1, not merely that they've qualified.
+    // Two teams can both be confirmed top-2 (qualified) while the order between them — and
+    // therefore which specific knockout matchup each one gets — is still undecided.
     let confirmed = false;
     if ((desc.rank === 1 || desc.rank === 2) && scoreCtx) {
       const group = GROUPS.find(g => g.id === desc.group);
       const merged = mergeGroupScores(desc.group, scoreCtx.groupScores, scoreCtx.lockedGroupScores, scoreCtx.liveGroupScores);
-      confirmed = isGroupTeamConfirmedTop2(name, group, merged, scoreCtx.cardScores);
+      confirmed = isGroupTeamConfirmedExactRank(name, group, merged, scoreCtx.cardScores, desc.rank - 1);
     }
     return { name, flag:obj?.flag||'', display:name, confirmed };
   }
@@ -305,24 +322,29 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores,
   });
 
   // Per-row qualification status, independent of the existing tint classes:
-  //   pos 0,1 -> through ONLY if mathematically confirmed (every remaining-match outcome
-  //              keeps them top-2) — otherwise currentlyIn, since they're leading right now
-  //              but not yet guaranteed (e.g. still have a match left that could drop them).
-  //   pos 2   -> currentlyIn (3rd place, currently sits in the live best-8 — still provisional)
-  //              or currentlyOut (3rd place, not currently in the best-8 — still alive, not safe)
-  //   pos 3   -> out, but ONLY if mathematically eliminated (no realistic remaining-match outcome
-  //              can put them top-3) — checked by full simulation, not just "group finished."
-  //              A team can be confirmed OUT well before its group's last match is played.
+  //   pos 0 -> wonGroup if mathematically locked at EXACT rank 1 (not just top-2 — the order
+  //            between 1st and 2nd can still be undecided even when both are safely qualified)
+  //            otherwise currentlyIn, since they're leading right now but not yet guaranteed.
+  //   pos 1 -> qualified if mathematically locked at EXACT rank 2, otherwise currentlyIn.
+  //   pos 2 -> currentlyIn (3rd place, currently sits in the live best-8 — still provisional)
+  //            or currentlyOut (3rd place, not currently in the best-8 — still alive, not safe)
+  //   pos 3 -> out, but ONLY if mathematically eliminated (no realistic remaining-match outcome
+  //            can put them top-3) — checked by full simulation, not just "group finished."
+  //            A team can be confirmed OUT well before its group's last match is played.
   const statusFor = (pos, teamName) => {
-    if (pos < 2) {
-      const confirmed = isGroupTeamConfirmedTop2(teamName, group, displayScores, cardScores);
-      return confirmed ? 'through' : 'currentlyIn';
+    if (pos === 0) {
+      const confirmed = isGroupTeamConfirmedExactRank(teamName, group, displayScores, cardScores, 0);
+      return confirmed ? 'wonGroup' : 'currentlyIn';
+    }
+    if (pos === 1) {
+      const confirmed = isGroupTeamConfirmedExactRank(teamName, group, displayScores, cardScores, 1);
+      return confirmed ? 'qualified' : 'currentlyIn';
     }
     if (pos === 2) return isThirdQualified ? 'currentlyIn' : 'currentlyOut';
     const eliminated = isGroupTeamEliminated(teamName, group, displayScores, cardScores);
     return eliminated ? 'out' : 'currentlyOut';
   };
-  const STATUS_LABEL = { through: 'THROUGH', currentlyIn: 'CURRENTLY IN', currentlyOut: 'CURRENTLY OUT', out: 'OUT' };
+  const STATUS_LABEL = { wonGroup: 'WON GROUP', qualified: 'QUALIFIED R32', currentlyIn: 'CURRENTLY IN', currentlyOut: 'CURRENTLY OUT', out: 'OUT' };
 
   return (
     <div className="score-panel">
