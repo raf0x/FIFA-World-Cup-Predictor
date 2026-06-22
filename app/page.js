@@ -204,15 +204,15 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores,
 
   // Per-row qualification status, independent of the existing tint classes:
   //   pos 0,1 -> through (top 2 always qualify)
-  //   pos 2   -> through-3rd (this group's 3rd place currently sits in the live best-8)
-  //              or bubble (3rd place, but not currently in the best-8 — still alive, not safe)
-  //   pos 3   -> out (bottom of group)
+  //   pos 2   -> currentlyIn (3rd place, currently sits in the live best-8 — still provisional)
+  //              or currentlyOut (3rd place, not currently in the best-8 — still alive, not safe)
+  //   pos 3   -> out (bottom of group, confirmed eliminated for this group's matches played so far)
   const statusFor = (pos) => {
     if (pos < 2) return 'through';
-    if (pos === 2) return isThirdQualified ? 'through3' : 'bubble';
+    if (pos === 2) return isThirdQualified ? 'currentlyIn' : 'currentlyOut';
     return 'out';
   };
-  const STATUS_LABEL = { through: 'THROUGH', through3: 'THROUGH', bubble: 'BUBBLE', out: 'OUT' };
+  const STATUS_LABEL = { through: 'THROUGH', currentlyIn: 'CURRENTLY IN', currentlyOut: 'CURRENTLY OUT', out: 'OUT' };
 
   return (
     <div className="score-panel">
