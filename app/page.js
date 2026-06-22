@@ -248,7 +248,7 @@ function resolveDesc(desc, picks, thirdAssignment, scoreCtx) {
       const merged = mergeGroupScores(desc.group, scoreCtx.groupScores, scoreCtx.lockedGroupScores, scoreCtx.liveGroupScores);
       confirmed = isGroupTeamConfirmedExactRank(name, group, merged, scoreCtx.cardScores, desc.rank - 1);
     }
-    return { name, flag:obj?.flag||'', display:name, confirmed };
+    return { name, flag:obj?.flag||'', display:name, confirmed, confirmedRank: confirmed ? desc.rank : null };
   }
   const groupId = thirdAssignment[desc.slotIdx];
   if (!groupId) return { name:null, flag:null, display:`3 ${desc.eligible.join('')}`, confirmed:false };
@@ -551,14 +551,16 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
         const isOther = picked && picked !== team.name;
         const clickable = bothKnown && team.name;
         const side = i === 0 ? 'home' : 'away';
+        const confirmedClass = team.confirmedRank === 1 ? 'slotrow--wonGroup' : team.confirmedRank === 2 ? 'slotrow--qualified' : '';
+        const nameConfirmedClass = team.confirmedRank === 1 ? 'slot-name--wonGroup' : team.confirmedRank === 2 ? 'slot-name--qualified' : '';
         return (
           <div key={i} className="slot-team-row">
             <button
-              className={`slotrow ${isPicked ? 'slotrow--pick' : ''} ${isOther ? 'slotrow--out' : ''} ${clickable ? 'slotrow--live' : ''} ${team.confirmed ? 'slotrow--confirmed' : ''}`}
+              className={`slotrow ${isPicked ? 'slotrow--pick' : ''} ${isOther ? 'slotrow--out' : ''} ${clickable ? 'slotrow--live' : ''} ${confirmedClass}`}
               onClick={() => clickable && onPick(isPicked ? null : team.name)}
               disabled={!clickable}>
               <span className="slot-flag"><Flag team={team} size={11} /></span>
-              <span className={`slot-name ${team.confirmed ? 'slot-name--confirmed' : ''}`}>{team.name || team.display}</span>
+              <span className={`slot-name ${nameConfirmedClass}`}>{team.name || team.display}</span>
               {isPicked && <span className="slot-adv">▸</span>}
             </button>
             {bothKnown && onScoreChange && (
@@ -1129,19 +1131,23 @@ function BracketPreview({ r32Matchups, onOpenBracket }) {
         </button>
       </div>
       <div className="bp-grid">
-        {r32Matchups.map((m, i) => (
-          <div key={i} className="bp-match">
-            <div className="bp-side">
-              <Flag team={m.home} size={13}/>
-              <span className={`bp-name ${m.home.confirmed ? 'bp-name--confirmed' : ''}`}>{m.home.display || m.home.name || 'TBD'}</span>
+        {r32Matchups.map((m, i) => {
+          const homeClass = m.home.confirmedRank === 1 ? 'bp-name--wonGroup' : m.home.confirmedRank === 2 ? 'bp-name--qualified' : '';
+          const awayClass = m.away.confirmedRank === 1 ? 'bp-name--wonGroup' : m.away.confirmedRank === 2 ? 'bp-name--qualified' : '';
+          return (
+            <div key={i} className="bp-match">
+              <div className="bp-side">
+                <Flag team={m.home} size={13}/>
+                <span className={`bp-name ${homeClass}`}>{m.home.display || m.home.name || 'TBD'}</span>
+              </div>
+              <span className="bp-vs">vs</span>
+              <div className="bp-side bp-side--r">
+                <span className={`bp-name ${awayClass}`}>{m.away.display || m.away.name || 'TBD'}</span>
+                <Flag team={m.away} size={13}/>
+              </div>
             </div>
-            <span className="bp-vs">vs</span>
-            <div className="bp-side bp-side--r">
-              <span className={`bp-name ${m.away.confirmed ? 'bp-name--confirmed' : ''}`}>{m.away.display || m.away.name || 'TBD'}</span>
-              <Flag team={m.away} size={13}/>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div className="bp-foot">{filledCount}/16 matchups locked in · updates automatically as groups finish</div>
     </div>
