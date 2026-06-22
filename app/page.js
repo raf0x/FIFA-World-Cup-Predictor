@@ -116,6 +116,20 @@ function calcGroupStandings(group, groupScores, cardScores = {}) {
   return result;
 }
 
+// Merge manual/typed scores with live in-progress and locked-completed scores for one group,
+// matching the priority used everywhere else in the app: locked results always win over
+// live (a match can't be both at once anyway), live wins over anything manually typed.
+function mergeGroupScores(groupId, groupScores, lockedGroupScores, liveGroupScores) {
+  const merged = { ...groupScores };
+  for (const key of Object.keys(lockedGroupScores || {})) {
+    if (key.startsWith(`${groupId}_`)) merged[key] = lockedGroupScores[key];
+  }
+  for (const key of Object.keys(liveGroupScores || {})) {
+    if (key.startsWith(`${groupId}_`)) merged[key] = liveGroupScores[key];
+  }
+  return merged;
+}
+
 // Representative scoreline set for elimination/confirmation simulations below.
 // Covers every meaningfully distinct outcome shape a tiebreaker could care about —
 // draws at three different goal totals, plus home/away wins spanning goal differences
@@ -204,19 +218,27 @@ function getTeamByRank(picks, groupId, rank) {
 function getTeamObj(groupId, name) {
   return GROUPS.find(g => g.id === groupId)?.teams.find(t => t.name === name) || null;
 }
-function resolveDesc(desc, picks, thirdAssignment) {
+function resolveDesc(desc, picks, thirdAssignment, scoreCtx) {
   if (desc.type === 'group') {
     const name = getTeamByRank(picks, desc.group, desc.rank);
-    if (!name) return { name:null, flag:null, display:`${desc.rank}${desc.group}` };
+    if (!name) return { name:null, flag:null, display:`${desc.rank}${desc.group}`, confirmed:false };
     const obj = getTeamObj(desc.group, name);
-    return { name, flag:obj?.flag||'', display:name };
+    // Top-2 confirmation only — 3rd-place (best-8) confirmation needs a larger cross-group
+    // simulation and isn't computed here yet, so those slots stay unhighlighted for now.
+    let confirmed = false;
+    if ((desc.rank === 1 || desc.rank === 2) && scoreCtx) {
+      const group = GROUPS.find(g => g.id === desc.group);
+      const merged = mergeGroupScores(desc.group, scoreCtx.groupScores, scoreCtx.lockedGroupScores, scoreCtx.liveGroupScores);
+      confirmed = isGroupTeamConfirmedTop2(name, group, merged, scoreCtx.cardScores);
+    }
+    return { name, flag:obj?.flag||'', display:name, confirmed };
   }
   const groupId = thirdAssignment[desc.slotIdx];
-  if (!groupId) return { name:null, flag:null, display:`3 ${desc.eligible.join('')}` };
+  if (!groupId) return { name:null, flag:null, display:`3 ${desc.eligible.join('')}`, confirmed:false };
   const name = getTeamByRank(picks, groupId, 3);
-  if (!name) return { name:null, flag:null, display:`3 ${groupId}` };
+  if (!name) return { name:null, flag:null, display:`3 ${groupId}`, confirmed:false };
   const obj = getTeamObj(groupId, name);
-  return { name, flag:obj?.flag||'', display:name };
+  return { name, flag:obj?.flag||'', display:name, confirmed:false };
 }
 function resolveWinner(matchup, pickedName) {
   if (!pickedName) return { name:null, flag:null, display:'TBD' };
@@ -510,11 +532,11 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
         return (
           <div key={i} className="slot-team-row">
             <button
-              className={`slotrow ${isPicked ? 'slotrow--pick' : ''} ${isOther ? 'slotrow--out' : ''} ${clickable ? 'slotrow--live' : ''}`}
+              className={`slotrow ${isPicked ? 'slotrow--pick' : ''} ${isOther ? 'slotrow--out' : ''} ${clickable ? 'slotrow--live' : ''} ${team.confirmed ? 'slotrow--confirmed' : ''}`}
               onClick={() => clickable && onPick(isPicked ? null : team.name)}
               disabled={!clickable}>
               <span className="slot-flag"><Flag team={team} size={11} /></span>
-              <span className="slot-name">{team.name || team.display}</span>
+              <span className={`slot-name ${team.confirmed ? 'slot-name--confirmed' : ''}`}>{team.name || team.display}</span>
               {isPicked && <span className="slot-adv">▸</span>}
             </button>
             {bothKnown && onScoreChange && (
@@ -1089,11 +1111,11 @@ function BracketPreview({ r32Matchups, onOpenBracket }) {
           <div key={i} className="bp-match">
             <div className="bp-side">
               <Flag team={m.home} size={13}/>
-              <span className="bp-name">{m.home.display || m.home.name || 'TBD'}</span>
+              <span className={`bp-name ${m.home.confirmed ? 'bp-name--confirmed' : ''}`}>{m.home.display || m.home.name || 'TBD'}</span>
             </div>
             <span className="bp-vs">vs</span>
             <div className="bp-side bp-side--r">
-              <span className="bp-name">{m.away.display || m.away.name || 'TBD'}</span>
+              <span className={`bp-name ${m.away.confirmed ? 'bp-name--confirmed' : ''}`}>{m.away.display || m.away.name || 'TBD'}</span>
               <Flag team={m.away} size={13}/>
             </div>
           </div>
@@ -1398,7 +1420,13 @@ export default function Home() {
     return result;
   }, [effectiveThirdGroupIds]);
 
-  const r32Matchups = useMemo(() => R32_DEFS.map(([h,a]) => ({ home:resolveDesc(h,effectivePicks,thirdAssignment), away:resolveDesc(a,effectivePicks,thirdAssignment) })), [effectivePicks, thirdAssignment]);
+  const r32Matchups = useMemo(() => {
+    const scoreCtx = { groupScores, lockedGroupScores, liveGroupScores, cardScores };
+    return R32_DEFS.map(([h,a]) => ({
+      home: resolveDesc(h, effectivePicks, thirdAssignment, scoreCtx),
+      away: resolveDesc(a, effectivePicks, thirdAssignment, scoreCtx),
+    }));
+  }, [effectivePicks, thirdAssignment, groupScores, lockedGroupScores, liveGroupScores, cardScores]);
   const r16Matchups = useMemo(() => R16_PAIRS.map(([hi,ai]) => ({ home:resolveWinner(r32Matchups[hi],bracketPicks.r32[hi]), away:resolveWinner(r32Matchups[ai],bracketPicks.r32[ai]) })), [r32Matchups, bracketPicks.r32]);
   const qfMatchups  = useMemo(() => QF_PAIRS.map(([hi,ai]) => ({ home:resolveWinner(r16Matchups[hi],bracketPicks.r16[hi]), away:resolveWinner(r16Matchups[ai],bracketPicks.r16[ai]) })), [r16Matchups, bracketPicks.r16]);
   const sfMatchups  = useMemo(() => SF_PAIRS.map(([hi,ai]) => ({ home:resolveWinner(qfMatchups[hi],bracketPicks.qf[hi]), away:resolveWinner(qfMatchups[ai],bracketPicks.qf[ai]) })), [qfMatchups, bracketPicks.qf]);
