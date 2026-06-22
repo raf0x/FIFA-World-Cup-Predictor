@@ -1334,6 +1334,18 @@ a { color: inherit; }
   cursor: default;
   font-weight: 800;
 }
+.score-row--live .score-input--live {
+  background: rgba(239,68,68,.1);
+  border-color: rgba(239,68,68,.4);
+  color: #ef4444;
+  cursor: default;
+  font-weight: 800;
+  animation: liveScorePulse 1.6s ease-in-out infinite;
+}
+@keyframes liveScorePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4); }
+  50%      { box-shadow: 0 0 0 3px rgba(239,68,68,0); }
+}
 
 /* ─── Score Carousel Ticker ──────────────────────────────────────────────── */
 /* ─── Bracket Preview ─────────────────────────────────────────────────── */
