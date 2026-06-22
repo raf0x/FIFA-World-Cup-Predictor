@@ -185,10 +185,13 @@ async function fetchESPN() {
         const comp = event.competitions?.[0];
         const statusType = comp?.status?.type || {};
         const completed = statusType.completed;
-        const inProgress = !completed && (
-          statusType.name === 'STATUS_IN_PROGRESS' ||
-          statusType.name === 'STATUS_HALFTIME'
-        );
+        // ESPN's `state` field is the reliable signal: 'pre' | 'in' | 'post'.
+        // Matching on `state === 'in'` catches every in-progress variant
+        // (first half, second half, halftime, stoppage, etc.) instead of only
+        // the two specific status NAMEs we previously allowlisted — which is
+        // what caused live matches to be missed for the first chunk of play
+        // whenever ESPN reported a status name other than STATUS_IN_PROGRESS.
+        const inProgress = !completed && statusType.state === 'in';
 
         const competitors = comp?.competitors || [];
         if (competitors.length !== 2) continue;
@@ -215,7 +218,9 @@ async function fetchESPN() {
         } else if (inProgress) {
           // Parse clock: "90:00" → "90'", halftime → "HT"
           let clock = 'LIVE';
-          if (statusType.name === 'STATUS_HALFTIME') {
+          const isHalftime = statusType.name === 'STATUS_HALFTIME' ||
+            (statusType.shortDetail || '').toUpperCase().includes('HALFTIME');
+          if (isHalftime) {
             clock = 'HT';
           } else {
             const raw = comp.status?.displayClock || '';
