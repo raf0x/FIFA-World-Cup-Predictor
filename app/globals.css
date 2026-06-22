@@ -1239,7 +1239,8 @@ a { color: inherit; }
   border-top: 1px solid var(--border);
   align-items: center;
 }
-.standings-row--through     { background: rgba(74,222,128,.05); }
+.standings-row--wonGroup     { background: rgba(74,222,128,.05); }
+.standings-row--qualified    { background: rgba(74,222,128,.05); }
 .standings-row--currentlyIn { background: rgba(74,222,128,.05); }
 .standings-row--currentlyOut{ background: rgba(245,193,66,.05); }
 .standings-row--out         { background: rgba(239,68,68,.05); }
@@ -1253,7 +1254,7 @@ a { color: inherit; }
   text-align: right;
   line-height: 1.2;
 }
-.st-status--through, .st-status--currentlyIn { color: var(--green); }
+.st-status--wonGroup, .st-status--qualified, .st-status--currentlyIn { color: var(--green); }
 .st-status--currentlyOut { color: var(--gold); }
 .st-status--out { color: #ef4444; opacity: 1; }
 .gd-pos { color: var(--green); font-weight: 600; }
