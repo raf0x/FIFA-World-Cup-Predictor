@@ -189,7 +189,7 @@ function Flag({ team, size = 18 }) {
 
 // ─── AI Panel ─────────────────────────────────────────────────────────────
 // ─── Group Score Panel ────────────────────────────────────────────────────
-function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores, liveGroupScores, cardScores, isThirdQualified }) {
+function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores, liveGroupScores, cardScores, isThirdQualified, complete }) {
   // Merge in live in-progress scores so standings reflect the match as it's happening
   const displayScores = { ...groupScores };
   for (const key of Object.keys(liveGroupScores || {})) {
@@ -206,11 +206,13 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores,
   //   pos 0,1 -> through (top 2 always qualify)
   //   pos 2   -> currentlyIn (3rd place, currently sits in the live best-8 — still provisional)
   //              or currentlyOut (3rd place, not currently in the best-8 — still alive, not safe)
-  //   pos 3   -> out (bottom of group, confirmed eliminated for this group's matches played so far)
+  //   pos 3   -> out ONLY once the group is fully complete (all 6 matches played).
+  //              While the group is still in progress, 4th place is just as provisional as
+  //              3rd place — they have the same number of games left to change things.
   const statusFor = (pos) => {
     if (pos < 2) return 'through';
     if (pos === 2) return isThirdQualified ? 'currentlyIn' : 'currentlyOut';
-    return 'out';
+    return complete ? 'out' : 'currentlyOut';
   };
   const STATUS_LABEL = { through: 'THROUGH', currentlyIn: 'CURRENTLY IN', currentlyOut: 'CURRENTLY OUT', out: 'OUT' };
 
@@ -343,7 +345,7 @@ function GroupStageCard({ group, groupPicks, complete, onSetRank, groupScores, o
       )}
 
       {/* Score panel always visible */}
-      <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} lockedGroupScores={lockedGroupScores} liveGroupScores={liveGroupScores} cardScores={cardScores} isThirdQualified={isThirdQualified} />
+      <GroupScorePanel group={group} groupScores={groupScores} onScoreChange={onScoreChange} lockedGroupScores={lockedGroupScores} liveGroupScores={liveGroupScores} cardScores={cardScores} isThirdQualified={isThirdQualified} complete={complete} />
     </div>
   );
 }
