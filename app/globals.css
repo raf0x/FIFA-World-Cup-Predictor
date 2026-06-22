@@ -1244,8 +1244,8 @@ a { color: inherit; }
 .standings-row--wonGroup     { background: rgba(245,193,66,.12); }
 .standings-row--qualified    { background: rgba(74,222,128,.05); }
 .standings-row--currentlyIn { background: rgba(74,222,128,.05); }
-.standings-row--currentlyOut{ background: rgba(249,115,22,.08); }
-.standings-row--out         { background: rgba(239,68,68,.16); }
+.standings-row--currentlyOut{ background: rgba(249,115,22,.18); }
+.standings-row--out         { background: rgba(220,38,38,.22); }
 .st-pos { font-size: 9px; font-weight: 800; color: var(--dim); }
 .st-name { font-size: 11px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .st-pts { font-weight: 800; color: var(--text); text-align: right; }
@@ -1253,7 +1253,7 @@ a { color: inherit; }
   font-size: 7.5px;
   font-weight: 800;
   letter-spacing: .03em;
-  text-align: right;
+  text-align: center;
   line-height: 1.2;
 }
 .st-status--wonGroup { color: var(--gold); }
