@@ -295,7 +295,8 @@ export async function GET() {
         ? processMatches(rawMatches)
         : { groupScores: {}, recentMatches: [], cardScores: {}, count: 0 };
 
-    // Process live matches → normalize names and find group
+    // Process live matches → normalize names, find group, resolve match slot for live standings
+    const liveGroupScores = {};
     const liveMatches = liveRawMatches
       .map(m => {
         const hNorm = normalize(m.homeTeam);
@@ -304,6 +305,23 @@ export async function GET() {
           findTeamIdx(g, hNorm) !== -1 && findTeamIdx(g, aNorm) !== -1
         );
         if (!group) return null;
+
+        const hi = findTeamIdx(group, hNorm);
+        const ai = findTeamIdx(group, aNorm);
+        const matchIdx = MATCH_PAIRS.findIndex(([ph, pa]) =>
+          (ph === hi && pa === ai) || (ph === ai && pa === hi)
+        );
+        if (matchIdx !== -1) {
+          const [pairH] = MATCH_PAIRS[matchIdx];
+          const flipped = pairH !== hi;
+          // Provisional in-progress score, same key shape as completed groupScores —
+          // lets the frontend merge this into live standings while the match is still running.
+          liveGroupScores[`${group.id}_${matchIdx}`] = {
+            home: String(flipped ? m.awayScore : m.homeScore),
+            away: String(flipped ? m.homeScore : m.awayScore),
+          };
+        }
+
         return {
           group: group.id,
           homeTeam: hNorm,
@@ -317,8 +335,8 @@ export async function GET() {
       .filter(Boolean);
 
     const active = count > 0 || liveMatches.length > 0;
-    return Response.json({ groupScores, recentMatches, liveMatches, cardScores, count, active });
+    return Response.json({ groupScores, recentMatches, liveMatches, liveGroupScores, cardScores, count, active });
   } catch (err) {
-    return Response.json({ groupScores: {}, recentMatches: [], liveMatches: [], cardScores: {}, count: 0, active: false, error: err.message });
+    return Response.json({ groupScores: {}, recentMatches: [], liveMatches: [], liveGroupScores: {}, cardScores: {}, count: 0, active: false, error: err.message });
   }
 }
