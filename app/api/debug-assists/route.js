@@ -53,7 +53,27 @@ export async function GET() {
         participants: evt.participants, // raw, unfiltered — this is what we need to see
       }));
 
-    return Response.json({ match: foundLabel, eventId: foundEventId, goalEvents });
+    // Inventory of every top-level key ESPN returns for this match, so we know what's
+    // actually available (lineups/roster data, if present, would show up as a key here).
+    const topLevelKeys = Object.keys(data);
+
+    // If a roster/lineup section exists under any of the common ESPN naming conventions,
+    // surface a trimmed sample so we can identify the goalkeeper field shape without
+    // guessing — full roster dumps are huge, so we cap depth/length defensively.
+    const rosterSample = {};
+    for (const key of ['rosters', 'boxscore', 'lineups']) {
+      if (data[key]) {
+        try {
+          rosterSample[key] = JSON.parse(JSON.stringify(data[key])).slice
+            ? data[key].slice(0, 1) // if it's an array (e.g. one entry per team), just show team 1
+            : data[key];
+        } catch {
+          rosterSample[key] = '[unserializable]';
+        }
+      }
+    }
+
+    return Response.json({ match: foundLabel, eventId: foundEventId, goalEvents, topLevelKeys, rosterSample });
   } catch (err) {
     return Response.json({ error: err.message });
   }
