@@ -1117,34 +1117,77 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
 }
 
 // ─── Bracket Preview (compact, top-of-page teaser) ────────────────────────
+function StatList({ eyebrow, title, items, valueKey, renderName, renderSub, maxRef }) {
+  if (!items || items.length === 0) return null;
+  const max = maxRef ? (items[0]?.[maxRef] || 1) : 1;
+  return (
+    <div className="ts-col">
+      <div className="ts-head">
+        <div className="ts-eyebrow">{eyebrow}</div>
+        <div className="ts-title">{title}</div>
+      </div>
+      <div className="ts-list">
+        {items.map((s, i) => (
+          <div key={s.id || s.team} className="ts-row">
+            <span className="ts-rank">{i + 1}</span>
+            {renderName(s)}
+            <span className="ts-team">{renderSub(s)}</span>
+            <div className="ts-bar-track">
+              <div className="ts-bar-fill" style={{ width: `${(s[valueKey] / max) * 100}%` }} />
+            </div>
+            <span className="ts-goals">{s[valueKey]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TopScorers({ topScorers }) {
   if (!topScorers || topScorers.length === 0) return null;
   const allTeams = GROUPS.flatMap(g => g.teams);
-  const maxGoals = topScorers[0]?.goals || 1;
   return (
-    <div className="ts-wrap">
-      <div className="ts-head">
-        <div className="ts-eyebrow">⚽ Golden Boot Race</div>
-        <div className="ts-title">Top Scorers</div>
-      </div>
-      <div className="ts-list">
-        {topScorers.map((s, i) => {
-          const teamObj = allTeams.find(t => t.name === s.team) || { name: s.team };
-          return (
-            <div key={s.id} className="ts-row">
-              <span className="ts-rank">{i + 1}</span>
-              <Flag team={teamObj} size={16} />
-              <span className="ts-name">{s.name}</span>
-              <span className="ts-team">{s.team}</span>
-              <div className="ts-bar-track">
-                <div className="ts-bar-fill" style={{ width: `${(s.goals / maxGoals) * 100}%` }} />
-              </div>
-              <span className="ts-goals">{s.goals}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    <StatList
+      eyebrow="⚽ Golden Boot Race"
+      title="Top Scorers"
+      items={topScorers}
+      valueKey="goals"
+      maxRef="goals"
+      renderName={s => <><Flag team={allTeams.find(t => t.name === s.team) || { name: s.team }} size={16} /><span className="ts-name">{s.name}</span></>}
+      renderSub={s => s.team}
+    />
+  );
+}
+
+function TopAssists({ topAssists }) {
+  if (!topAssists || topAssists.length === 0) return null;
+  const allTeams = GROUPS.flatMap(g => g.teams);
+  return (
+    <StatList
+      eyebrow="🎯 Playmaker Race"
+      title="Top Assists"
+      items={topAssists}
+      valueKey="assists"
+      maxRef="assists"
+      renderName={s => <><Flag team={allTeams.find(t => t.name === s.team) || { name: s.team }} size={16} /><span className="ts-name">{s.name}</span></>}
+      renderSub={s => s.team}
+    />
+  );
+}
+
+function CleanSheets({ topCleanSheets }) {
+  if (!topCleanSheets || topCleanSheets.length === 0) return null;
+  const allTeams = GROUPS.flatMap(g => g.teams);
+  return (
+    <StatList
+      eyebrow="🧤 Golden Glove Race"
+      title="Clean Sheets"
+      items={topCleanSheets}
+      valueKey="cleanSheets"
+      maxRef="cleanSheets"
+      renderName={s => <><Flag team={allTeams.find(t => t.name === s.team) || { name: s.team }} size={16} /><span className="ts-name">{s.team}</span></>}
+      renderSub={s => `${s.played} played`}
+    />
   );
 }
 
@@ -1207,6 +1250,8 @@ export default function Home() {
   const [recentMatches, setRecentMatches] = useState([]);
   const [cardScores, setCardScores] = useState({}); // teamName -> conduct points (negative)
   const [topScorers, setTopScorers] = useState([]); // [{ id, name, team, goals }] — top 5, own goals excluded
+  const [topAssists, setTopAssists] = useState([]); // [{ id, name, team, assists }] — top 5, coverage depends on ESPN data
+  const [topCleanSheets, setTopCleanSheets] = useState([]); // [{ team, cleanSheets, played }] — top 5 by shutouts
   const [finalScore, setFinalScore] = useState({ home: '', away: '' });
 
   const thirdRef      = useRef(null);
@@ -1284,6 +1329,8 @@ export default function Home() {
           setLiveGroupScores(data.liveGroupScores || {}); // full snapshot — clears once a match finishes (moves to lockedGroupScores instead)
           if (data.cardScores) setCardScores(data.cardScores); // full snapshot each poll, not incremental
           if (data.topScorers) setTopScorers(data.topScorers); // full snapshot, top 5 already sorted server-side
+          if (data.topAssists) setTopAssists(data.topAssists);
+          if (data.topCleanSheets) setTopCleanSheets(data.topCleanSheets);
         })
         .catch(() => {});
     };
@@ -1912,8 +1959,20 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
         </div>
       </section>
 
-      {/* ── Top Scorers ── */}
-      <TopScorers topScorers={topScorers} />
+      {/* ── Top Scorers / Top Assists ── */}
+      {(topScorers.length > 0 || topAssists.length > 0) && (
+        <div className="ts-wrap ts-wrap--row">
+          <TopScorers topScorers={topScorers} />
+          <TopAssists topAssists={topAssists} />
+        </div>
+      )}
+
+      {/* ── Clean Sheets ── */}
+      {topCleanSheets.length > 0 && (
+        <div className="ts-wrap">
+          <CleanSheets topCleanSheets={topCleanSheets} />
+        </div>
+      )}
 
       {/* ── Bracket Preview ── */}
       <BracketPreview r32Matchups={r32Matchups} onOpenBracket={() => scrollTo(bracketRef)} />
