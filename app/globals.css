@@ -1446,10 +1446,11 @@ a { color: inherit; }
 .ts-wrap--row {
   max-width: 980px;
   display: flex;
+  justify-content: center;
   gap: 24px;
   align-items: flex-start;
 }
-.ts-col { flex: 1; min-width: 0; }
+.ts-col { flex: 0 1 480px; min-width: 0; max-width: 480px; }
 .ts-head { margin-bottom: 10px; }
 .ts-eyebrow {
   font-size: 10px;
