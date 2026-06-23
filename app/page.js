@@ -1117,6 +1117,37 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
 }
 
 // ─── Bracket Preview (compact, top-of-page teaser) ────────────────────────
+function TopScorers({ topScorers }) {
+  if (!topScorers || topScorers.length === 0) return null;
+  const allTeams = GROUPS.flatMap(g => g.teams);
+  const maxGoals = topScorers[0]?.goals || 1;
+  return (
+    <div className="ts-wrap">
+      <div className="ts-head">
+        <div className="ts-eyebrow">⚽ Golden Boot Race</div>
+        <div className="ts-title">Top Scorers</div>
+      </div>
+      <div className="ts-list">
+        {topScorers.map((s, i) => {
+          const teamObj = allTeams.find(t => t.name === s.team) || { name: s.team };
+          return (
+            <div key={s.id} className="ts-row">
+              <span className="ts-rank">{i + 1}</span>
+              <Flag team={teamObj} size={16} />
+              <span className="ts-name">{s.name}</span>
+              <span className="ts-team">{s.team}</span>
+              <div className="ts-bar-track">
+                <div className="ts-bar-fill" style={{ width: `${(s.goals / maxGoals) * 100}%` }} />
+              </div>
+              <span className="ts-goals">{s.goals}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function BracketPreview({ r32Matchups, onOpenBracket }) {
   const filledCount = r32Matchups.filter(m => m.home.name && m.away.name).length;
   return (
@@ -1175,6 +1206,7 @@ export default function Home() {
   const [bracketScores, setBracketScores] = useState({});
   const [recentMatches, setRecentMatches] = useState([]);
   const [cardScores, setCardScores] = useState({}); // teamName -> conduct points (negative)
+  const [topScorers, setTopScorers] = useState([]); // [{ id, name, team, goals }] — top 5, own goals excluded
   const [finalScore, setFinalScore] = useState({ home: '', away: '' });
 
   const thirdRef      = useRef(null);
@@ -1251,6 +1283,7 @@ export default function Home() {
           setLiveMatches((data.liveMatches || []).map(enrich));
           setLiveGroupScores(data.liveGroupScores || {}); // full snapshot — clears once a match finishes (moves to lockedGroupScores instead)
           if (data.cardScores) setCardScores(data.cardScores); // full snapshot each poll, not incremental
+          if (data.topScorers) setTopScorers(data.topScorers); // full snapshot, top 5 already sorted server-side
         })
         .catch(() => {});
     };
@@ -1878,6 +1911,9 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
           </div>
         </div>
       </section>
+
+      {/* ── Top Scorers ── */}
+      <TopScorers topScorers={topScorers} />
 
       {/* ── Bracket Preview ── */}
       <BracketPreview r32Matchups={r32Matchups} onOpenBracket={() => scrollTo(bracketRef)} />
