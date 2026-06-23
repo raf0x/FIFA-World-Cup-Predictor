@@ -1959,17 +1959,11 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
         </div>
       </section>
 
-      {/* ── Top Scorers / Top Assists ── */}
-      {(topScorers.length > 0 || topAssists.length > 0) && (
+      {/* ── Top Scorers / Top Assists / Clean Sheets ── */}
+      {(topScorers.length > 0 || topAssists.length > 0 || topCleanSheets.length > 0) && (
         <div className="ts-wrap ts-wrap--row">
           <TopScorers topScorers={topScorers} />
           <TopAssists topAssists={topAssists} />
-        </div>
-      )}
-
-      {/* ── Clean Sheets ── */}
-      {topCleanSheets.length > 0 && (
-        <div className="ts-wrap">
           <CleanSheets topCleanSheets={topCleanSheets} />
         </div>
       )}
