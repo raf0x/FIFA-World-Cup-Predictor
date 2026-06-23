@@ -1159,32 +1159,16 @@ function TopScorers({ topScorers }) {
   );
 }
 
-function TopAssists({ topAssists }) {
-  if (!topAssists || topAssists.length === 0) return null;
+function TeamGoals({ teamGoals }) {
+  if (!teamGoals || teamGoals.length === 0) return null;
   const allTeams = GROUPS.flatMap(g => g.teams);
   return (
     <StatList
-      eyebrow="🎯 Playmaker Race"
-      title="Top Assists"
-      items={topAssists}
-      valueKey="assists"
-      maxRef="assists"
-      renderName={s => <><Flag team={allTeams.find(t => t.name === s.team) || { name: s.team }} size={16} /><span className="ts-name">{s.name}</span></>}
-      renderSub={s => s.team}
-    />
-  );
-}
-
-function CleanSheets({ topCleanSheets }) {
-  if (!topCleanSheets || topCleanSheets.length === 0) return null;
-  const allTeams = GROUPS.flatMap(g => g.teams);
-  return (
-    <StatList
-      eyebrow="🧤 Golden Glove Race"
-      title="Clean Sheets"
-      items={topCleanSheets}
-      valueKey="cleanSheets"
-      maxRef="cleanSheets"
+      eyebrow="🔥 Most Goals"
+      title="Team Goals"
+      items={teamGoals}
+      valueKey="goals"
+      maxRef="goals"
       renderName={s => <><Flag team={allTeams.find(t => t.name === s.team) || { name: s.team }} size={16} /><span className="ts-name">{s.team}</span></>}
       renderSub={s => `${s.played} played`}
     />
@@ -1250,8 +1234,6 @@ export default function Home() {
   const [recentMatches, setRecentMatches] = useState([]);
   const [cardScores, setCardScores] = useState({}); // teamName -> conduct points (negative)
   const [topScorers, setTopScorers] = useState([]); // [{ id, name, team, goals }] — top 5, own goals excluded
-  const [topAssists, setTopAssists] = useState([]); // [{ id, name, team, assists }] — top 5, coverage depends on ESPN data
-  const [topCleanSheets, setTopCleanSheets] = useState([]); // [{ team, cleanSheets, played }] — top 5 by shutouts
   const [finalScore, setFinalScore] = useState({ home: '', away: '' });
 
   const thirdRef      = useRef(null);
@@ -1329,8 +1311,6 @@ export default function Home() {
           setLiveGroupScores(data.liveGroupScores || {}); // full snapshot — clears once a match finishes (moves to lockedGroupScores instead)
           if (data.cardScores) setCardScores(data.cardScores); // full snapshot each poll, not incremental
           if (data.topScorers) setTopScorers(data.topScorers); // full snapshot, top 5 already sorted server-side
-          if (data.topAssists) setTopAssists(data.topAssists);
-          if (data.topCleanSheets) setTopCleanSheets(data.topCleanSheets);
         })
         .catch(() => {});
     };
@@ -1540,6 +1520,31 @@ export default function Home() {
   const sfMatchups  = useMemo(() => SF_PAIRS.map(([hi,ai]) => ({ home:resolveWinner(qfMatchups[hi],bracketPicks.qf[hi]), away:resolveWinner(qfMatchups[ai],bracketPicks.qf[ai]) })), [qfMatchups, bracketPicks.qf]);
   const finalMatchup = useMemo(() => ({ home:resolveWinner(sfMatchups[0],bracketPicks.sf[0]), away:resolveWinner(sfMatchups[1],bracketPicks.sf[1]) }), [sfMatchups, bracketPicks.sf]);
   const thirdMatchup = useMemo(() => ({ home:resolveLoser(sfMatchups[0],bracketPicks.sf[0]), away:resolveLoser(sfMatchups[1],bracketPicks.sf[1]) }), [sfMatchups, bracketPicks.sf]);
+
+  // Most goals scored per team, tallied directly from real match scorelines (no ESPN
+  // event parsing needed — this is the same groupScores data already trusted for live
+  // standings, so it's exact rather than a best-effort approximation).
+  const teamGoals = useMemo(() => {
+    const tally = {}; // teamName -> { team, goals, played }
+    for (const group of GROUPS) {
+      const merged = mergeGroupScores(group.id, groupScores, lockedGroupScores, liveGroupScores);
+      GROUP_MATCH_PAIRS.forEach(([hi, ai], idx) => {
+        const sc = merged[`${group.id}_${idx}`];
+        if (!sc || sc.home === '' || sc.away === '') return;
+        const hg = Number(sc.home), ag = Number(sc.away);
+        if (isNaN(hg) || isNaN(ag)) return;
+        const homeName = group.teams[hi].name, awayName = group.teams[ai].name;
+        if (!tally[homeName]) tally[homeName] = { team: homeName, goals: 0, played: 0 };
+        if (!tally[awayName]) tally[awayName] = { team: awayName, goals: 0, played: 0 };
+        tally[homeName].goals += hg; tally[homeName].played++;
+        tally[awayName].goals += ag; tally[awayName].played++;
+      });
+    }
+    return Object.values(tally)
+      .filter(t => t.goals > 0)
+      .sort((a, b) => b.goals - a.goals || a.played - b.played)
+      .slice(0, 5);
+  }, [groupScores, lockedGroupScores, liveGroupScores]);
 
   const pickBracket = (round, idx, name) => {
     setBracketPicks(prev => {
@@ -1959,12 +1964,11 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
         </div>
       </section>
 
-      {/* ── Top Scorers / Top Assists / Clean Sheets ── */}
-      {(topScorers.length > 0 || topAssists.length > 0 || topCleanSheets.length > 0) && (
+      {/* ── Top Scorers / Team Goals ── */}
+      {(topScorers.length > 0 || teamGoals.length > 0) && (
         <div className="ts-wrap ts-wrap--row">
           <TopScorers topScorers={topScorers} />
-          <TopAssists topAssists={topAssists} />
-          <CleanSheets topCleanSheets={topCleanSheets} />
+          <TeamGoals teamGoals={teamGoals} />
         </div>
       )}
 
