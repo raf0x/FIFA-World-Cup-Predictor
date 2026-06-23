@@ -70,8 +70,21 @@ async function fetchScorers(eventId, homeTeamId, awayTeamId) {
           const label = `${shortName} ${minute}${isOwnGoal ? ' (OG)' : ''}`.trim();
           const isHome = String(evt.team?.id) === String(homeTeamId);
           const detail = { id: athlete.id || fullName, name: fullName, isOwnGoal };
-          if (isHome) { homeScorers.push(label); homeScorerDetails.push(detail); }
-          else { awayScorers.push(label); awayScorerDetails.push(detail); }
+          // Assist data is not consistently populated by ESPN for every match — when present,
+          // it shows up as a second participant entry. We read it defensively: if the shape
+          // doesn't match what we expect, the goal simply has no assist credited, nothing breaks.
+          let assist = null;
+          if (!isOwnGoal) {
+            const assistParticipant = (evt.participants || []).find(p =>
+              p !== evt.participants[0] && (p.type === 'assist' || p.assist === true)
+            );
+            const assistAthlete = assistParticipant?.athlete;
+            if (assistAthlete?.displayName) {
+              assist = { id: assistAthlete.id || assistAthlete.displayName, name: assistAthlete.displayName };
+            }
+          }
+          if (isHome) { homeScorers.push(label); homeScorerDetails.push({ ...detail, assist }); }
+          else { awayScorers.push(label); awayScorerDetails.push({ ...detail, assist }); }
         }
         continue;
       }
@@ -107,12 +120,14 @@ async function fetchScorers(eventId, homeTeamId, awayTeamId) {
   }
 }
 
-// ── Map raw matches → groupScores + recentMatches + cardScores + topScorers ──
+// ── Map raw matches → groupScores + recentMatches + cardScores + topScorers + topAssists ──
 function processMatches(rawMatches) {
   const groupScores = {};
   const recentMatches = [];
   const cardScores = {}; // teamName -> cumulative conduct points across all group matches
   const scorerTally = {}; // athleteId -> { name, team, goals }
+  const assistTally = {}; // athleteId -> { name, team, assists }
+  const cleanSheetTally = {}; // teamName -> { team, cleanSheets, played }
   let count = 0;
 
   for (const m of rawMatches) {
@@ -149,18 +164,27 @@ function processMatches(rawMatches) {
     cardScores[homeTeamName] = (cardScores[homeTeamName] || 0) + homeCardPts;
     cardScores[awayTeamName] = (cardScores[awayTeamName] || 0) + awayCardPts;
 
-    // Tally goals per player across every match — own goals don't count toward the scorer's tally.
+    // Tally goals (and assists, when ESPN provides them) per player across every match.
+    // Own goals don't count toward the scorer's tally or generate an assist.
     const homeDetails = flipped ? (m.awayScorerDetails || []) : (m.homeScorerDetails || []);
     const awayDetails = flipped ? (m.homeScorerDetails || []) : (m.awayScorerDetails || []);
     for (const d of homeDetails) {
       if (d.isOwnGoal) continue;
       if (!scorerTally[d.id]) scorerTally[d.id] = { name: d.name, team: homeTeamName, goals: 0 };
       scorerTally[d.id].goals++;
+      if (d.assist) {
+        if (!assistTally[d.assist.id]) assistTally[d.assist.id] = { name: d.assist.name, team: homeTeamName, assists: 0 };
+        assistTally[d.assist.id].assists++;
+      }
     }
     for (const d of awayDetails) {
       if (d.isOwnGoal) continue;
       if (!scorerTally[d.id]) scorerTally[d.id] = { name: d.name, team: awayTeamName, goals: 0 };
       scorerTally[d.id].goals++;
+      if (d.assist) {
+        if (!assistTally[d.assist.id]) assistTally[d.assist.id] = { name: d.assist.name, team: awayTeamName, assists: 0 };
+        assistTally[d.assist.id].assists++;
+      }
     }
 
     recentMatches.push({
@@ -172,6 +196,17 @@ function processMatches(rawMatches) {
       homeScorers: flipped ? (m.awayScorers || []) : (m.homeScorers || []),
       awayScorers: flipped ? (m.homeScorers || []) : (m.awayScorers || []),
     });
+
+    // Clean sheet: a team kept a clean sheet if it conceded 0 in this match.
+    const homeGoalsFinal = Number(flipped ? m.awayScore : m.homeScore);
+    const awayGoalsFinal = Number(flipped ? m.homeScore : m.awayScore);
+    if (!cleanSheetTally[homeTeamName]) cleanSheetTally[homeTeamName] = { team: homeTeamName, cleanSheets: 0, played: 0 };
+    if (!cleanSheetTally[awayTeamName]) cleanSheetTally[awayTeamName] = { team: awayTeamName, cleanSheets: 0, played: 0 };
+    cleanSheetTally[homeTeamName].played++;
+    cleanSheetTally[awayTeamName].played++;
+    if (!isNaN(awayGoalsFinal) && awayGoalsFinal === 0) cleanSheetTally[homeTeamName].cleanSheets++; // home kept Away off the board
+    if (!isNaN(homeGoalsFinal) && homeGoalsFinal === 0) cleanSheetTally[awayTeamName].cleanSheets++; // away kept Home off the board
+
     count++;
   }
 
@@ -179,7 +214,16 @@ function processMatches(rawMatches) {
     .sort((a, b) => b.goals - a.goals)
     .slice(0, 5);
 
-  return { groupScores, recentMatches, cardScores, topScorers, count };
+  const topAssists = Object.values(assistTally)
+    .sort((a, b) => b.assists - a.assists)
+    .slice(0, 5);
+
+  const topCleanSheets = Object.values(cleanSheetTally)
+    .filter(t => t.cleanSheets > 0)
+    .sort((a, b) => b.cleanSheets - a.cleanSheets || a.played - b.played)
+    .slice(0, 5);
+
+  return { groupScores, recentMatches, cardScores, topScorers, topAssists, topCleanSheets, count };
 }
 
 // ── ESPN scoreboard + summary ─────────────────────────────────────────────
@@ -319,11 +363,11 @@ export async function GET() {
       try { rawMatches = await fetchFDO(apiKey); } catch {}
     }
 
-    // Process completed matches → groupScores + recentMatches + cardScores + topScorers
-    const { groupScores, recentMatches, cardScores, topScorers, count } =
+    // Process completed matches → groupScores + recentMatches + cardScores + topScorers/topAssists/topCleanSheets
+    const { groupScores, recentMatches, cardScores, topScorers, topAssists, topCleanSheets, count } =
       rawMatches.length > 0
         ? processMatches(rawMatches)
-        : { groupScores: {}, recentMatches: [], cardScores: {}, topScorers: [], count: 0 };
+        : { groupScores: {}, recentMatches: [], cardScores: {}, topScorers: [], topAssists: [], topCleanSheets: [], count: 0 };
 
     // Process live matches → normalize names, find group, resolve match slot for live standings
     const liveGroupScores = {};
@@ -365,8 +409,8 @@ export async function GET() {
       .filter(Boolean);
 
     const active = count > 0 || liveMatches.length > 0;
-    return Response.json({ groupScores, recentMatches, liveMatches, liveGroupScores, cardScores, topScorers, count, active });
+    return Response.json({ groupScores, recentMatches, liveMatches, liveGroupScores, cardScores, topScorers, topAssists, topCleanSheets, count, active });
   } catch (err) {
-    return Response.json({ groupScores: {}, recentMatches: [], liveMatches: [], liveGroupScores: {}, cardScores: {}, topScorers: [], count: 0, active: false, error: err.message });
+    return Response.json({ groupScores: {}, recentMatches: [], liveMatches: [], liveGroupScores: {}, cardScores: {}, topScorers: [], topAssists: [], topCleanSheets: [], count: 0, active: false, error: err.message });
   }
 }
