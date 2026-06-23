@@ -45,11 +45,13 @@ async function fetchScorers(eventId, homeTeamId, awayTeamId) {
       `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${eventId}`,
       { next: { revalidate: 86400 } } // completed match — never changes
     );
-    if (!res.ok) return { homeScorers: [], awayScorers: [], homeCardPts: 0, awayCardPts: 0 };
+    if (!res.ok) return { homeScorers: [], awayScorers: [], homeScorerDetails: [], awayScorerDetails: [], homeCardPts: 0, awayCardPts: 0 };
     const data = await res.json();
 
     const homeScorers = [];
     const awayScorers = [];
+    const homeScorerDetails = []; // { id, name, isOwnGoal } — for cross-match top-scorer aggregation
+    const awayScorerDetails = [];
     // Per-player tally within this match: { team: 'home'|'away', yellows: n, directRed: bool }
     const players = {};
 
@@ -67,7 +69,9 @@ async function fetchScorers(eventId, homeTeamId, awayTeamId) {
           const minute = evt.clock?.displayValue || '';
           const label = `${shortName} ${minute}${isOwnGoal ? ' (OG)' : ''}`.trim();
           const isHome = String(evt.team?.id) === String(homeTeamId);
-          if (isHome) homeScorers.push(label); else awayScorers.push(label);
+          const detail = { id: athlete.id || fullName, name: fullName, isOwnGoal };
+          if (isHome) { homeScorers.push(label); homeScorerDetails.push(detail); }
+          else { awayScorers.push(label); awayScorerDetails.push(detail); }
         }
         continue;
       }
@@ -97,17 +101,18 @@ async function fetchScorers(eventId, homeTeamId, awayTeamId) {
       if (p.team === 'home') homeCardPts += pts; else awayCardPts += pts;
     }
 
-    return { homeScorers, awayScorers, homeCardPts, awayCardPts };
+    return { homeScorers, awayScorers, homeScorerDetails, awayScorerDetails, homeCardPts, awayCardPts };
   } catch {
-    return { homeScorers: [], awayScorers: [], homeCardPts: 0, awayCardPts: 0 };
+    return { homeScorers: [], awayScorers: [], homeScorerDetails: [], awayScorerDetails: [], homeCardPts: 0, awayCardPts: 0 };
   }
 }
 
-// ── Map raw matches → groupScores + recentMatches + cardScores ───────────
+// ── Map raw matches → groupScores + recentMatches + cardScores + topScorers ──
 function processMatches(rawMatches) {
   const groupScores = {};
   const recentMatches = [];
   const cardScores = {}; // teamName -> cumulative conduct points across all group matches
+  const scorerTally = {}; // athleteId -> { name, team, goals }
   let count = 0;
 
   for (const m of rawMatches) {
@@ -144,6 +149,20 @@ function processMatches(rawMatches) {
     cardScores[homeTeamName] = (cardScores[homeTeamName] || 0) + homeCardPts;
     cardScores[awayTeamName] = (cardScores[awayTeamName] || 0) + awayCardPts;
 
+    // Tally goals per player across every match — own goals don't count toward the scorer's tally.
+    const homeDetails = flipped ? (m.awayScorerDetails || []) : (m.homeScorerDetails || []);
+    const awayDetails = flipped ? (m.homeScorerDetails || []) : (m.awayScorerDetails || []);
+    for (const d of homeDetails) {
+      if (d.isOwnGoal) continue;
+      if (!scorerTally[d.id]) scorerTally[d.id] = { name: d.name, team: homeTeamName, goals: 0 };
+      scorerTally[d.id].goals++;
+    }
+    for (const d of awayDetails) {
+      if (d.isOwnGoal) continue;
+      if (!scorerTally[d.id]) scorerTally[d.id] = { name: d.name, team: awayTeamName, goals: 0 };
+      scorerTally[d.id].goals++;
+    }
+
     recentMatches.push({
       group: group.id,
       homeTeam: homeTeamName,
@@ -156,7 +175,11 @@ function processMatches(rawMatches) {
     count++;
   }
 
-  return { groupScores, recentMatches, cardScores, count };
+  const topScorers = Object.values(scorerTally)
+    .sort((a, b) => b.goals - a.goals)
+    .slice(0, 5);
+
+  return { groupScores, recentMatches, cardScores, topScorers, count };
 }
 
 // ── ESPN scoreboard + summary ─────────────────────────────────────────────
@@ -245,9 +268,11 @@ async function fetchESPN() {
   // Step 2: fetch goalscorers + cards in parallel for all completed matches
   await Promise.all(rawMatches.map(async (m) => {
     if (!m.eventId) return;
-    const { homeScorers, awayScorers, homeCardPts, awayCardPts } = await fetchScorers(m.eventId, m.homeTeamId, m.awayTeamId);
+    const { homeScorers, awayScorers, homeScorerDetails, awayScorerDetails, homeCardPts, awayCardPts } = await fetchScorers(m.eventId, m.homeTeamId, m.awayTeamId);
     m.homeScorers = homeScorers;
     m.awayScorers = awayScorers;
+    m.homeScorerDetails = homeScorerDetails;
+    m.awayScorerDetails = awayScorerDetails;
     m.homeCardPts = homeCardPts;
     m.awayCardPts = awayCardPts;
   }));
@@ -294,11 +319,11 @@ export async function GET() {
       try { rawMatches = await fetchFDO(apiKey); } catch {}
     }
 
-    // Process completed matches → groupScores + recentMatches + cardScores
-    const { groupScores, recentMatches, cardScores, count } =
+    // Process completed matches → groupScores + recentMatches + cardScores + topScorers
+    const { groupScores, recentMatches, cardScores, topScorers, count } =
       rawMatches.length > 0
         ? processMatches(rawMatches)
-        : { groupScores: {}, recentMatches: [], cardScores: {}, count: 0 };
+        : { groupScores: {}, recentMatches: [], cardScores: {}, topScorers: [], count: 0 };
 
     // Process live matches → normalize names, find group, resolve match slot for live standings
     const liveGroupScores = {};
@@ -340,8 +365,8 @@ export async function GET() {
       .filter(Boolean);
 
     const active = count > 0 || liveMatches.length > 0;
-    return Response.json({ groupScores, recentMatches, liveMatches, liveGroupScores, cardScores, count, active });
+    return Response.json({ groupScores, recentMatches, liveMatches, liveGroupScores, cardScores, topScorers, count, active });
   } catch (err) {
-    return Response.json({ groupScores: {}, recentMatches: [], liveMatches: [], liveGroupScores: {}, cardScores: {}, count: 0, active: false, error: err.message });
+    return Response.json({ groupScores: {}, recentMatches: [], liveMatches: [], liveGroupScores: {}, cardScores: {}, topScorers: [], count: 0, active: false, error: err.message });
   }
 }
