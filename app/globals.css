@@ -1230,7 +1230,7 @@ a { color: inherit; }
   background: var(--surface-3);
 }
 .sth-team { grid-column: span 2; }
-.sth-pts { text-align: right; }
+.sth-pts { text-align: left; }
 .sth-status { text-align: right; }
 .standings-row {
   display: grid;
@@ -1248,7 +1248,7 @@ a { color: inherit; }
 .standings-row--out         { background: rgba(220,38,38,.22); }
 .st-pos { font-size: 9px; font-weight: 800; color: var(--dim); }
 .st-name { font-size: 11px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.st-pts { font-weight: 800; color: var(--text); text-align: right; }
+.st-pts { font-weight: 800; color: var(--text); text-align: left; }
 .st-status {
   font-size: 7.5px;
   font-weight: 800;
