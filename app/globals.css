@@ -1440,12 +1440,25 @@ a { color: inherit; }
   .bp-head { flex-direction: column; align-items: flex-start; }
 }
 
-/* ─── Best Third-Place Race ───────────────────────────────────────────── */
-.b3-wrap {
-  max-width: 820px;
+/* ─── Stats Combo Row: Best Third-Place (left) + Scorers/Goals stack (right) ── */
+.stats-combo {
+  max-width: 1280px;
   margin: 0 auto;
   padding: 16px 24px 4px;
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  justify-content: center;
 }
+.stats-combo-left { flex: 1 1 480px; max-width: 600px; min-width: 0; }
+.stats-combo-right { flex: 0 1 360px; max-width: 360px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+@media (max-width: 900px) {
+  .stats-combo { flex-direction: column; align-items: center; }
+  .stats-combo-left, .stats-combo-right { max-width: 480px; flex: 1 1 auto; width: 100%; }
+}
+
+/* ─── Best Third-Place Race ───────────────────────────────────────────── */
+.b3-inner { width: 100%; }
 .b3-head { margin-bottom: 10px; }
 .b3-eyebrow {
   font-size: 10px;
@@ -1507,7 +1520,7 @@ a { color: inherit; }
   gap: 24px;
   align-items: flex-start;
 }
-.ts-col { flex: 0 1 480px; min-width: 0; max-width: 480px; }
+.ts-col { width: 100%; min-width: 0; }
 .ts-head { margin-bottom: 10px; }
 .ts-eyebrow {
   font-size: 10px;
