@@ -1442,53 +1442,52 @@ a { color: inherit; }
 
 /* ─── Best Third-Place Race ───────────────────────────────────────────── */
 .b3-wrap {
-  max-width: 1280px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 20px 24px 4px;
+  padding: 16px 24px 4px;
 }
-.b3-head { margin-bottom: 14px; }
+.b3-head { margin-bottom: 10px; }
 .b3-eyebrow {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: .14em;
+  letter-spacing: .12em;
   color: var(--gold);
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
-.b3-title { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
-.b3-sub { font-size: 12px; color: var(--dim); }
+.b3-title { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 3px; }
+.b3-sub { font-size: 11px; color: var(--dim); }
 .b3-table {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   background: var(--surface);
 }
 .b3-row {
   display: grid;
-  grid-template-columns: 24px 1fr 50px 36px 44px 44px 44px 110px;
+  grid-template-columns: 18px 1fr 28px 36px 36px 36px 90px;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
+  gap: 6px;
+  padding: 6px 12px;
   border-top: 1px solid var(--border);
-  font-size: 12px;
+  font-size: 11px;
 }
 .b3-row:first-child { border-top: none; }
 .b3-row--head {
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 800;
-  letter-spacing: .1em;
+  letter-spacing: .08em;
   color: var(--dim);
   text-transform: uppercase;
   background: var(--surface-3);
-  padding: 7px 14px;
+  padding: 6px 12px;
 }
 .b3-th-team { grid-column: span 1; }
-.b3-th-group, .b3-th-status { text-align: left; }
-.b3-team { display: flex; align-items: center; gap: 7px; min-width: 0; }
-.b3-group { font-size: 10px; font-weight: 700; color: var(--dim); }
-@media (max-width: 760px) {
-  .b3-row { grid-template-columns: 20px 1fr 36px 28px 36px 36px 36px; gap: 6px; padding: 8px 10px; }
-  .b3-row > span:nth-child(8), .b3-row--head > span:nth-child(8) { display: none; }
+.b3-th-status { text-align: left; }
+.b3-team { display: flex; align-items: center; gap: 6px; min-width: 0; }
+@media (max-width: 560px) {
+  .b3-row { grid-template-columns: 16px 1fr 24px 30px 30px 30px; gap: 5px; padding: 6px 10px; }
+  .b3-row > span:nth-child(7), .b3-row--head > span:nth-child(7) { display: none; }
 }
 
 /* ─── Top Scorers ──────────────────────────────────────────────────────── */
