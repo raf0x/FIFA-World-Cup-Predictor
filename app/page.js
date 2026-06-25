@@ -1175,6 +1175,53 @@ function TeamGoals({ teamGoals }) {
   );
 }
 
+function Best3rdPlace({ thirdPlaceStandings }) {
+  if (!thirdPlaceStandings || thirdPlaceStandings.length === 0) return null;
+  const allTeams = GROUPS.flatMap(g => g.teams);
+  return (
+    <div className="b3-wrap">
+      <div className="b3-head">
+        <div className="b3-eyebrow">🥉 Best Third-Place Race</div>
+        <div className="b3-title">Best Third-Place Standings</div>
+        <p className="b3-sub">Live ranking of every group's current 3rd-place team. Top 8 join the Round of 32.</p>
+      </div>
+      <div className="b3-table">
+        <div className="b3-row b3-row--head">
+          <span>#</span>
+          <span className="b3-th-team">Team</span>
+          <span className="b3-th-group">Grp</span>
+          <span>P</span>
+          <span>GD</span>
+          <span>GF</span>
+          <span>PTS</span>
+          <span className="b3-th-status"></span>
+        </div>
+        {thirdPlaceStandings.map((row, i) => {
+          const teamObj = allTeams.find(t => t.name === row.team) || { name: row.team };
+          const status = row.complete
+            ? (row.qualifying ? 'qualified' : 'out')
+            : (row.qualifying ? 'currentlyIn' : 'currentlyOut');
+          const label = row.complete
+            ? (row.qualifying ? 'QUALIFIED R32' : 'OUT')
+            : (row.qualifying ? 'CURRENTLY IN' : 'CURRENTLY OUT');
+          return (
+            <div key={row.groupId} className={`b3-row standings-row--${status}`}>
+              <span className="st-pos">{i + 1}</span>
+              <span className="b3-team"><Flag team={teamObj} size={14} /><span className="st-name">{row.team}</span></span>
+              <span className="b3-group">{row.groupId}</span>
+              <span>{row.played}</span>
+              <span className={row.gd>0?'gd-pos':row.gd<0?'gd-neg':''}>{row.gd>0?'+':''}{row.gd}</span>
+              <span>{row.gf}</span>
+              <span className="st-pts">{row.pts}</span>
+              <span className={`st-status st-status--${status}`}>{label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function BracketPreview({ r32Matchups, onOpenBracket }) {
   const filledCount = r32Matchups.filter(m => m.home.name && m.away.name).length;
   return (
@@ -1455,6 +1502,36 @@ export default function Home() {
     const autoIds = thirds.map(t => t.groupId).filter(id => !thirdPlacePicks.includes(id));
     return [...thirdPlacePicks, ...autoIds].slice(0, 8);
   }, [lockedGroupScores, liveGroupScores, groupScores, thirdPlacePicks, cardScores]);
+
+  // Full standings row for every group's current 3rd-place team, ranked best-to-worst —
+  // this is the same data behind effectiveThirdGroupIds, but kept in full (all 12, not
+  // just the qualifying 8) with team name attached, for the standalone "Best 3rd-Place" table.
+  const thirdPlaceStandings = useMemo(() => {
+    const rows = GROUPS
+      .map(group => {
+        const merged = { ...groupScores };
+        for (const key of Object.keys(lockedGroupScores)) {
+          if (key.startsWith(`${group.id}_`)) merged[key] = lockedGroupScores[key];
+        }
+        for (const key of Object.keys(liveGroupScores)) {
+          if (key.startsWith(`${group.id}_`)) merged[key] = liveGroupScores[key];
+        }
+        const hasAny = GROUP_MATCH_PAIRS.some((_, idx) => {
+          const sc = merged[`${group.id}_${idx}`];
+          return sc && sc.home !== '' && sc.away !== '' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
+        });
+        if (!hasAny) return null;
+        const standings = calcGroupStandings(group, merged, cardScores);
+        const t = standings[2];
+        if (!t) return null;
+        const allLocked = GROUP_MATCH_PAIRS.every((_, idx) => !!lockedGroupScores[`${group.id}_${idx}`]);
+        return { groupId: group.id, team: t.name, pts: t.pts, gd: t.gd, gf: t.gf, played: t.played, conduct: t.conduct, rank: t.rank, complete: allLocked };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || b.conduct - a.conduct || a.rank - b.rank);
+    return rows.map((row, i) => ({ ...row, qualifying: i < 8 }));
+  }, [lockedGroupScores, liveGroupScores, groupScores, cardScores]);
+
 
   const groupComplete = (groupId) => {
     // Complete = all 6 group matches locked by live data
@@ -1971,6 +2048,9 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
           <TeamGoals teamGoals={teamGoals} />
         </div>
       )}
+
+      {/* ── Best Third-Place Race ── */}
+      <Best3rdPlace thirdPlaceStandings={thirdPlaceStandings} />
 
       {/* ── Bracket Preview ── */}
       <BracketPreview r32Matchups={r32Matchups} onOpenBracket={() => scrollTo(bracketRef)} />
