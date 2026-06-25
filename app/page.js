@@ -1193,11 +1193,11 @@ function Best3rdPlace({ thirdPlaceStandings }) {
         <div className="b3-row b3-row--head">
           <span>#</span>
           <span className="b3-th-team">Team</span>
+          <span className="b3-th-next">Next Opponent</span>
           <span>P</span>
           <span>GD</span>
           <span>GF</span>
           <span>PTS</span>
-          <span className="b3-th-next">Next</span>
           <span className="b3-th-status"></span>
         </div>
         {thirdPlaceStandings.map((row, i) => {
@@ -1213,13 +1213,13 @@ function Best3rdPlace({ thirdPlaceStandings }) {
             <div key={row.groupId} className={`b3-row standings-row--${status}`}>
               <span className="st-pos">{i + 1}</span>
               <span className="b3-team"><Flag team={teamObj} size={14} /><span className="st-name">{row.team}</span></span>
+              <span className="b3-next">
+                {opponentObj ? <><Flag team={opponentObj} size={12} /><span className="b3-next-name">{opponentObj.name}</span></> : <span className="b3-next-none">—</span>}
+              </span>
               <span>{row.played}</span>
               <span className={row.gd>0?'gd-pos':row.gd<0?'gd-neg':''}>{row.gd>0?'+':''}{row.gd}</span>
               <span>{row.gf}</span>
               <span className="st-pts">{row.pts}</span>
-              <span className="b3-next">
-                {opponentObj ? <><Flag team={opponentObj} size={12} /><span className="b3-next-name">{opponentObj.name}</span></> : <span className="b3-next-none">—</span>}
-              </span>
               <span className={`st-status st-status--${status}`}>{label}</span>
             </div>
           );
