@@ -1218,7 +1218,8 @@ function Best3rdPlace({ thirdPlaceStandings }) {
                   <>
                     <Flag team={opponentObj} size={12} />
                     <span className="b3-next-name">{opponentObj.name}</span>
-                    {!row.nextOpponentConfirmed && <span className="b3-next-badge">PROJECTED</span>}
+                    {row.nextOpponentLive && <span className="b3-next-badge b3-next-badge--live">LIVE</span>}
+                    {!row.nextOpponentLive && !row.nextOpponentConfirmed && <span className="b3-next-badge">PROJECTED</span>}
                   </>
                 ) : <span className="b3-next-none">—</span>}
               </span>
@@ -1552,23 +1553,26 @@ export default function Home() {
         if (!t) return null;
         const allLocked = GROUP_MATCH_PAIRS.every((_, idx) => !!lockedGroupScores[`${group.id}_${idx}`]);
 
-        // Next opponent: scan this group's fixtures for the first one that's still
-        // unplayed AND involves this exact team. Works regardless of how many matches
-        // any given team has left (0, 1, or 2) — never assumes a fixed schedule.
+        // Next opponent: scan this group's fixtures for the first one that isn't yet
+        // FINALIZED (locked) and involves this exact team. A match can have a score in
+        // `merged` because it's currently live — that's not "played" in the sense that
+        // matters here, since the team is still actively out on the pitch against them.
         const teamIdx = group.teams.findIndex(tm => tm.name === t.name);
         let nextOpponent = null;
+        let nextOpponentLive = false;
         for (let idx = 0; idx < GROUP_MATCH_PAIRS.length; idx++) {
           const [hi, ai] = GROUP_MATCH_PAIRS[idx];
           if (hi !== teamIdx && ai !== teamIdx) continue;
-          const sc = merged[`${group.id}_${idx}`];
-          const played = sc && sc.home !== '' && sc.away !== '' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
-          if (played) continue;
+          const key = `${group.id}_${idx}`;
+          const finalized = !!lockedGroupScores[key];
+          if (finalized) continue;
           const opponentIdx = hi === teamIdx ? ai : hi;
           nextOpponent = group.teams[opponentIdx].name;
+          nextOpponentLive = !!liveGroupScores[key];
           break;
         }
 
-        return { groupId: group.id, team: t.name, pts: t.pts, gd: t.gd, gf: t.gf, played: t.played, conduct: t.conduct, rank: t.rank, complete: allLocked, nextOpponent };
+        return { groupId: group.id, team: t.name, pts: t.pts, gd: t.gd, gf: t.gf, played: t.played, conduct: t.conduct, rank: t.rank, complete: allLocked, nextOpponent, nextOpponentLive };
       })
       .filter(Boolean)
       .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || b.conduct - a.conduct || a.rank - b.rank);
