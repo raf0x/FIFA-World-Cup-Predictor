@@ -1197,10 +1197,12 @@ function Best3rdPlace({ thirdPlaceStandings }) {
           <span>GD</span>
           <span>GF</span>
           <span>PTS</span>
+          <span className="b3-th-next">Next</span>
           <span className="b3-th-status"></span>
         </div>
         {thirdPlaceStandings.map((row, i) => {
           const teamObj = allTeams.find(t => t.name === row.team) || { name: row.team };
+          const opponentObj = row.nextOpponent ? (allTeams.find(t => t.name === row.nextOpponent) || { name: row.nextOpponent }) : null;
           const status = raceSettled
             ? (row.qualifying ? 'qualified' : 'out')
             : (row.qualifying ? 'currentlyIn' : 'currentlyOut');
@@ -1215,6 +1217,9 @@ function Best3rdPlace({ thirdPlaceStandings }) {
               <span className={row.gd>0?'gd-pos':row.gd<0?'gd-neg':''}>{row.gd>0?'+':''}{row.gd}</span>
               <span>{row.gf}</span>
               <span className="st-pts">{row.pts}</span>
+              <span className="b3-next">
+                {opponentObj ? <><Flag team={opponentObj} size={12} /><span className="b3-next-name">{opponentObj.name}</span></> : <span className="b3-next-none">—</span>}
+              </span>
               <span className={`st-status st-status--${status}`}>{label}</span>
             </div>
           );
@@ -1527,7 +1532,24 @@ export default function Home() {
         const t = standings[2];
         if (!t) return null;
         const allLocked = GROUP_MATCH_PAIRS.every((_, idx) => !!lockedGroupScores[`${group.id}_${idx}`]);
-        return { groupId: group.id, team: t.name, pts: t.pts, gd: t.gd, gf: t.gf, played: t.played, conduct: t.conduct, rank: t.rank, complete: allLocked };
+
+        // Next opponent: scan this group's fixtures for the first one that's still
+        // unplayed AND involves this exact team. Works regardless of how many matches
+        // any given team has left (0, 1, or 2) — never assumes a fixed schedule.
+        const teamIdx = group.teams.findIndex(tm => tm.name === t.name);
+        let nextOpponent = null;
+        for (let idx = 0; idx < GROUP_MATCH_PAIRS.length; idx++) {
+          const [hi, ai] = GROUP_MATCH_PAIRS[idx];
+          if (hi !== teamIdx && ai !== teamIdx) continue;
+          const sc = merged[`${group.id}_${idx}`];
+          const played = sc && sc.home !== '' && sc.away !== '' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
+          if (played) continue;
+          const opponentIdx = hi === teamIdx ? ai : hi;
+          nextOpponent = group.teams[opponentIdx].name;
+          break;
+        }
+
+        return { groupId: group.id, team: t.name, pts: t.pts, gd: t.gd, gf: t.gf, played: t.played, conduct: t.conduct, rank: t.rank, complete: allLocked, nextOpponent };
       })
       .filter(Boolean)
       .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || b.conduct - a.conduct || a.rank - b.rank);
