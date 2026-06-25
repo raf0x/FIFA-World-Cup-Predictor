@@ -2065,17 +2065,30 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
         </div>
       </section>
 
-      {/* ── Best Third-Place Race / Top Scorers + Team Goals ── */}
-      {(thirdPlaceStandings.length > 0 || topScorers.length > 0 || teamGoals.length > 0) && (
-        <div className="stats-combo">
-          <div className="stats-combo-left">
-            <Best3rdPlace thirdPlaceStandings={thirdPlaceStandings} />
+      {/* ── Stats: layout changes once the group stage is fully done ── */}
+      {allGroupsDone ? (
+        // Group stage over: the 3rd-place race is settled and folded into the bracket
+        // itself, so this section reverts to the original side-by-side Scorers/Goals view.
+        (topScorers.length > 0 || teamGoals.length > 0) && (
+          <div className="stats-combo stats-combo--final">
+            <div className="stats-combo-right stats-combo-right--row">
+              <TopScorers topScorers={topScorers} />
+              <TeamGoals teamGoals={teamGoals} />
+            </div>
           </div>
-          <div className="stats-combo-right">
-            <TopScorers topScorers={topScorers} />
-            <TeamGoals teamGoals={teamGoals} />
+        )
+      ) : (
+        (thirdPlaceStandings.length > 0 || topScorers.length > 0 || teamGoals.length > 0) && (
+          <div className="stats-combo">
+            <div className="stats-combo-left">
+              <Best3rdPlace thirdPlaceStandings={thirdPlaceStandings} />
+            </div>
+            <div className="stats-combo-right">
+              <TopScorers topScorers={topScorers} />
+              <TeamGoals teamGoals={teamGoals} />
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* ── Bracket Preview ── */}
