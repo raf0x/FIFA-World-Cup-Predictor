@@ -1217,10 +1217,8 @@ function Best3rdPlace({ thirdPlaceStandings }) {
                 {opponentObj ? (
                   <>
                     <Flag team={opponentObj} size={12} />
-                    <span className={`b3-next-name ${row.nextOpponentConfirmed ? 'b3-next-name--confirmed' : 'b3-next-name--provisional'}`}>
-                      {opponentObj.name}
-                    </span>
-                    {!row.nextOpponentConfirmed && <span className="b3-next-tag">?</span>}
+                    <span className="b3-next-name">{opponentObj.name}</span>
+                    {!row.nextOpponentConfirmed && <span className="b3-next-badge">PROJECTED</span>}
                   </>
                 ) : <span className="b3-next-none">—</span>}
               </span>
@@ -1233,7 +1231,7 @@ function Best3rdPlace({ thirdPlaceStandings }) {
           );
         })}
       </div>
-      <p className="b3-legend"><span className="b3-next-tag">?</span> = provisional next opponent, not yet guaranteed</p>
+      <p className="b3-legend"><span className="b3-next-badge">PROJECTED</span> = provisional next opponent, not yet guaranteed</p>
     </div>
   );
 }
