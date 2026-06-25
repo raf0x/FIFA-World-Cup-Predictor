@@ -1216,8 +1216,10 @@ function Best3rdPlace({ thirdPlaceStandings }) {
               <span className="b3-next">
                 {opponentObj ? (
                   <>
-                    <Flag team={opponentObj} size={12} />
-                    <span className="b3-next-name">{opponentObj.name}</span>
+                    <span className="b3-next-line">
+                      <Flag team={opponentObj} size={12} />
+                      <span className="b3-next-name">{opponentObj.name}</span>
+                    </span>
                     {!row.nextOpponentConfirmed && <span className="b3-next-badge">PROJECTED</span>}
                   </>
                 ) : <span className="b3-next-none">—</span>}
