@@ -16,6 +16,8 @@
   --green:       #4ade80;
   --gold:        #f5c142;
   --gold-dim:    rgba(245,193,66,.18);
+  --silver:      #c9d3e0;
+  --silver-dim:  rgba(201,211,224,.18);
   --ease:        cubic-bezier(.22,.68,0,1.2);
   --ease-out:    cubic-bezier(0,.55,.45,1);
 }
@@ -651,9 +653,9 @@ a { color: inherit; }
 .slot-flag { flex-shrink: 0; display: flex; align-items: center; }
 .slot-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .slot-name--wonGroup { color: var(--gold); font-weight: 800; }
-.slot-name--qualified { color: var(--green); font-weight: 800; }
+.slot-name--qualified { color: var(--silver); font-weight: 800; }
 .slotrow--wonGroup:not(.slotrow--pick) { box-shadow: inset 2px 0 0 var(--gold); }
-.slotrow--qualified:not(.slotrow--pick) { box-shadow: inset 2px 0 0 var(--green); }
+.slotrow--qualified:not(.slotrow--pick) { box-shadow: inset 2px 0 0 var(--silver); }
 .slot-adv  { font-size: 10px; color: var(--green); flex-shrink: 0; }
 
 /* Inline score inputs — right of each team row, no extra height */
@@ -1242,7 +1244,7 @@ a { color: inherit; }
   align-items: center;
 }
 .standings-row--wonGroup     { background: rgba(245,193,66,.12); }
-.standings-row--qualified    { background: rgba(74,222,128,.05); }
+.standings-row--qualified    { background: rgba(201,211,224,.10); }
 .standings-row--currentlyIn { background: rgba(74,222,128,.05); }
 .standings-row--currentlyOut{ background: rgba(249,115,22,.18); }
 .standings-row--out         { background: rgba(220,38,38,.22); }
@@ -1257,7 +1259,8 @@ a { color: inherit; }
   line-height: 1.2;
 }
 .st-status--wonGroup { color: var(--gold); }
-.st-status--qualified, .st-status--currentlyIn { color: var(--green); }
+.st-status--qualified { color: var(--silver); }
+.st-status--currentlyIn { color: var(--green); }
 .st-status--currentlyOut { color: #f97316; }
 .st-status--out { color: #ef4444; opacity: 1; }
 .gd-pos { color: var(--green); font-weight: 600; }
@@ -1421,7 +1424,7 @@ a { color: inherit; }
   text-overflow: ellipsis;
 }
 .bp-name--wonGroup { color: var(--gold); font-weight: 800; }
-.bp-name--qualified { color: var(--green); font-weight: 800; }
+.bp-name--qualified { color: var(--silver); font-weight: 800; }
 .bp-vs { font-size: 10px; color: var(--dim); flex-shrink: 0; }
 .bp-foot {
   font-size: 11px;
