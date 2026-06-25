@@ -1478,7 +1478,7 @@ a { color: inherit; }
 }
 .b3-row {
   display: grid;
-  grid-template-columns: 18px 1fr 28px 36px 36px 36px 100px 90px;
+  grid-template-columns: 18px 1fr 110px 28px 36px 36px 36px 90px;
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
@@ -1503,7 +1503,7 @@ a { color: inherit; }
 .b3-next-none { font-size: 11px; color: var(--dim-2); }
 @media (max-width: 560px) {
   .b3-row { grid-template-columns: 16px 1fr 24px 30px 30px 30px; gap: 5px; padding: 6px 10px; }
-  .b3-row > span:nth-child(7), .b3-row--head > span:nth-child(7),
+  .b3-row > span:nth-child(3), .b3-row--head > span:nth-child(3),
   .b3-row > span:nth-child(8), .b3-row--head > span:nth-child(8) { display: none; }
 }
 
