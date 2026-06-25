@@ -1402,11 +1402,18 @@ export default function Home() {
       if (!allFilled) return;
       const standings = calcGroupStandings(group, groupScores, cardScores);
       if (standings.length < 3) return;
-      updates[group.id] = {
+      const newRanks = {
         [standings[0].name]: 1,
         [standings[1].name]: 2,
         [standings[2].name]: 3,
       };
+      // Only register this as an "update" if it actually differs from what's already in
+      // picks — otherwise every 60s live poll re-derives the SAME ranks for groups whose
+      // scores haven't changed, and the bracket gets wiped for no real reason.
+      const existing = picks[group.id] || {};
+      const changed = Object.keys(newRanks).some(name => existing[name] !== newRanks[name])
+        || Object.keys(existing).length !== Object.keys(newRanks).length;
+      if (changed) updates[group.id] = newRanks;
     });
     if (Object.keys(updates).length === 0) return;
     setPicks(prev => ({ ...prev, ...updates }));
@@ -1432,7 +1439,12 @@ export default function Home() {
       .sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf || b.conduct-a.conduct || a.rank-b.rank)
       .slice(0,8)
       .map(t => t.groupId);
-    setThirdPlacePicks(top8);
+    // Only update if the actual set of qualifying groups changed — avoids re-triggering
+    // this on every 60s poll when the top-8 picture hasn't actually moved.
+    setThirdPlacePicks(prev => {
+      const sameSet = prev.length === top8.length && prev.every(id => top8.includes(id));
+      return sameSet ? prev : top8;
+    });
   }, [groupScores, cardScores]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setRank = (groupId, team, rank) => {
