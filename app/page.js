@@ -1178,6 +1178,10 @@ function TeamGoals({ teamGoals }) {
 function Best3rdPlace({ thirdPlaceStandings }) {
   if (!thirdPlaceStandings || thirdPlaceStandings.length === 0) return null;
   const allTeams = GROUPS.flatMap(g => g.teams);
+  // QUALIFIED R32 / OUT only become definitive once EVERY group's matches are finished —
+  // a single team's own group finishing early doesn't lock their spot in the cross-group
+  // race, since other groups still in progress could still push them in or out of the top 8.
+  const raceSettled = thirdPlaceStandings.length === 12 && thirdPlaceStandings.every(r => r.complete);
   return (
     <div className="b3-wrap">
       <div className="b3-head">
@@ -1198,10 +1202,10 @@ function Best3rdPlace({ thirdPlaceStandings }) {
         </div>
         {thirdPlaceStandings.map((row, i) => {
           const teamObj = allTeams.find(t => t.name === row.team) || { name: row.team };
-          const status = row.complete
+          const status = raceSettled
             ? (row.qualifying ? 'qualified' : 'out')
             : (row.qualifying ? 'currentlyIn' : 'currentlyOut');
-          const label = row.complete
+          const label = raceSettled
             ? (row.qualifying ? 'QUALIFIED R32' : 'OUT')
             : (row.qualifying ? 'CURRENTLY IN' : 'CURRENTLY OUT');
           return (
