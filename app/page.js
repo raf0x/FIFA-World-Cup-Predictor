@@ -1629,6 +1629,21 @@ export default function Home() {
     }));
   }, [effectivePicks, thirdAssignment, groupScores, lockedGroupScores, liveGroupScores, cardScores]);
   const r16Matchups = useMemo(() => R16_PAIRS.map(([hi,ai]) => ({ home:resolveWinner(r32Matchups[hi],bracketPicks.r32[hi]), away:resolveWinner(r32Matchups[ai],bracketPicks.r32[ai]) })), [r32Matchups, bracketPicks.r32]);
+
+  // Best Third-Place "Next Opponent" fallback: once a team's own group is fully done
+  // (no more in-group fixtures left), check if they've locked into a specific R32 slot
+  // yet — if their actual knockout opponent is already determined, show that instead of
+  // a blank dash. Falls back to null (rendered as "—") if the R32 slot is still TBD.
+  const thirdPlaceStandingsWithNextOpp = useMemo(() => {
+    return thirdPlaceStandings.map(row => {
+      if (row.nextOpponent) return row; // still has an in-group fixture left, keep that
+      const matchup = r32Matchups.find(m => m.home.name === row.team || m.away.name === row.team);
+      if (!matchup) return row;
+      const opponent = matchup.home.name === row.team ? matchup.away : matchup.home;
+      if (!opponent.name) return row; // R32 slot still TBD, nothing to show yet
+      return { ...row, nextOpponent: opponent.name };
+    });
+  }, [thirdPlaceStandings, r32Matchups]);
   const qfMatchups  = useMemo(() => QF_PAIRS.map(([hi,ai]) => ({ home:resolveWinner(r16Matchups[hi],bracketPicks.r16[hi]), away:resolveWinner(r16Matchups[ai],bracketPicks.r16[ai]) })), [r16Matchups, bracketPicks.r16]);
   const sfMatchups  = useMemo(() => SF_PAIRS.map(([hi,ai]) => ({ home:resolveWinner(qfMatchups[hi],bracketPicks.qf[hi]), away:resolveWinner(qfMatchups[ai],bracketPicks.qf[ai]) })), [qfMatchups, bracketPicks.qf]);
   const finalMatchup = useMemo(() => ({ home:resolveWinner(sfMatchups[0],bracketPicks.sf[0]), away:resolveWinner(sfMatchups[1],bracketPicks.sf[1]) }), [sfMatchups, bracketPicks.sf]);
@@ -2093,7 +2108,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
         (thirdPlaceStandings.length > 0 || topScorers.length > 0 || teamGoals.length > 0) && (
           <div className="stats-combo">
             <div className="stats-combo-left">
-              <Best3rdPlace thirdPlaceStandings={thirdPlaceStandings} />
+              <Best3rdPlace thirdPlaceStandings={thirdPlaceStandingsWithNextOpp} />
             </div>
             <div className="stats-combo-right">
               <TopScorers topScorers={topScorers} />
