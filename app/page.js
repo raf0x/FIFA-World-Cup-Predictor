@@ -1214,7 +1214,15 @@ function Best3rdPlace({ thirdPlaceStandings }) {
               <span className="st-pos">{i + 1}</span>
               <span className="b3-team"><Flag team={teamObj} size={14} /><span className="st-name">{row.team}</span></span>
               <span className="b3-next">
-                {opponentObj ? <><Flag team={opponentObj} size={12} /><span className="b3-next-name">{opponentObj.name}</span></> : <span className="b3-next-none">—</span>}
+                {opponentObj ? (
+                  <>
+                    <Flag team={opponentObj} size={12} />
+                    <span className={`b3-next-name ${row.nextOpponentConfirmed ? 'b3-next-name--confirmed' : 'b3-next-name--provisional'}`}>
+                      {opponentObj.name}
+                    </span>
+                    {!row.nextOpponentConfirmed && <span className="b3-next-tag">?</span>}
+                  </>
+                ) : <span className="b3-next-none">—</span>}
               </span>
               <span>{row.played}</span>
               <span className={row.gd>0?'gd-pos':row.gd<0?'gd-neg':''}>{row.gd>0?'+':''}{row.gd}</span>
@@ -1225,6 +1233,7 @@ function Best3rdPlace({ thirdPlaceStandings }) {
           );
         })}
       </div>
+      <p className="b3-legend"><span className="b3-next-tag">?</span> = provisional next opponent, not yet guaranteed</p>
     </div>
   );
 }
@@ -1634,16 +1643,27 @@ export default function Home() {
   // (no more in-group fixtures left), check if they've locked into a specific R32 slot
   // yet — if their actual knockout opponent is already determined, show that instead of
   // a blank dash. Falls back to null (rendered as "—") if the R32 slot is still TBD.
+  //
+  // "Confirmed" (guaranteed, not provisional) requires BOTH:
+  //   1. The opponent itself is a mathematically locked group winner/runner-up
+  //      (the same confirmedRank flag used to highlight teams gold/silver elsewhere).
+  //   2. The best-8 third-place race as a whole is settled (all 12 groups finished) —
+  //      because even if today's Annex C scenario happens to point at this matchup,
+  //      the qualifying 8 groups themselves could still change before the race ends,
+  //      which can shift which slot this team lands in entirely.
+  const raceSettled = thirdPlaceStandings.length === 12 && thirdPlaceStandings.every(r => r.complete);
   const thirdPlaceStandingsWithNextOpp = useMemo(() => {
     return thirdPlaceStandings.map(row => {
-      if (row.nextOpponent) return row; // still has an in-group fixture left, keep that
+      // An in-group fixture is a scheduled fact, not a prediction — always certain.
+      if (row.nextOpponent) return { ...row, nextOpponentConfirmed: true };
       const matchup = r32Matchups.find(m => m.home.name === row.team || m.away.name === row.team);
       if (!matchup) return row;
       const opponent = matchup.home.name === row.team ? matchup.away : matchup.home;
       if (!opponent.name) return row; // R32 slot still TBD, nothing to show yet
-      return { ...row, nextOpponent: opponent.name };
+      const nextOpponentConfirmed = !!opponent.confirmed && raceSettled;
+      return { ...row, nextOpponent: opponent.name, nextOpponentConfirmed };
     });
-  }, [thirdPlaceStandings, r32Matchups]);
+  }, [thirdPlaceStandings, r32Matchups, raceSettled]);
   const qfMatchups  = useMemo(() => QF_PAIRS.map(([hi,ai]) => ({ home:resolveWinner(r16Matchups[hi],bracketPicks.r16[hi]), away:resolveWinner(r16Matchups[ai],bracketPicks.r16[ai]) })), [r16Matchups, bracketPicks.r16]);
   const sfMatchups  = useMemo(() => SF_PAIRS.map(([hi,ai]) => ({ home:resolveWinner(qfMatchups[hi],bracketPicks.qf[hi]), away:resolveWinner(qfMatchups[ai],bracketPicks.qf[ai]) })), [qfMatchups, bracketPicks.qf]);
   const finalMatchup = useMemo(() => ({ home:resolveWinner(sfMatchups[0],bracketPicks.sf[0]), away:resolveWinner(sfMatchups[1],bracketPicks.sf[1]) }), [sfMatchups, bracketPicks.sf]);
