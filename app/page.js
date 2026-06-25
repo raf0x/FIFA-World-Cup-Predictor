@@ -1183,7 +1183,7 @@ function Best3rdPlace({ thirdPlaceStandings }) {
   // race, since other groups still in progress could still push them in or out of the top 8.
   const raceSettled = thirdPlaceStandings.length === 12 && thirdPlaceStandings.every(r => r.complete);
   return (
-    <div className="b3-wrap">
+    <div className="b3-inner">
       <div className="b3-head">
         <div className="b3-eyebrow">🥉 Best Third-Place Race</div>
         <div className="b3-title">Best Third-Place Standings</div>
@@ -2065,16 +2065,18 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
         </div>
       </section>
 
-      {/* ── Top Scorers / Team Goals ── */}
-      {(topScorers.length > 0 || teamGoals.length > 0) && (
-        <div className="ts-wrap ts-wrap--row">
-          <TopScorers topScorers={topScorers} />
-          <TeamGoals teamGoals={teamGoals} />
+      {/* ── Best Third-Place Race / Top Scorers + Team Goals ── */}
+      {(thirdPlaceStandings.length > 0 || topScorers.length > 0 || teamGoals.length > 0) && (
+        <div className="stats-combo">
+          <div className="stats-combo-left">
+            <Best3rdPlace thirdPlaceStandings={thirdPlaceStandings} />
+          </div>
+          <div className="stats-combo-right">
+            <TopScorers topScorers={topScorers} />
+            <TeamGoals teamGoals={teamGoals} />
+          </div>
         </div>
       )}
-
-      {/* ── Best Third-Place Race ── */}
-      <Best3rdPlace thirdPlaceStandings={thirdPlaceStandings} />
 
       {/* ── Bracket Preview ── */}
       <BracketPreview r32Matchups={r32Matchups} onOpenBracket={() => scrollTo(bracketRef)} />
