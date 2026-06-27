@@ -225,6 +225,71 @@ function isGroupTeamConfirmedExactRank(targetTeamName, group, groupScores, cardS
   return isGroupTeamConfirmedAt(targetTeamName, group, groupScores, cardScores, pos => pos === targetRank);
 }
 
+// Confirmation check: is the qualifying SET of best-8 third-place groups mathematically
+// locked, given everyone else's CURRENT standing held fixed? This does NOT require every
+// group to be finished — only that no remaining match, in any still-incomplete group, could
+// possibly move that group's 3rd-place team across the qualifying boundary (in or out).
+//
+// Why per-group checks are sufficient (not a full cross-group simulation): any real change
+// to the qualifying set requires SOME group's own remaining results to be the direct cause
+// of a team crossing the boundary. Checking each group's own worst/best case against the
+// CURRENT frozen state of every other group can only ever be over-cautious — it might keep
+// something flagged as "not yet locked" a touch longer than the mathematical minimum in rare
+// cases, but it can never incorrectly call something locked when it actually isn't. That
+// safety direction is what matters: never falsely promise certainty.
+function isThirdPlaceSetLocked(rows, groupsById, groupScoresById, cardScores) {
+  if (rows.length < 12) return false; // not every group has even started yet
+  const cutoffPts = rows[7]?.pts, cutoffGd = rows[7]?.gd, cutoffGf = rows[7]?.gf,
+        cutoffConduct = rows[7]?.conduct, cutoffRank = rows[7]?.rank;
+
+  for (const row of rows) {
+    const group = groupsById[row.groupId];
+    const merged = groupScoresById[row.groupId];
+    const remainingIdx = [];
+    GROUP_MATCH_PAIRS.forEach((_, idx) => {
+      const sc = merged[`${row.groupId}_${idx}`];
+      const played = sc && sc.home !== '' && sc.away !== '' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
+      if (!played) remainingIdx.push(idx);
+    });
+    if (remainingIdx.length === 0) continue; // this group is done, its 3rd place can't move
+
+    // Try every outcome of THIS group's remaining matches; check if the team's resulting
+    // (pts, gd, gf, conduct, rank) tuple could cross the current cutoff in either direction.
+    function crossesBoundary(remaining, overlay) {
+      if (remaining.length === 0) {
+        const standings = calcGroupStandings(group, { ...merged, ...overlay }, cardScores);
+        // Must look up the TARGET team by name, not by position — under a simulated
+        // outcome the order of teams can shift, so "whoever is 3rd now" is not necessarily
+        // the same team we started tracking. Misattributing another team's stats here was
+        // a real bug that could produce impossible point totals for the tracked team.
+        const t = standings.find(s => s.name === row.team);
+        if (!t) return false;
+        const cmp = (a,b) => a !== undefined && b !== undefined ? (a===b?0:a>b?1:-1) : 0;
+        // Compare this simulated outcome against the CURRENT 8th-place benchmark using the
+        // same tiebreaker order as the real ranking: pts -> gd -> gf -> conduct -> rank.
+        let order = -cmp(t.pts, cutoffPts);
+        if (order === 0) order = -cmp(t.gd, cutoffGd);
+        if (order === 0) order = -cmp(t.gf, cutoffGf);
+        if (order === 0) order = -cmp(t.conduct, cutoffConduct);
+        if (order === 0) order = cmp(t.rank, cutoffRank);
+        const wouldQualify = order < 0; // strictly better than current 8th place
+        // A boundary "cross" happened if this team's qualifying status under this simulated
+        // outcome differs from their CURRENT qualifying status.
+        return wouldQualify !== row.qualifying;
+      }
+      const [idx, ...rest] = remaining;
+      const key = `${row.groupId}_${idx}`;
+      for (const [a, b] of SIMULATION_SCORELINES) {
+        if (crossesBoundary(rest, { ...overlay, [key]: { home: a, away: b } })) return true;
+      }
+      return false;
+    }
+    if (crossesBoundary(remainingIdx, {})) return false; // this team could still cross the line
+  }
+  return true; // no team's own remaining matches can move the boundary — set is locked
+}
+
+
 // ─── Helpers ──────────────────────────────────────────────────────────────
 function getTeamByRank(picks, groupId, rank) {
   const p = picks[groupId] || {};
@@ -1178,10 +1243,10 @@ function TeamGoals({ teamGoals }) {
 function Best3rdPlace({ thirdPlaceStandings }) {
   if (!thirdPlaceStandings || thirdPlaceStandings.length === 0) return null;
   const allTeams = GROUPS.flatMap(g => g.teams);
-  // QUALIFIED R32 / OUT only become definitive once EVERY group's matches are finished —
-  // a single team's own group finishing early doesn't lock their spot in the cross-group
-  // race, since other groups still in progress could still push them in or out of the top 8.
-  const raceSettled = thirdPlaceStandings.length === 12 && thirdPlaceStandings.every(r => r.complete);
+  // QUALIFIED R32 / OUT become definitive once the qualifying SET of 8 groups is
+  // mathematically locked — which can happen well before every group finishes, the moment
+  // no remaining match anywhere could still swap who's in the top 8. See isThirdPlaceSetLocked.
+  const raceSettled = thirdPlaceStandings.length === 12 && !!thirdPlaceStandings[0]?.setLocked;
   return (
     <div className="b3-inner">
       <div className="b3-head">
@@ -1533,7 +1598,9 @@ export default function Home() {
   // Full standings row for every group's current 3rd-place team, ranked best-to-worst —
   // this is the same data behind effectiveThirdGroupIds, but kept in full (all 12, not
   // just the qualifying 8) with team name attached, for the standalone "Best 3rd-Place" table.
+  const groupsById = useMemo(() => Object.fromEntries(GROUPS.map(g => [g.id, g])), []);
   const thirdPlaceStandings = useMemo(() => {
+    const groupScoresById = {};
     const rows = GROUPS
       .map(group => {
         const merged = { ...groupScores };
@@ -1543,6 +1610,7 @@ export default function Home() {
         for (const key of Object.keys(liveGroupScores)) {
           if (key.startsWith(`${group.id}_`)) merged[key] = liveGroupScores[key];
         }
+        groupScoresById[group.id] = merged;
         const hasAny = GROUP_MATCH_PAIRS.some((_, idx) => {
           const sc = merged[`${group.id}_${idx}`];
           return sc && sc.home !== '' && sc.away !== '' && !isNaN(Number(sc.home)) && !isNaN(Number(sc.away));
@@ -1576,8 +1644,12 @@ export default function Home() {
       })
       .filter(Boolean)
       .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || b.conduct - a.conduct || a.rank - b.rank);
-    return rows.map((row, i) => ({ ...row, qualifying: i < 8 }));
-  }, [lockedGroupScores, liveGroupScores, groupScores, cardScores]);
+    const ranked = rows.map((row, i) => ({ ...row, qualifying: i < 8 }));
+    // Compute whether the qualifying SET is mathematically locked, given current standings.
+    // This can become true well before every group finishes — see isThirdPlaceSetLocked.
+    const setLocked = isThirdPlaceSetLocked(ranked, groupsById, groupScoresById, cardScores);
+    return ranked.map(row => ({ ...row, setLocked }));
+  }, [lockedGroupScores, liveGroupScores, groupScores, cardScores, groupsById]);
 
 
   const groupComplete = (groupId) => {
@@ -1649,11 +1721,10 @@ export default function Home() {
   // "Confirmed" (guaranteed, not provisional) requires BOTH:
   //   1. The opponent itself is a mathematically locked group winner/runner-up
   //      (the same confirmedRank flag used to highlight teams gold/silver elsewhere).
-  //   2. The best-8 third-place race as a whole is settled (all 12 groups finished) —
-  //      because even if today's Annex C scenario happens to point at this matchup,
-  //      the qualifying 8 groups themselves could still change before the race ends,
-  //      which can shift which slot this team lands in entirely.
-  const raceSettled = thirdPlaceStandings.length === 12 && thirdPlaceStandings.every(r => r.complete);
+  //   2. The best-8 third-place SET is mathematically locked — see isThirdPlaceSetLocked.
+  //      This can become true well before every group finishes, the moment no remaining
+  //      match anywhere could still swap who's in the qualifying top 8.
+  const raceSettled = thirdPlaceStandings.length === 12 && !!thirdPlaceStandings[0]?.setLocked;
   const thirdPlaceStandingsWithNextOpp = useMemo(() => {
     return thirdPlaceStandings.map(row => {
       // An in-group fixture is a scheduled fact, not a prediction — always certain.
