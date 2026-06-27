@@ -408,7 +408,18 @@ function GroupScorePanel({ group, groupScores, onScoreChange, lockedGroupScores,
       const confirmed = isGroupTeamConfirmedExactRank(teamName, group, displayScores, cardScores, 1);
       return confirmed ? 'qualified' : 'currentlyIn';
     }
-    if (pos === 2) return isThirdQualified ? 'currentlyIn' : 'currentlyOut';
+    if (pos === 2) {
+      // A 3rd-place team whose OWN GROUP has finished, and who is NOT currently in the
+      // live best-8, is permanently out — their own stats are frozen and other groups'
+      // results can never retroactively hand them points they don't have. Mirrors the
+      // same fix already applied to the Best Third-Place standings table. This is distinct
+      // from isGroupTeamEliminated, which answers a different question (can they still
+      // finish top-3 WITHIN their own group) — Uruguay, for example, already IS 3rd in
+      // their own group, so that check would never fire; what matters here is whether
+      // their own group being done makes their best-8 elimination permanent.
+      if (complete && !isThirdQualified) return 'out';
+      return isThirdQualified ? 'currentlyIn' : 'currentlyOut';
+    }
     const eliminated = isGroupTeamEliminated(teamName, group, displayScores, cardScores);
     return eliminated ? 'out' : 'currentlyOut';
   };
