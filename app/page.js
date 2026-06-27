@@ -320,7 +320,10 @@ function resolveDesc(desc, picks, thirdAssignment, scoreCtx) {
   const name = getTeamByRank(picks, groupId, 3);
   if (!name) return { name:null, flag:null, display:`3 ${groupId}`, confirmed:false };
   const obj = getTeamObj(groupId, name);
-  return { name, flag:obj?.flag||'', display:name, confirmed:false };
+  // Third-place teams are confirmed once the best-8 SET itself is mathematically locked
+  // (see isThirdPlaceSetLocked) — passed in via scoreCtx once that's known at the Home level.
+  const confirmed = !!scoreCtx?.thirdPlaceSetLocked;
+  return { name, flag:obj?.flag||'', display:name, confirmed, confirmedRank: confirmed ? 3 : null };
 }
 function resolveWinner(matchup, pickedName) {
   if (!pickedName) return { name:null, flag:null, display:'TBD' };
@@ -586,7 +589,7 @@ function ThirdPlacePicker({ candidates, picks, allGroupsDone, onToggle }) {
 }
 
 // ─── Bracket components ────────────────────────────────────────────────────
-function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreChange, badgePos = 'top' }) {
+function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreChange, badgePos = 'top', allGroupsDone = false }) {
   const { home, away } = matchup;
   const bothKnown = home.name && away.name;
   const info = matchNum ? MATCH_SCHEDULE[matchNum] : null;
@@ -616,8 +619,12 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
         const isOther = picked && picked !== team.name;
         const clickable = bothKnown && team.name;
         const side = i === 0 ? 'home' : 'away';
-        const confirmedClass = team.confirmedRank === 1 ? 'slotrow--wonGroup' : team.confirmedRank === 2 ? 'slotrow--qualified' : '';
-        const nameConfirmedClass = team.confirmedRank === 1 ? 'slot-name--wonGroup' : team.confirmedRank === 2 ? 'slot-name--qualified' : '';
+        const confirmedClass = allGroupsDone
+          ? (team.confirmedRank ? 'slotrow--wonGroup' : '')
+          : (team.confirmedRank === 1 ? 'slotrow--wonGroup' : team.confirmedRank === 2 ? 'slotrow--qualified' : '');
+        const nameConfirmedClass = allGroupsDone
+          ? (team.confirmedRank ? 'slot-name--wonGroup' : '')
+          : (team.confirmedRank === 1 ? 'slot-name--wonGroup' : team.confirmedRank === 2 ? 'slot-name--qualified' : '');
         return (
           <div key={i} className="slot-team-row">
             <button
@@ -1044,7 +1051,7 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
                    finalMatchup, thirdMatchup, bracketPicks, pickBracket,
                    champion, championObj, r32Done, r16Done, qfDone, sfDone,
                    finalScore, onFinalScoreChange,
-                   bracketScores, setBracketScore }) {
+                   bracketScores, setBracketScore, allGroupsDone }) {
   return (
     <>
       <div className="tree-scroll">
@@ -1054,32 +1061,32 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
             {GROUPS.slice(0,6).map(g => <GroupBox key={g.id} group={g} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_L.r32.map(idx => <BracketSlot key={idx} matchup={r32Matchups[idx]} picked={bracketPicks.r32[idx]} onPick={n=>pickBracket('r32',idx,n)} matchNum={73+idx} score={bracketScores[`r32_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r32',idx,s,v)} />)}
+            {BRACKET_L.r32.map(idx => <BracketSlot allGroupsDone={allGroupsDone} key={idx} matchup={r32Matchups[idx]} picked={bracketPicks.r32[idx]} onPick={n=>pickBracket('r32',idx,n)} matchNum={73+idx} score={bracketScores[`r32_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r32',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_L.r16.map(idx => <BracketSlot key={idx} matchup={r16Matchups[idx]} picked={bracketPicks.r16[idx]} onPick={n=>pickBracket('r16',idx,n)} matchNum={89+idx} score={bracketScores[`r16_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r16',idx,s,v)} />)}
+            {BRACKET_L.r16.map(idx => <BracketSlot allGroupsDone={allGroupsDone} key={idx} matchup={r16Matchups[idx]} picked={bracketPicks.r16[idx]} onPick={n=>pickBracket('r16',idx,n)} matchNum={89+idx} score={bracketScores[`r16_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r16',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_L.qf.map(idx => <BracketSlot key={idx} matchup={qfMatchups[idx]} picked={bracketPicks.qf[idx]} onPick={n=>pickBracket('qf',idx,n)} matchNum={97+idx} score={bracketScores[`qf_${idx}`]} onScoreChange={(s,v)=>setBracketScore('qf',idx,s,v)} />)}
+            {BRACKET_L.qf.map(idx => <BracketSlot allGroupsDone={allGroupsDone} key={idx} matchup={qfMatchups[idx]} picked={bracketPicks.qf[idx]} onPick={n=>pickBracket('qf',idx,n)} matchNum={97+idx} score={bracketScores[`qf_${idx}`]} onScoreChange={(s,v)=>setBracketScore('qf',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            <BracketSlot matchup={sfMatchups[0]} picked={bracketPicks.sf[0]} onPick={n=>pickBracket('sf',0,n)} matchNum={101} score={bracketScores['sf_0']} onScoreChange={(s,v)=>setBracketScore('sf',0,s,v)} />
+            <BracketSlot allGroupsDone={allGroupsDone} matchup={sfMatchups[0]} picked={bracketPicks.sf[0]} onPick={n=>pickBracket('sf',0,n)} matchNum={101} score={bracketScores['sf_0']} onScoreChange={(s,v)=>setBracketScore('sf',0,s,v)} />
           </div>
           <ChampionReveal champion={champion} championObj={championObj}
             finalMatchup={finalMatchup} thirdMatchup={thirdMatchup}
             bracketPicks={bracketPicks} pickBracket={pickBracket}
             finalScore={finalScore} onFinalScoreChange={onFinalScoreChange} />
           <div className="tree-col">
-            <BracketSlot matchup={sfMatchups[1]} picked={bracketPicks.sf[1]} onPick={n=>pickBracket('sf',1,n)} matchNum={102} score={bracketScores['sf_1']} onScoreChange={(s,v)=>setBracketScore('sf',1,s,v)} />
+            <BracketSlot allGroupsDone={allGroupsDone} matchup={sfMatchups[1]} picked={bracketPicks.sf[1]} onPick={n=>pickBracket('sf',1,n)} matchNum={102} score={bracketScores['sf_1']} onScoreChange={(s,v)=>setBracketScore('sf',1,s,v)} />
           </div>
           <div className="tree-col">
-            {BRACKET_R.qf.map(idx => <BracketSlot key={idx} matchup={qfMatchups[idx]} picked={bracketPicks.qf[idx]} onPick={n=>pickBracket('qf',idx,n)} matchNum={97+idx} score={bracketScores[`qf_${idx}`]} onScoreChange={(s,v)=>setBracketScore('qf',idx,s,v)} />)}
+            {BRACKET_R.qf.map(idx => <BracketSlot allGroupsDone={allGroupsDone} key={idx} matchup={qfMatchups[idx]} picked={bracketPicks.qf[idx]} onPick={n=>pickBracket('qf',idx,n)} matchNum={97+idx} score={bracketScores[`qf_${idx}`]} onScoreChange={(s,v)=>setBracketScore('qf',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_R.r16.map(idx => <BracketSlot key={idx} matchup={r16Matchups[idx]} picked={bracketPicks.r16[idx]} onPick={n=>pickBracket('r16',idx,n)} matchNum={89+idx} score={bracketScores[`r16_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r16',idx,s,v)} />)}
+            {BRACKET_R.r16.map(idx => <BracketSlot allGroupsDone={allGroupsDone} key={idx} matchup={r16Matchups[idx]} picked={bracketPicks.r16[idx]} onPick={n=>pickBracket('r16',idx,n)} matchNum={89+idx} score={bracketScores[`r16_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r16',idx,s,v)} />)}
           </div>
           <div className="tree-col">
-            {BRACKET_R.r32.map(idx => <BracketSlot key={idx} matchup={r32Matchups[idx]} picked={bracketPicks.r32[idx]} onPick={n=>pickBracket('r32',idx,n)} matchNum={73+idx} score={bracketScores[`r32_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r32',idx,s,v)} />)}
+            {BRACKET_R.r32.map(idx => <BracketSlot allGroupsDone={allGroupsDone} key={idx} matchup={r32Matchups[idx]} picked={bracketPicks.r32[idx]} onPick={n=>pickBracket('r32',idx,n)} matchNum={73+idx} score={bracketScores[`r32_${idx}`]} onScoreChange={(s,v)=>setBracketScore('r32',idx,s,v)} />)}
           </div>
           <div className="tree-col tree-groups">
             {GROUPS.slice(6).map(g => <GroupBox key={g.id} group={g} />)}
@@ -1302,7 +1309,7 @@ function Best3rdPlace({ thirdPlaceStandings }) {
   );
 }
 
-function BracketPreview({ r32Matchups, onOpenBracket }) {
+function BracketPreview({ r32Matchups, onOpenBracket, allGroupsDone = false }) {
   const filledCount = r32Matchups.filter(m => m.home.name && m.away.name).length;
   return (
     <div className="bp-wrap">
@@ -1317,8 +1324,12 @@ function BracketPreview({ r32Matchups, onOpenBracket }) {
       </div>
       <div className="bp-grid">
         {r32Matchups.map((m, i) => {
-          const homeClass = m.home.confirmedRank === 1 ? 'bp-name--wonGroup' : m.home.confirmedRank === 2 ? 'bp-name--qualified' : '';
-          const awayClass = m.away.confirmedRank === 1 ? 'bp-name--wonGroup' : m.away.confirmedRank === 2 ? 'bp-name--qualified' : '';
+          const homeClass = allGroupsDone
+            ? (m.home.confirmedRank ? 'bp-name--wonGroup' : '')
+            : (m.home.confirmedRank === 1 ? 'bp-name--wonGroup' : m.home.confirmedRank === 2 ? 'bp-name--qualified' : '');
+          const awayClass = allGroupsDone
+            ? (m.away.confirmedRank ? 'bp-name--wonGroup' : '')
+            : (m.away.confirmedRank === 1 ? 'bp-name--wonGroup' : m.away.confirmedRank === 2 ? 'bp-name--qualified' : '');
           return (
             <div key={i} className="bp-match">
               <div className="bp-side">
@@ -1705,12 +1716,13 @@ export default function Home() {
   }, [effectiveThirdGroupIds]);
 
   const r32Matchups = useMemo(() => {
-    const scoreCtx = { groupScores, lockedGroupScores, liveGroupScores, cardScores };
+    const thirdPlaceSetLocked = thirdPlaceStandings.length === 12 && !!thirdPlaceStandings[0]?.setLocked;
+    const scoreCtx = { groupScores, lockedGroupScores, liveGroupScores, cardScores, thirdPlaceSetLocked };
     return R32_DEFS.map(([h,a]) => ({
       home: resolveDesc(h, effectivePicks, thirdAssignment, scoreCtx),
       away: resolveDesc(a, effectivePicks, thirdAssignment, scoreCtx),
     }));
-  }, [effectivePicks, thirdAssignment, groupScores, lockedGroupScores, liveGroupScores, cardScores]);
+  }, [effectivePicks, thirdAssignment, groupScores, lockedGroupScores, liveGroupScores, cardScores, thirdPlaceStandings]);
   const r16Matchups = useMemo(() => R16_PAIRS.map(([hi,ai]) => ({ home:resolveWinner(r32Matchups[hi],bracketPicks.r32[hi]), away:resolveWinner(r32Matchups[ai],bracketPicks.r32[ai]) })), [r32Matchups, bracketPicks.r32]);
 
   // Best Third-Place "Next Opponent" fallback: once a team's own group is fully done
@@ -2212,7 +2224,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
       )}
 
       {/* ── Bracket Preview ── */}
-      <BracketPreview r32Matchups={r32Matchups} onOpenBracket={() => scrollTo(bracketRef)} />
+      <BracketPreview r32Matchups={r32Matchups} onOpenBracket={() => scrollTo(bracketRef)} allGroupsDone={allGroupsDone} />
 
       {/* ── Score Carousel ── */}
       <ScoreCarousel matches={recentMatches} liveMatches={liveMatches} />
@@ -2301,7 +2313,8 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
           champion={champion} championObj={championObj}
           r32Done={r32Done} r16Done={r16Done} qfDone={qfDone} sfDone={sfDone}
           finalScore={finalScore} onFinalScoreChange={setFinalScore}
-          bracketScores={bracketScores} setBracketScore={setBracketScore} />
+          bracketScores={bracketScores} setBracketScore={setBracketScore}
+          allGroupsDone={allGroupsDone} />
       </section>
 
       <footer className="footer">
