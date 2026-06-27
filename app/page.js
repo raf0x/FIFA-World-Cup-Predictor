@@ -1275,10 +1275,17 @@ function Best3rdPlace({ thirdPlaceStandings }) {
         {thirdPlaceStandings.map((row, i) => {
           const teamObj = allTeams.find(t => t.name === row.team) || { name: row.team };
           const opponentObj = row.nextOpponent ? (allTeams.find(t => t.name === row.nextOpponent) || { name: row.nextOpponent }) : null;
-          const status = raceSettled
+          // A team whose own group has finished AND who is not currently in the top 8 is
+          // settled OUT immediately — their own stats are frozen and can only ever fall
+          // further behind as other groups improve, never catch up. This does NOT apply in
+          // reverse: a frozen team CURRENTLY qualifying can still be bumped out later by a
+          // still-playing group's 3rd place team overtaking them, so that case still needs
+          // the full raceSettled (whole-set) lock before it's truly definitive.
+          const rowSettled = raceSettled || (row.complete && !row.qualifying);
+          const status = rowSettled
             ? (row.qualifying ? 'qualified' : 'out')
             : (row.qualifying ? 'currentlyIn' : 'currentlyOut');
-          const label = raceSettled
+          const label = rowSettled
             ? (row.qualifying ? 'QUALIFIED R32' : 'OUT')
             : (row.qualifying ? 'CURRENTLY IN' : 'CURRENTLY OUT');
           return (
