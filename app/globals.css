@@ -1277,7 +1277,8 @@ a { color: inherit; }
 
 /* ─── Final Score Prediction ─────────────────────────────────────────────── */
 .final-score-wrap {
-  margin-top: 10px;
+  width: 175px;
+  margin: 10px auto 0;
   padding: 10px 12px;
   background: var(--surface-2);
   border: 1px solid var(--border);
