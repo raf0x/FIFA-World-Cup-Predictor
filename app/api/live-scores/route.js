@@ -328,6 +328,7 @@ export async function GET() {
 
     // Process live matches → normalize names, find group, resolve match slot for live standings
     const liveGroupScores = {};
+    const liveKnockout = [];
     const liveMatches = liveRawMatches
       .map(m => {
         const hNorm = normalize(m.homeTeam);
@@ -335,7 +336,19 @@ export async function GET() {
         const group = GROUPS.find(g =>
           findTeamIdx(g, hNorm) !== -1 && findTeamIdx(g, aNorm) !== -1
         );
-        if (!group) return null;
+        if (!group) {
+          // Not a group-stage pairing -> treat as a live knockout match.
+          // The frontend maps it to the right bracket slot by team name.
+          liveKnockout.push({
+            homeTeam: hNorm,
+            awayTeam: aNorm,
+            homeScore: m.homeScore,
+            awayScore: m.awayScore,
+            clock: m.clock,
+            period: m.period,
+          });
+          return null;
+        }
 
         const hi = findTeamIdx(group, hNorm);
         const ai = findTeamIdx(group, aNorm);
@@ -365,9 +378,9 @@ export async function GET() {
       })
       .filter(Boolean);
 
-    const active = count > 0 || liveMatches.length > 0;
-    return Response.json({ groupScores, recentMatches, liveMatches, liveGroupScores, cardScores, topScorers, count, active });
+    const active = count > 0 || liveMatches.length > 0 || liveKnockout.length > 0;
+    return Response.json({ groupScores, recentMatches, liveMatches, liveKnockout, liveGroupScores, cardScores, topScorers, count, active });
   } catch (err) {
-    return Response.json({ groupScores: {}, recentMatches: [], liveMatches: [], liveGroupScores: {}, cardScores: {}, topScorers: [], count: 0, active: false, error: err.message });
+    return Response.json({ groupScores: {}, recentMatches: [], liveMatches: [], liveKnockout: [], liveGroupScores: {}, cardScores: {}, topScorers: [], count: 0, active: false, error: err.message });
   }
 }
