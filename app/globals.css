@@ -551,7 +551,7 @@ a { color: inherit; }
   display: flex;
   align-items: stretch;
   gap: 6px;
-  height: 640px;
+  min-height: 640px;
   width: fit-content;
   margin: 0 auto;
 }
@@ -559,7 +559,7 @@ a { color: inherit; }
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-  height: 640px;
+  min-height: 640px;
 }
 .tree-groups { width: 60px; gap: 0; }
 .bracket-svg {
