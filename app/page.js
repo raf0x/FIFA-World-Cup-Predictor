@@ -670,11 +670,6 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
   return (
     <div className="slot-wrap" data-badgepos={badgePos}>
       {matchNum && <span className="slot-matchnum">M{matchNum}</span>}
-      {live && (
-        <span className="slot-live">
-          <span className="slot-live-dot" />LIVE{live.clock ? ` · ${live.clock}` : ''}
-        </span>
-      )}
       <div className={`slot ${wide ? 'slot--wide' : ''} ${live ? 'slot--live' : ''}`} title={title} ref={slotRef}>
       {[home, away].map((team, i) => {
         const isPicked = team.name !== null && picked === team.name;
@@ -712,7 +707,12 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
           </div>
         );
       })}
-      {info && !wide && (
+      {live && !wide && (
+        <div className="slot-meta slot-meta--live">
+          <span className="slot-live-dot" />LIVE{live.clock ? ` · ${live.clock}` : ''}
+        </div>
+      )}
+      {info && !live && !wide && (
         <div className="slot-meta">{info.date.replace(/^\w+\s/, '')} · {VENUE_SHORT[info.venue] || info.venue}</div>
       )}
       </div>
