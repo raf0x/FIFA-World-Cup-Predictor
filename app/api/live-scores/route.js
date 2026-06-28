@@ -231,6 +231,8 @@ async function fetchESPN() {
             awayTeam:   awayC.team?.displayName || awayC.team?.name || '',
             homeScore:  hScore,
             awayScore:  aScore,
+            homeWinner: homeC.winner === true,
+            awayWinner: awayC.winner === true,
             homeTeamId: homeC.team?.id || null,
             awayTeamId: awayC.team?.id || null,
             eventId:    event.id || null,
@@ -326,6 +328,31 @@ export async function GET() {
         ? processMatches(rawMatches)
         : { groupScores: {}, recentMatches: [], cardScores: {}, topScorers: [], count: 0 };
 
+    // Completed knockout matches: any finished match that isn't a group pairing.
+    // Winner comes from ESPN's winner flag (correct even after penalties); if that's
+    // missing we fall back to the full-time score, and leave winner null on a draw.
+    const completedKnockout = [];
+    for (const m of rawMatches) {
+      const hNorm = normalize(m.homeTeam);
+      const aNorm = normalize(m.awayTeam);
+      const group = GROUPS.find(g =>
+        findTeamIdx(g, hNorm) !== -1 && findTeamIdx(g, aNorm) !== -1
+      );
+      if (group) continue; // group match, already handled
+      let winner = null;
+      if (m.homeWinner) winner = hNorm;
+      else if (m.awayWinner) winner = aNorm;
+      else if (m.homeScore > m.awayScore) winner = hNorm;
+      else if (m.awayScore > m.homeScore) winner = aNorm;
+      completedKnockout.push({
+        homeTeam: hNorm,
+        awayTeam: aNorm,
+        homeScore: m.homeScore,
+        awayScore: m.awayScore,
+        winner, // null only if a draw with no winner flag (shouldn't happen in knockouts)
+      });
+    }
+
     // Process live matches → normalize names, find group, resolve match slot for live standings
     const liveGroupScores = {};
     const liveKnockout = [];
@@ -379,8 +406,8 @@ export async function GET() {
       .filter(Boolean);
 
     const active = count > 0 || liveMatches.length > 0 || liveKnockout.length > 0;
-    return Response.json({ groupScores, recentMatches, liveMatches, liveKnockout, liveGroupScores, cardScores, topScorers, count, active });
+    return Response.json({ groupScores, recentMatches, liveMatches, liveKnockout, completedKnockout, liveGroupScores, cardScores, topScorers, count, active });
   } catch (err) {
-    return Response.json({ groupScores: {}, recentMatches: [], liveMatches: [], liveKnockout: [], liveGroupScores: {}, cardScores: {}, topScorers: [], count: 0, active: false, error: err.message });
+    return Response.json({ groupScores: {}, recentMatches: [], liveMatches: [], liveKnockout: [], completedKnockout: [], liveGroupScores: {}, cardScores: {}, topScorers: [], count: 0, active: false, error: err.message });
   }
 }
