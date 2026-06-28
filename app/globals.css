@@ -646,7 +646,7 @@ a { color: inherit; }
 .slotrow:first-child { border-top: none; }
 .slotrow--live { color: var(--text); }
 .slotrow--live:hover { background: var(--surface-2); cursor: pointer; }
-.slotrow--pick { background: rgba(74,222,128,.08); color: var(--green) !important; animation: pickFlash .35s ease; }
+.slotrow--pick { background: rgba(74,222,128,.18); color: var(--green) !important; box-shadow: inset 2px 0 0 var(--green); animation: pickFlash .35s ease; }
 @keyframes pickFlash {
   0%   { background: rgba(74,222,128,.28); }
   100% { background: rgba(74,222,128,.08); }
@@ -657,6 +657,7 @@ a { color: inherit; }
 .slot-name--wonGroup { color: var(--gold); font-weight: 800; }
 .slot-name--qualified { color: var(--silver); font-weight: 800; }
 .slot-name--final { color: var(--text); font-weight: 800; }
+.slotrow--out .slot-name--final { color: var(--dim-2) !important; font-weight: 500; }
 .slotrow--wonGroup:not(.slotrow--pick) { box-shadow: inset 2px 0 0 var(--gold); }
 .slotrow--qualified:not(.slotrow--pick) { box-shadow: inset 2px 0 0 var(--silver); }
 .slot-adv  { font-size: 10px; color: var(--green); flex-shrink: 0; }
