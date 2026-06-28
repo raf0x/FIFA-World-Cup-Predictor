@@ -1455,7 +1455,7 @@ a { color: inherit; }
 .stats-combo-left { flex: 1 1 560px; max-width: 700px; min-width: 0; }
 .stats-combo-right { flex: 0 1 360px; max-width: 360px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
 .stats-combo--final { max-width: 1280px; padding-bottom: 32px; }
-.stats-combo-right--row { flex-direction: row; gap: 24px; margin: 0 auto; }
+.stats-combo-right--row { flex: 0 1 auto; max-width: 1100px; width: 100%; flex-direction: row; gap: 24px; margin: 0 auto; }
 @media (max-width: 900px) {
   .stats-combo { flex-direction: column; align-items: center; }
   .stats-combo-left, .stats-combo-right { max-width: 480px; flex: 1 1 auto; width: 100%; }
