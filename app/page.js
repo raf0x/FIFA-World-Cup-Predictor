@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef, useLayoutEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useLayoutEffect, useCallback, createContext, useContext } from 'react';
 import { GROUPS } from '../lib/groups';
 import { ANNEX_C } from '../lib/annex_c';
 import { MATCH_SCHEDULE, VENUE_SHORT } from '../lib/schedule';
@@ -630,9 +630,25 @@ function ThirdPlacePicker({ candidates, picks, allGroupsDone, onToggle }) {
 }
 
 // ─── Bracket components ────────────────────────────────────────────────────
+const LiveKnockoutContext = createContext([]);
+
+// Orient a live knockout match to a slot's home/away by team name, or null.
+function matchLiveToSlot(liveKnockout, home, away) {
+  if (!liveKnockout?.length || !home?.name || !away?.name) return null;
+  const h = home.name.toLowerCase(), a = away.name.toLowerCase();
+  for (const m of liveKnockout) {
+    const mh = (m.homeTeam || '').toLowerCase(), ma = (m.awayTeam || '').toLowerCase();
+    if (mh === h && ma === a) return { home: m.homeScore, away: m.awayScore, clock: m.clock };
+    if (mh === a && ma === h) return { home: m.awayScore, away: m.homeScore, clock: m.clock };
+  }
+  return null;
+}
+
 function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreChange, badgePos = 'top', allGroupsDone = false, slotRef }) {
   const { home, away } = matchup;
   const bothKnown = home.name && away.name;
+  const liveKnockout = useContext(LiveKnockoutContext);
+  const live = bothKnown ? matchLiveToSlot(liveKnockout, home, away) : null;
   const info = matchNum ? MATCH_SCHEDULE[matchNum] : null;
   const title = info ? `M${matchNum} · ${info.date} · ${info.time} · ${info.venue}` : undefined;
 
@@ -654,12 +670,18 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
   return (
     <div className="slot-wrap" data-badgepos={badgePos}>
       {matchNum && <span className="slot-matchnum">M{matchNum}</span>}
-      <div className={`slot ${wide ? 'slot--wide' : ''}`} title={title} ref={slotRef}>
+      {live && (
+        <span className="slot-live">
+          <span className="slot-live-dot" />LIVE{live.clock ? ` · ${live.clock}` : ''}
+        </span>
+      )}
+      <div className={`slot ${wide ? 'slot--wide' : ''} ${live ? 'slot--live' : ''}`} title={title} ref={slotRef}>
       {[home, away].map((team, i) => {
         const isPicked = team.name !== null && picked === team.name;
         const isOther = picked && picked !== team.name;
-        const clickable = bothKnown && team.name;
+        const clickable = bothKnown && team.name && !live;
         const side = i === 0 ? 'home' : 'away';
+        const liveVal = live ? live[side] : null;
         const confirmedClass = allGroupsDone
           ? '' // once the bracket is fully locked, every team gets the same bold-white treatment via slot-name--final below, no left-border accent needed
           : (team.confirmedRank === 1 ? 'slotrow--wonGroup' : team.confirmedRank === 2 ? 'slotrow--qualified' : '');
@@ -676,7 +698,10 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
               <span className={`slot-name ${nameConfirmedClass}`}>{team.name || team.display}</span>
               {isPicked && <span className="slot-adv">▸</span>}
             </button>
-            {bothKnown && onScoreChange && (
+            {bothKnown && live && (
+              <span className="slot-score-live">{liveVal}</span>
+            )}
+            {bothKnown && !live && onScoreChange && (
               <input
                 className={`slot-score-inp ${isPicked ? 'slot-score-inp--pick' : isOther ? 'slot-score-inp--out' : ''}`}
                 type="number" min="0" max="30" placeholder="–"
@@ -1147,7 +1172,7 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
                    finalMatchup, thirdMatchup, bracketPicks, pickBracket,
                    champion, championObj, r32Done, r16Done, qfDone, sfDone,
                    finalScore, onFinalScoreChange,
-                   bracketScores, setBracketScore, allGroupsDone }) {
+                   bracketScores, setBracketScore, allGroupsDone, liveKnockout }) {
   const treeRef = useRef(null);
   const slotRefs = useRef({});
   const refCache = useRef({});
@@ -1161,7 +1186,7 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
     return refCache.current[key];
   }, []);
   return (
-    <>
+    <LiveKnockoutContext.Provider value={liveKnockout || []}>
       <div className="tree-scroll">
         <div className="tree" style={{ minWidth:1492 }} ref={treeRef}>
           <BracketConnectors treeRef={treeRef} slotRefs={slotRefs} />
@@ -1293,7 +1318,7 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
           </div>
         )}
       </div>
-    </>
+    </LiveKnockoutContext.Provider>
   );
 }
 
@@ -1481,6 +1506,7 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [liveMatches, setLiveMatches] = useState([]);
+  const [liveKnockout, setLiveKnockout] = useState([]);
   const [groupScores, setGroupScores] = useState({});
   const [lockedGroupScores, setLockedGroupScores] = useState({});
   const [liveGroupScores, setLiveGroupScores] = useState({}); // provisional, in-progress match scores
@@ -1562,6 +1588,7 @@ export default function Home() {
           if (data.recentMatches?.length > 0)
             setRecentMatches(data.recentMatches.map(enrich).slice(-6));
           setLiveMatches((data.liveMatches || []).map(enrich));
+          setLiveKnockout(data.liveKnockout || []);
           setLiveGroupScores(data.liveGroupScores || {}); // full snapshot — clears once a match finishes (moves to lockedGroupScores instead)
           if (data.cardScores) setCardScores(data.cardScores); // full snapshot each poll, not incremental
           if (data.topScorers) setTopScorers(data.topScorers); // full snapshot, top 5 already sorted server-side
@@ -2332,6 +2359,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
           r32Done={r32Done} r16Done={r16Done} qfDone={qfDone} sfDone={sfDone}
           finalScore={finalScore} onFinalScoreChange={setFinalScore}
           bracketScores={bracketScores} setBracketScore={setBracketScore}
+          liveKnockout={liveKnockout}
           allGroupsDone={allGroupsDone} />
       </section>
 
