@@ -2241,8 +2241,27 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
         )
       )}
 
-      {/* ── Bracket Preview ── */}
-      <BracketPreview r32Matchups={r32Matchups} onOpenBracket={() => scrollTo(bracketRef)} allGroupsDone={allGroupsDone} />
+      {/* ── Bracket ── */}
+      <section ref={bracketRef} style={{ background:'var(--bg)', paddingTop:48, paddingBottom:48 }}>
+        <div style={{ maxWidth:1280, margin:'0 auto', padding:'0 24px 24px' }}>
+          <div className="section-head">
+            <div className="eyebrow" style={{ color:'#f5c142' }}>Stage 03 · Knockout</div>
+            <h2 className="section-title">The Road to the Final</h2>
+            <p className="section-desc">
+              The group stage is complete — every matchup below is locked in. Click a team to advance them through the bracket.
+            </p>
+          </div>
+        </div>
+        <Bracket thirdPlaceDone={thirdPlaceDone}
+          r32Matchups={r32Matchups} r16Matchups={r16Matchups} qfMatchups={qfMatchups} sfMatchups={sfMatchups}
+          finalMatchup={finalMatchup} thirdMatchup={thirdMatchup}
+          bracketPicks={bracketPicks} pickBracket={pickBracket}
+          champion={champion} championObj={championObj}
+          r32Done={r32Done} r16Done={r16Done} qfDone={qfDone} sfDone={sfDone}
+          finalScore={finalScore} onFinalScoreChange={setFinalScore}
+          bracketScores={bracketScores} setBracketScore={setBracketScore}
+          allGroupsDone={allGroupsDone} />
+      </section>
 
       {/* ── Score Carousel ── */}
       <ScoreCarousel matches={recentMatches} liveMatches={liveMatches} />
@@ -2311,29 +2330,6 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
           )}
         </section>
       </div>
-
-      {/* ── Bracket ── */}
-      <section ref={bracketRef} style={{ background:'var(--bg)', paddingTop:48, paddingBottom:48 }}>
-        <div style={{ maxWidth:1280, margin:'0 auto', padding:'0 24px 24px' }}>
-          <div className="section-head">
-            <div className="eyebrow" style={{ color:'#f5c142' }}>Stage 03 · Knockout</div>
-            <h2 className="section-title">The Road to the Final</h2>
-            <p className="section-desc">
-              Pairings reflect group standings <b>as they stand today</b> — updated automatically as matches are played.
-              Click a team to advance them through the bracket.
-            </p>
-          </div>
-        </div>
-        <Bracket thirdPlaceDone={thirdPlaceDone}
-          r32Matchups={r32Matchups} r16Matchups={r16Matchups} qfMatchups={qfMatchups} sfMatchups={sfMatchups}
-          finalMatchup={finalMatchup} thirdMatchup={thirdMatchup}
-          bracketPicks={bracketPicks} pickBracket={pickBracket}
-          champion={champion} championObj={championObj}
-          r32Done={r32Done} r16Done={r16Done} qfDone={qfDone} sfDone={sfDone}
-          finalScore={finalScore} onFinalScoreChange={setFinalScore}
-          bracketScores={bracketScores} setBracketScore={setBracketScore}
-          allGroupsDone={allGroupsDone} />
-      </section>
 
       <footer className="footer">
         <span>World Cup 2026 Predictor · fan-made, not affiliated with FIFA</span>
