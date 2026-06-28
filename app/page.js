@@ -985,7 +985,7 @@ function ChampionCelebration({ show, champion, championObj, onDismiss }) {
   );
 }
 
-function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bracketPicks, pickBracket, finalScore, onFinalScoreChange }) {
+function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bracketPicks, pickBracket, finalScore, onFinalScoreChange, allGroupsDone }) {
   const sfHome = finalMatchup.home;
   const sfAway = finalMatchup.away;
   return (
@@ -1021,7 +1021,7 @@ function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bra
       {/* Final match */}
       <div className="champ-match">
         <div className="champ-match-label champ-final-label">FINAL · JUL 19 · NY/NJ</div>
-        <BracketSlot matchup={finalMatchup} picked={bracketPicks.final} onPick={n => pickBracket('final',0,n)} matchNum={104} wide badgePos="bottom" />
+        <BracketSlot matchup={finalMatchup} picked={bracketPicks.final} onPick={n => pickBracket('final',0,n)} matchNum={104} wide badgePos="bottom" allGroupsDone={allGroupsDone} />
 
         {/* Score prediction — shown when both finalists are known */}
         {finalMatchup.home.name && finalMatchup.away.name && (
@@ -1052,7 +1052,7 @@ function ChampionReveal({ champion, championObj, finalMatchup, thirdMatchup, bra
       {/* 3rd place */}
       <div className="champ-match">
         <div className="champ-match-label">3rd Place · Jul 18 · Miami</div>
-        <BracketSlot matchup={thirdMatchup} picked={bracketPicks.thirdPlace} onPick={n => pickBracket('thirdPlace',0,n)} matchNum={103} wide badgePos="bottom" />
+        <BracketSlot matchup={thirdMatchup} picked={bracketPicks.thirdPlace} onPick={n => pickBracket('thirdPlace',0,n)} matchNum={103} wide badgePos="bottom" allGroupsDone={allGroupsDone} />
       </div>
     </div>
   );
@@ -1086,7 +1086,8 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
           <ChampionReveal champion={champion} championObj={championObj}
             finalMatchup={finalMatchup} thirdMatchup={thirdMatchup}
             bracketPicks={bracketPicks} pickBracket={pickBracket}
-            finalScore={finalScore} onFinalScoreChange={onFinalScoreChange} />
+            finalScore={finalScore} onFinalScoreChange={onFinalScoreChange}
+            allGroupsDone={allGroupsDone} />
           <div className="tree-col">
             <BracketSlot allGroupsDone={allGroupsDone} matchup={sfMatchups[1]} picked={bracketPicks.sf[1]} onPick={n=>pickBracket('sf',1,n)} matchNum={102} score={bracketScores['sf_1']} onScoreChange={(s,v)=>setBracketScore('sf',1,s,v)} />
           </div>
