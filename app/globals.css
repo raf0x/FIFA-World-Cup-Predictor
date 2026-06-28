@@ -849,8 +849,7 @@ a { color: inherit; }
 /* Mobile bracket */
 .tree-mobile { display: none; }
 @media (max-width: 1280px) {
-  .tree-scroll { display: none; }
-  .tree-mobile { display: block; }
+  .tree-scroll { -webkit-overflow-scrolling: touch; }
 }
 
 .round-head { margin-bottom: 16px; }
