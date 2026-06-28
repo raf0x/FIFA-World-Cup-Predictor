@@ -628,7 +628,7 @@ a { color: inherit; }
 }
 .slot-wrap[data-badgepos="bottom"] .slot-matchnum {
   top: auto;
-  bottom: 0;
+  bottom: 13px;
 }
 
 .slotrow {
