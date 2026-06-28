@@ -1537,7 +1537,7 @@ a { color: inherit; }
   gap: 24px;
   align-items: flex-start;
 }
-.ts-col { width: 100%; min-width: 0; }
+.ts-col { flex: 1 1 0; min-width: 220px; }
 .ts-head { margin-bottom: 10px; }
 .ts-eyebrow {
   font-size: 10px;
@@ -1555,7 +1555,7 @@ a { color: inherit; }
 }
 .ts-row {
   display: grid;
-  grid-template-columns: 14px 16px 1fr auto 60px 20px;
+  grid-template-columns: 14px 16px minmax(60px, 1fr) auto 60px 20px;
   align-items: center;
   gap: 7px;
   background: var(--surface);
