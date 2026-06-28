@@ -631,10 +631,10 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
         const clickable = bothKnown && team.name;
         const side = i === 0 ? 'home' : 'away';
         const confirmedClass = allGroupsDone
-          ? (team.confirmedRank ? 'slotrow--wonGroup' : '')
+          ? '' // once the bracket is fully locked, every team gets the same bold-white treatment via slot-name--final below, no left-border accent needed
           : (team.confirmedRank === 1 ? 'slotrow--wonGroup' : team.confirmedRank === 2 ? 'slotrow--qualified' : '');
         const nameConfirmedClass = allGroupsDone
-          ? (team.confirmedRank ? 'slot-name--wonGroup' : '')
+          ? 'slot-name--final'
           : (team.confirmedRank === 1 ? 'slot-name--wonGroup' : team.confirmedRank === 2 ? 'slot-name--qualified' : '');
         return (
           <div key={i} className="slot-team-row">
@@ -1343,10 +1343,10 @@ function BracketPreview({ r32Matchups, onOpenBracket, allGroupsDone = false }) {
       <div className="bp-grid">
         {r32Matchups.map((m, i) => {
           const homeClass = allGroupsDone
-            ? (m.home.confirmedRank ? 'bp-name--wonGroup' : '')
+            ? 'bp-name--final'
             : (m.home.confirmedRank === 1 ? 'bp-name--wonGroup' : m.home.confirmedRank === 2 ? 'bp-name--qualified' : '');
           const awayClass = allGroupsDone
-            ? (m.away.confirmedRank ? 'bp-name--wonGroup' : '')
+            ? 'bp-name--final'
             : (m.away.confirmedRank === 1 ? 'bp-name--wonGroup' : m.away.confirmedRank === 2 ? 'bp-name--qualified' : '');
           return (
             <div key={i} className="bp-match">
@@ -2215,6 +2215,28 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
         </div>
       </section>
 
+      {/* ── Bracket ── */}
+      <section ref={bracketRef} style={{ background:'var(--bg)', paddingTop:48, paddingBottom:48 }}>
+        <div style={{ maxWidth:1280, margin:'0 auto', padding:'0 24px 24px' }}>
+          <div className="section-head">
+            <div className="eyebrow" style={{ color:'#f5c142' }}>Stage 03 · Knockout</div>
+            <h2 className="section-title">The Road to the Final</h2>
+            <p className="section-desc">
+              The group stage is complete — every matchup below is locked in. Click a team to advance them through the bracket.
+            </p>
+          </div>
+        </div>
+        <Bracket thirdPlaceDone={thirdPlaceDone}
+          r32Matchups={r32Matchups} r16Matchups={r16Matchups} qfMatchups={qfMatchups} sfMatchups={sfMatchups}
+          finalMatchup={finalMatchup} thirdMatchup={thirdMatchup}
+          bracketPicks={bracketPicks} pickBracket={pickBracket}
+          champion={champion} championObj={championObj}
+          r32Done={r32Done} r16Done={r16Done} qfDone={qfDone} sfDone={sfDone}
+          finalScore={finalScore} onFinalScoreChange={setFinalScore}
+          bracketScores={bracketScores} setBracketScore={setBracketScore}
+          allGroupsDone={allGroupsDone} />
+      </section>
+
       {/* ── Stats: layout changes once the group stage is fully done ── */}
       {allGroupsDone ? (
         // Group stage over: the 3rd-place race is settled and folded into the bracket
@@ -2240,28 +2262,6 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
           </div>
         )
       )}
-
-      {/* ── Bracket ── */}
-      <section ref={bracketRef} style={{ background:'var(--bg)', paddingTop:48, paddingBottom:48 }}>
-        <div style={{ maxWidth:1280, margin:'0 auto', padding:'0 24px 24px' }}>
-          <div className="section-head">
-            <div className="eyebrow" style={{ color:'#f5c142' }}>Stage 03 · Knockout</div>
-            <h2 className="section-title">The Road to the Final</h2>
-            <p className="section-desc">
-              The group stage is complete — every matchup below is locked in. Click a team to advance them through the bracket.
-            </p>
-          </div>
-        </div>
-        <Bracket thirdPlaceDone={thirdPlaceDone}
-          r32Matchups={r32Matchups} r16Matchups={r16Matchups} qfMatchups={qfMatchups} sfMatchups={sfMatchups}
-          finalMatchup={finalMatchup} thirdMatchup={thirdMatchup}
-          bracketPicks={bracketPicks} pickBracket={pickBracket}
-          champion={champion} championObj={championObj}
-          r32Done={r32Done} r16Done={r16Done} qfDone={qfDone} sfDone={sfDone}
-          finalScore={finalScore} onFinalScoreChange={setFinalScore}
-          bracketScores={bracketScores} setBracketScore={setBracketScore}
-          allGroupsDone={allGroupsDone} />
-      </section>
 
       {/* ── Score Carousel ── */}
       <ScoreCarousel matches={recentMatches} liveMatches={liveMatches} />
