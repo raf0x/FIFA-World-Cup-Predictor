@@ -360,10 +360,40 @@ const QF_PAIRS  = [[0,1],[4,5],[2,3],[6,7]];
 const SF_PAIRS  = [[0,1],[2,3]];
 
 // ─── Flag component ────────────────────────────────────────────────────────
+// Map subdivision monograms to flagcdn's codes; everything else derives from the emoji.
+const FLAG_SUBDIV = { eng: 'gb-eng', sco: 'gb-sct', wal: 'gb-wls' };
+
+// A regional-indicator emoji (🇲🇽) is two codepoints 127397 above 'A'/'B'.
+// Convert back to the ISO-2 code (mx) that flagcdn serves SVGs for.
+function emojiToIso2(f) {
+  if (typeof f !== 'string') return null;
+  const cps = Array.from(f).map(c => c.codePointAt(0));
+  if (cps.length === 2 && cps.every(cp => cp >= 0x1F1E6 && cp <= 0x1F1FF)) {
+    return cps.map(cp => String.fromCharCode(cp - 0x1F1E6 + 97)).join('');
+  }
+  return null;
+}
+
 function Flag({ team, size = 18 }) {
   const f = team && typeof team === 'object' ? team.flag : team;
-  const isMono = typeof f === 'string' && /^[a-z]{2,3}$/.test(f);
+  const [failed, setFailed] = useState(false);
   if (!f) return <span style={{ fontSize: size }}>⚽</span>;
+
+  const code = (typeof f === 'string' && FLAG_SUBDIV[f.toLowerCase()]) || emojiToIso2(f);
+
+  if (code && !failed) {
+    return (
+      <img
+        src={`https://flagcdn.com/${code}.svg`}
+        alt=""
+        onError={() => setFailed(true)}
+        style={{ width: size + 6, height: size - 1, objectFit: 'cover', borderRadius: 2, flexShrink: 0, display: 'block' }}
+      />
+    );
+  }
+
+  // Fallbacks: subdivision monogram chip, or the raw emoji.
+  const isMono = typeof f === 'string' && /^[a-z]{2,3}$/.test(f);
   if (isMono) {
     return (
       <span className="flagmono" style={{ width: size + 6, height: size - 1, fontSize: size * 0.46 }}>
