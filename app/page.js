@@ -696,8 +696,16 @@ function BracketLines() {
     [332,400,332,560], [332,480,338,480],
     // Left QF vertical + horizontal exit
     [468,160,468,480], [468,320,474,320],
-    // Left SF → center
+    // Left SF → center hub, branching down into Final and 3rd-place
     [604,320,610,320],
+    [610,320,610,441],
+    [610,335,626,335],
+    [610,441,626,441],
+    // Right SF → center hub, branching down into Final and 3rd-place
+    [888,320,882,320],
+    [882,320,882,441],
+    [882,335,866,335],
+    [882,441,866,441],
     // Right R32 vertical pairs + horizontal exits
     [1296,40,1296,120],  [1290,80,1296,80],
     [1296,200,1296,280], [1290,240,1296,240],
@@ -708,8 +716,6 @@ function BracketLines() {
     [1160,400,1160,560], [1154,480,1160,480],
     // Right QF vertical + horizontal exit
     [1024,160,1024,480], [1018,320,1024,320],
-    // Right center → SF
-    [882,320,888,320],
   ];
   return (
     <svg width="1492" height="640" className="bracket-svg" style={{ minWidth:1492 }}>
