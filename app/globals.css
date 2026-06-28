@@ -636,7 +636,7 @@ a { color: inherit; }
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 5px 10px;
   border: none;
   font-size: 12px;
   text-align: left;
@@ -695,11 +695,10 @@ a { color: inherit; }
 
 .slot-meta {
   padding: 2px 0 1px;
-  font-size: 9px;
+  font-size: 7.5px;
   line-height: 1.1;
   font-weight: 700;
-  letter-spacing: .03em;
-  text-transform: uppercase;
+  letter-spacing: .01em;
   text-align: center;
   color: #ef4444;
   background: rgba(239,68,68,.08);
