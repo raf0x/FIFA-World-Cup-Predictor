@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { GROUPS } from '../lib/groups';
 import { ANNEX_C } from '../lib/annex_c';
-import { MATCH_SCHEDULE } from '../lib/schedule';
+import { MATCH_SCHEDULE, VENUE_SHORT } from '../lib/schedule';
 import { supabase } from '../lib/supabase';
 
 // ─── Design tokens ────────────────────────────────────────────────────────
@@ -657,6 +657,9 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
           </div>
         );
       })}
+      {info && !wide && (
+        <div className="slot-meta">{info.date.replace(/^\w+\s/, '')} · {VENUE_SHORT[info.venue] || info.venue}</div>
+      )}
       </div>
     </div>
   );
@@ -677,39 +680,39 @@ function GroupBox({ group }) {
 }
 
 function BracketLines() {
-  // Geometry: 130px slots, 640px height, 6px gaps
+  // Geometry: 768px height (scaled 1.2x from original 640px to fit date/venue captions)
   // Left column right edges:  R32=196, R16=332, QF=468, SF=604
   // Right column left edges:  SF=888, QF=1024, R16=1160, R32=1296
-  // Slot centers (justify-around, 640px): R32=40,120,200,280,360,440,520,600
-  // R16=80,240,400,560 | QF=160,480 | SF=320
+  // Slot centers (justify-around, 768px): R32=48,144,240,336,432,528,624,720
+  // R16=96,288,480,672 | QF=192,576 | SF=384
   const lines = [
     // Left R32 vertical pairs + horizontal exits
-    [196,40,196,120],  [196,80,202,80],
-    [196,200,196,280], [196,240,202,240],
-    [196,360,196,440], [196,400,202,400],
-    [196,520,196,600], [196,560,202,560],
+    [196,48,196,144],  [196,96,202,96],
+    [196,240,196,336], [196,288,202,288],
+    [196,432,196,528], [196,480,202,480],
+    [196,624,196,720], [196,672,202,672],
     // Left R16 vertical pairs + horizontal exits
-    [332,80,332,240],  [332,160,338,160],
-    [332,400,332,560], [332,480,338,480],
+    [332,96,332,288],  [332,192,338,192],
+    [332,480,332,672], [332,576,338,576],
     // Left QF vertical + horizontal exit
-    [468,160,468,480], [468,320,474,320],
+    [468,192,468,576], [468,384,474,384],
     // Left SF → center
-    [604,320,610,320],
+    [604,384,610,384],
     // Right R32 vertical pairs + horizontal exits
-    [1296,40,1296,120],  [1290,80,1296,80],
-    [1296,200,1296,280], [1290,240,1296,240],
-    [1296,360,1296,440], [1290,400,1296,400],
-    [1296,520,1296,600], [1290,560,1296,560],
+    [1296,48,1296,144],  [1290,96,1296,96],
+    [1296,240,1296,336], [1290,288,1296,288],
+    [1296,432,1296,528], [1290,480,1296,480],
+    [1296,624,1296,720], [1290,672,1296,672],
     // Right R16 vertical pairs + horizontal exits
-    [1160,80,1160,240],  [1154,160,1160,160],
-    [1160,400,1160,560], [1154,480,1160,480],
+    [1160,96,1160,288],  [1154,192,1160,192],
+    [1160,480,1160,672], [1154,576,1160,576],
     // Right QF vertical + horizontal exit
-    [1024,160,1024,480], [1018,320,1024,320],
+    [1024,192,1024,576], [1018,384,1024,384],
     // Right center → SF
-    [882,320,888,320],
+    [882,384,888,384],
   ];
   return (
-    <svg width="1492" height="640" className="bracket-svg" style={{ minWidth:1492 }}>
+    <svg width="1492" height="768" className="bracket-svg" style={{ minWidth:1492 }}>
       {lines.map(([x1,y1,x2,y2],i) => (
         <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
           stroke="rgba(99,132,185,0.55)" strokeWidth="1.5" strokeLinecap="round" />
