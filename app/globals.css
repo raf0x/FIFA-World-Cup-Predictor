@@ -545,20 +545,21 @@ a { color: inherit; }
 .locked--big  { padding: 48px; font-size: 15px; }
 
 /* ─── Bracket tree ────────────────────────────────────────────────────────── */
-.tree-scroll { overflow-x: auto; padding-bottom: 20px; display: flex; flex-direction: column; align-items: center; }
+.tree-scroll { overflow-x: auto; padding-bottom: 20px; }
 .tree {
   position: relative;
   display: flex;
   align-items: stretch;
   gap: 6px;
-  height: 768px;
-  min-width: 1492px;
+  height: 640px;
+  width: fit-content;
+  margin: 0 auto;
 }
 .tree-col {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-  height: 768px;
+  height: 640px;
 }
 .tree-groups { width: 60px; gap: 0; }
 .bracket-svg {
@@ -572,7 +573,8 @@ a { color: inherit; }
   display: flex;
   align-items: center;
   gap: 6px;
-  min-width: 1492px;
+  width: fit-content;
+  margin: 0 auto;
   padding: 10px 0 0;
 }
 .tlabel {
@@ -634,7 +636,7 @@ a { color: inherit; }
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 10px;
+  padding: 5px 10px;
   border: none;
   font-size: 12px;
   text-align: left;
@@ -692,8 +694,9 @@ a { color: inherit; }
 .slot-score-inp--out  { color: var(--dim-2); }
 
 .slot-meta {
-  padding: 4px 0;
-  font-size: 9px;
+  padding: 2px 0 1px;
+  font-size: 8px;
+  line-height: 1;
   font-weight: 600;
   letter-spacing: .02em;
   text-align: center;
