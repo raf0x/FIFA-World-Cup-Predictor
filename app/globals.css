@@ -551,14 +551,14 @@ a { color: inherit; }
   display: flex;
   align-items: stretch;
   gap: 6px;
-  height: 640px;
+  height: 768px;
   min-width: 1492px;
 }
 .tree-col {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-  height: 640px;
+  height: 768px;
 }
 .tree-groups { width: 60px; gap: 0; }
 .bracket-svg {
@@ -690,6 +690,19 @@ a { color: inherit; }
 .slot-score-inp:focus { border-left-color: var(--green); color: var(--text); }
 .slot-score-inp--pick { background: rgba(74,222,128,.07); color: var(--green); }
 .slot-score-inp--out  { color: var(--dim-2); }
+
+.slot-meta {
+  padding: 4px 0;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-align: center;
+  color: var(--dim-2);
+  border-top: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* Group box */
 .gbox {
