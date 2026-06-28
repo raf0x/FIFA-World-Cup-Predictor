@@ -636,7 +636,7 @@ a { color: inherit; }
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 10px;
+  padding: 4px 10px;
   border: none;
   font-size: 12px;
   text-align: left;
@@ -695,13 +695,15 @@ a { color: inherit; }
 
 .slot-meta {
   padding: 2px 0 1px;
-  font-size: 8px;
-  line-height: 1;
-  font-weight: 600;
-  letter-spacing: .02em;
+  font-size: 9px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
   text-align: center;
-  color: var(--dim-2);
-  border-top: 1px solid var(--border);
+  color: #ef4444;
+  background: rgba(239,68,68,.08);
+  border-top: 1px solid var(--border-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
