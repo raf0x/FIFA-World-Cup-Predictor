@@ -629,6 +629,19 @@ function ThirdPlacePicker({ candidates, picks, allGroupsDone, onToggle }) {
   );
 }
 
+// Orient a completed knockout match to a slot's home/away, returning oriented
+// scores + the winning team name (null only on an unresolved draw).
+function matchCompletedToSlot(completedKnockout, home, away) {
+  if (!completedKnockout?.length || !home?.name || !away?.name) return null;
+  const h = home.name.toLowerCase(), a = away.name.toLowerCase();
+  for (const m of completedKnockout) {
+    const mh = (m.homeTeam || '').toLowerCase(), ma = (m.awayTeam || '').toLowerCase();
+    if (mh === h && ma === a) return { home: m.homeScore, away: m.awayScore, winner: m.winner };
+    if (mh === a && ma === h) return { home: m.awayScore, away: m.homeScore, winner: m.winner };
+  }
+  return null;
+}
+
 // ─── Bracket components ────────────────────────────────────────────────────
 const LiveKnockoutContext = createContext([]);
 
@@ -1507,6 +1520,7 @@ export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [liveMatches, setLiveMatches] = useState([]);
   const [liveKnockout, setLiveKnockout] = useState([]);
+  const [completedKnockout, setCompletedKnockout] = useState([]);
   const [groupScores, setGroupScores] = useState({});
   const [lockedGroupScores, setLockedGroupScores] = useState({});
   const [liveGroupScores, setLiveGroupScores] = useState({}); // provisional, in-progress match scores
@@ -1589,6 +1603,7 @@ export default function Home() {
             setRecentMatches(data.recentMatches.map(enrich).slice(-6));
           setLiveMatches((data.liveMatches || []).map(enrich));
           setLiveKnockout(data.liveKnockout || []);
+          setCompletedKnockout(data.completedKnockout || []);
           setLiveGroupScores(data.liveGroupScores || {}); // full snapshot — clears once a match finishes (moves to lockedGroupScores instead)
           if (data.cardScores) setCardScores(data.cardScores); // full snapshot each poll, not incremental
           if (data.topScorers) setTopScorers(data.topScorers); // full snapshot, top 5 already sorted server-side
@@ -1896,6 +1911,56 @@ export default function Home() {
   const sfMatchups  = useMemo(() => SF_PAIRS.map(([hi,ai]) => ({ home:resolveWinner(qfMatchups[hi],bracketPicks.qf[hi]), away:resolveWinner(qfMatchups[ai],bracketPicks.qf[ai]) })), [qfMatchups, bracketPicks.qf]);
   const finalMatchup = useMemo(() => ({ home:resolveWinner(sfMatchups[0],bracketPicks.sf[0]), away:resolveWinner(sfMatchups[1],bracketPicks.sf[1]) }), [sfMatchups, bracketPicks.sf]);
   const thirdMatchup = useMemo(() => ({ home:resolveLoser(sfMatchups[0],bracketPicks.sf[0]), away:resolveLoser(sfMatchups[1],bracketPicks.sf[1]) }), [sfMatchups, bracketPicks.sf]);
+
+  // Auto-fill completed knockout matches: set the real score and advance the winner.
+  // Runs round by round. Filling R32 winners re-resolves R16 matchups on the next
+  // render, which this same effect then fills, cascading up to the final. Guarded by
+  // equality checks so it converges and never loops.
+  useEffect(() => {
+    if (!completedKnockout?.length) return;
+    const applyRound = (matchups, roundKey, picks) => {
+      matchups.forEach((mu, idx) => {
+        if (!mu?.home?.name || !mu?.away?.name) return;
+        const c = matchCompletedToSlot(completedKnockout, mu.home, mu.away);
+        if (!c) return;
+        const key = `${roundKey}_${idx}`;
+        setBracketScores(prev => {
+          const cur = prev[key];
+          if (cur && cur.home === String(c.home) && cur.away === String(c.away)) return prev;
+          return { ...prev, [key]: { home: String(c.home), away: String(c.away) } };
+        });
+        if (c.winner) {
+          const picked = picks[idx];
+          if (picked !== c.winner) pickBracket(roundKey, idx, c.winner);
+        }
+      });
+    };
+    applyRound(r32Matchups, 'r32', bracketPicks.r32);
+    applyRound(r16Matchups, 'r16', bracketPicks.r16);
+    applyRound(qfMatchups,  'qf',  bracketPicks.qf);
+    applyRound(sfMatchups,  'sf',  bracketPicks.sf);
+
+    // Final + 3rd place (single slots, different pick keys)
+    [['final', finalMatchup, bracketPicks.final, n => pickBracket('final', 0, n)],
+     ['thirdPlace', thirdMatchup, bracketPicks.thirdPlace, n => pickBracket('thirdPlace', 0, n)]]
+      .forEach(([key, mu, picked, doPick]) => {
+        if (!mu?.home?.name || !mu?.away?.name) return;
+        const c = matchCompletedToSlot(completedKnockout, mu.home, mu.away);
+        if (!c) return;
+        const skey = key === 'thirdPlace' ? 'thirdPlace_0' : 'final';
+        if (key === 'final') {
+          setFinalScore(prev => (prev.home === String(c.home) && prev.away === String(c.away))
+            ? prev : { home: String(c.home), away: String(c.away) });
+        } else {
+          setBracketScores(prev => {
+            const cur = prev[skey];
+            if (cur && cur.home === String(c.home) && cur.away === String(c.away)) return prev;
+            return { ...prev, [skey]: { home: String(c.home), away: String(c.away) } };
+          });
+        }
+        if (c.winner && picked !== c.winner) doPick(c.winner);
+      });
+  }, [completedKnockout, r32Matchups, r16Matchups, qfMatchups, sfMatchups, finalMatchup, thirdMatchup]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Most goals scored per team, tallied directly from real match scorelines (no ESPN
   // event parsing needed — this is the same groupScores data already trusted for live
