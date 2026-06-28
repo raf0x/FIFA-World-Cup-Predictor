@@ -654,6 +654,7 @@ a { color: inherit; }
 .slot-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .slot-name--wonGroup { color: var(--gold); font-weight: 800; }
 .slot-name--qualified { color: var(--silver); font-weight: 800; }
+.slot-name--final { color: var(--text); font-weight: 800; }
 .slotrow--wonGroup:not(.slotrow--pick) { box-shadow: inset 2px 0 0 var(--gold); }
 .slotrow--qualified:not(.slotrow--pick) { box-shadow: inset 2px 0 0 var(--silver); }
 .slot-adv  { font-size: 10px; color: var(--green); flex-shrink: 0; }
@@ -1425,6 +1426,7 @@ a { color: inherit; }
 }
 .bp-name--wonGroup { color: var(--gold); font-weight: 800; }
 .bp-name--qualified { color: var(--silver); font-weight: 800; }
+.bp-name--final { color: var(--text); font-weight: 800; }
 .bp-vs { font-size: 10px; color: var(--dim); flex-shrink: 0; }
 .bp-foot {
   font-size: 11px;
@@ -1531,13 +1533,13 @@ a { color: inherit; }
   padding: 16px 24px 4px;
 }
 .ts-wrap--row {
-  max-width: 980px;
+  max-width: 1180px;
   display: flex;
   justify-content: center;
   gap: 24px;
   align-items: flex-start;
 }
-.ts-col { flex: 1 1 0; min-width: 220px; }
+.ts-col { flex: 1 1 0; min-width: 340px; }
 .ts-head { margin-bottom: 10px; }
 .ts-eyebrow {
   font-size: 10px;
@@ -1555,7 +1557,7 @@ a { color: inherit; }
 }
 .ts-row {
   display: grid;
-  grid-template-columns: 14px 16px minmax(60px, 1fr) auto 60px 20px;
+  grid-template-columns: 14px 16px minmax(110px, 1fr) auto 44px 20px;
   align-items: center;
   gap: 7px;
   background: var(--surface);
@@ -1568,7 +1570,7 @@ a { color: inherit; }
 .ts-name { font-size: 11.5px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ts-team { font-size: 9.5px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ts-bar-track {
-  width: 60px;
+  width: 44px;
   height: 4px;
   background: var(--surface-3);
   border-radius: 2px;
