@@ -719,22 +719,16 @@ a { color: inherit; }
   0%,100% { box-shadow: 0 0 0 1px var(--green), 0 0 10px rgba(74,222,128,.25); }
   50%     { box-shadow: 0 0 0 1px var(--green), 0 0 18px rgba(74,222,128,.5); }
 }
-.slot-live {
-  position: absolute;
-  top: -9px; left: 8px;
-  display: inline-flex;
+.slot-meta--live {
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 1px 6px;
-  font-size: 8.5px;
-  font-weight: 800;
-  letter-spacing: .04em;
   color: #06210f;
   background: var(--green);
-  border-radius: 4px;
-  z-index: 3;
+  border-top: none;
+  letter-spacing: .04em;
 }
-.slot-wrap[data-badgepos="bottom"] .slot-live { top: auto; bottom: 4px; }
 .slot-live-dot {
   width: 5px; height: 5px;
   border-radius: 50%;
