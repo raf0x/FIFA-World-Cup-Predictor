@@ -652,6 +652,47 @@ function isMatchToday(dateStr) {
 }
 
 // ─── Bracket components ────────────────────────────────────────────────────
+function MatchScheduleTable({ rows, liveKnockout, completedKnockout }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="match-table-wrap">
+      <button className="match-table-toggle" onClick={() => setOpen(o => !o)}>
+        <span>{open ? '▾' : '▸'}</span> Full match schedule (M73–M104)
+      </button>
+      {open && (
+        <div className="match-table-scroll">
+          <table className="match-table">
+            <thead>
+              <tr><th>Match</th><th>Matchup</th><th>Date</th><th>City</th></tr>
+            </thead>
+            <tbody>
+              {rows.map(r => {
+                const resolved = !r.home.startsWith('Winner') && !r.home.startsWith('Loser')
+                               && !r.away.startsWith('Winner') && !r.away.startsWith('Loser');
+                const live = resolved ? matchLiveToSlot(liveKnockout, { name: r.home }, { name: r.away }) : null;
+                const finished = resolved ? matchCompletedToSlot(completedKnockout, { name: r.home }, { name: r.away }) : null;
+                const today = !live && !finished && isMatchToday(r.date);
+                return (
+                  <tr key={r.num} className={live ? 'mt-row--live' : today ? 'mt-row--today' : ''}>
+                    <td className="mt-num">M{r.num}</td>
+                    <td className="mt-matchup">{r.home} <span className="mt-vs">vs</span> {r.away}</td>
+                    <td className="mt-date">
+                      {r.date}
+                      {live && <span className="mt-tag mt-tag--live">LIVE</span>}
+                      {today && <span className="mt-tag mt-tag--today">TODAY</span>}
+                    </td>
+                    <td className="mt-city">{r.venue}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const LiveKnockoutContext = createContext({ live: [], completed: [] });
 
 // Orient a live knockout match to a slot's home/away by team name, or null.
@@ -1926,6 +1967,25 @@ export default function Home() {
   const finalMatchup = useMemo(() => ({ home:resolveWinner(sfMatchups[0],bracketPicks.sf[0]), away:resolveWinner(sfMatchups[1],bracketPicks.sf[1]) }), [sfMatchups, bracketPicks.sf]);
   const thirdMatchup = useMemo(() => ({ home:resolveLoser(sfMatchups[0],bracketPicks.sf[0]), away:resolveLoser(sfMatchups[1],bracketPicks.sf[1]) }), [sfMatchups, bracketPicks.sf]);
 
+  // Full M73-M104 schedule, for the reference table. Unresolved future-round
+  // slots show "Winner M__"/"Loser M__" instead of a blank TBD, since knowing
+  // which earlier match feeds a slot is exactly the info people ask for.
+  const scheduleRows = useMemo(() => {
+    const labelW = (team, num) => team?.name || `Winner M${num}`;
+    const labelL = (team, num) => team?.name || `Loser M${num}`;
+    const rows = [];
+    for (let i = 0; i < 16; i++) {
+      rows.push({ num: 73 + i, round: 'Round of 32', home: r32Matchups[i]?.home?.name || 'TBD', away: r32Matchups[i]?.away?.name || 'TBD' });
+    }
+    R16_PAIRS.forEach((p, i) => rows.push({ num: 89 + i, round: 'Round of 16', home: labelW(r16Matchups[i]?.home, 73 + p[0]), away: labelW(r16Matchups[i]?.away, 73 + p[1]) }));
+    QF_PAIRS.forEach((p, i) => rows.push({ num: 97 + i, round: 'Quarterfinals', home: labelW(qfMatchups[i]?.home, 89 + p[0]), away: labelW(qfMatchups[i]?.away, 89 + p[1]) }));
+    SF_PAIRS.forEach((p, i) => rows.push({ num: 101 + i, round: 'Semifinals', home: labelW(sfMatchups[i]?.home, 97 + p[0]), away: labelW(sfMatchups[i]?.away, 97 + p[1]) }));
+    rows.push({ num: 104, round: 'Final',      home: labelW(finalMatchup?.home, 101), away: labelW(finalMatchup?.away, 102) });
+    rows.push({ num: 103, round: '3rd Place',  home: labelL(thirdMatchup?.home, 101), away: labelL(thirdMatchup?.away, 102) });
+    rows.sort((a, b) => a.num - b.num);
+    return rows.map(r => ({ ...r, date: MATCH_SCHEDULE[r.num]?.date || '', venue: MATCH_SCHEDULE[r.num]?.venue || '' }));
+  }, [r32Matchups, r16Matchups, qfMatchups, sfMatchups, finalMatchup, thirdMatchup]);
+
   // Auto-fill completed knockout matches: set the real score and advance the winner.
   // Runs round by round. Filling R32 winners re-resolves R16 matchups on the next
   // render, which this same effect then fills, cascading up to the final. Guarded by
@@ -2429,6 +2489,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
               The group stage is complete — every matchup below is locked in. Click a team to advance them through the bracket.
             </p>
           </div>
+          <MatchScheduleTable rows={scheduleRows} liveKnockout={liveKnockout} completedKnockout={completedKnockout} />
         </div>
         <Bracket thirdPlaceDone={thirdPlaceDone}
           r32Matchups={r32Matchups} r16Matchups={r16Matchups} qfMatchups={qfMatchups} sfMatchups={sfMatchups}
