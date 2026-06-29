@@ -736,6 +736,19 @@ a { color: inherit; }
   animation: liveDot 1s ease-in-out infinite;
 }
 @keyframes liveDot { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+/* ── Today's match (not yet live) ── */
+.slot--today {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 1px var(--gold), 0 0 10px rgba(245,193,66,.25);
+}
+.slot-meta--today {
+  color: #2a1d02;
+  background: var(--gold);
+  border-top: none;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
 .slot-score-live {
   min-width: 22px;
   padding: 2px 0;
