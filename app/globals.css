@@ -795,19 +795,20 @@ a { color: inherit; }
   top: 0;
   background: var(--surface-2);
   color: var(--dim);
-  text-align: left;
+  text-align: center;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: .04em;
   text-transform: uppercase;
-  padding: 9px 12px;
+  padding: 11px 22px;
   border-bottom: 1px solid var(--border-2);
 }
 .match-table tbody td {
-  padding: 9px 12px;
+  padding: 11px 22px;
   border-bottom: 1px solid var(--border);
   color: var(--text);
   white-space: nowrap;
+  text-align: center;
 }
 .match-table tbody tr:last-child td { border-bottom: none; }
 .match-table tbody tr:hover td { background: var(--surface-2); }
