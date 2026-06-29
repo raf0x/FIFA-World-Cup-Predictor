@@ -673,7 +673,7 @@ function MatchScheduleTable({ rows, liveKnockout, completedKnockout }) {
   return (
     <div className="match-table-wrap">
       <button className="match-table-toggle" onClick={() => setOpen(o => !o)}>
-        <span>{open ? '▾' : '▸'}</span> Full match schedule (M73–M104)
+        <span>{open ? '▾' : '▸'}</span> 📅 Full match schedule (M73–M104)
       </button>
       {open && (
         <>
