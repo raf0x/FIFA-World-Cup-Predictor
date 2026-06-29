@@ -658,12 +658,22 @@ function MatchScheduleTable({ rows, liveKnockout, completedKnockout }) {
   const [roundFilter, setRoundFilter] = useState('All');
   const [cityFilter, setCityFilter] = useState('All');
 
+  const decorated = rows.map(r => {
+    const resolved = !r.home.startsWith('Winner') && !r.home.startsWith('Loser')
+                   && !r.away.startsWith('Winner') && !r.away.startsWith('Loser');
+    const live = resolved ? matchLiveToSlot(liveKnockout, { name: r.home }, { name: r.away }) : null;
+    const finished = resolved ? matchCompletedToSlot(completedKnockout, { name: r.home }, { name: r.away }) : null;
+    const today = !live && !finished && isMatchToday(r.date);
+    return { ...r, live, finished, today };
+  });
+  const upcoming = decorated.filter(r => !r.finished); // played matches drop off the list automatically
+
   const ROUND_ORDER = ['Round of 32', 'Round of 16', 'Quarterfinals', 'Semifinals', '3rd Place', 'Final'];
-  const rounds = ROUND_ORDER.filter(r => rows.some(row => row.round === r));
-  const cities = Array.from(new Set(rows.map(r => r.venue).filter(Boolean))).sort();
+  const rounds = ROUND_ORDER.filter(r => upcoming.some(row => row.round === r));
+  const cities = Array.from(new Set(upcoming.map(r => r.venue).filter(Boolean))).sort();
 
   const q = search.trim().toLowerCase();
-  const filtered = rows.filter(r => {
+  const filtered = upcoming.filter(r => {
     if (roundFilter !== 'All' && r.round !== roundFilter) return false;
     if (cityFilter !== 'All' && r.venue !== cityFilter) return false;
     if (q && !(`m${r.num}`.includes(q) || r.home.toLowerCase().includes(q) || r.away.toLowerCase().includes(q))) return false;
@@ -673,7 +683,7 @@ function MatchScheduleTable({ rows, liveKnockout, completedKnockout }) {
   return (
     <div className="match-table-wrap">
       <button className="match-table-toggle" onClick={() => setOpen(o => !o)}>
-        <span>{open ? '▾' : '▸'}</span> 📅 Full match schedule (M73–M104)
+        <span>{open ? '▾' : '▸'}</span> 📅 Upcoming match schedule ({upcoming.length} remaining)
       </button>
       {open && (
         <>
@@ -705,28 +715,23 @@ function MatchScheduleTable({ rows, liveKnockout, completedKnockout }) {
                 <tr><th>Match</th><th>Matchup</th><th>Date</th><th>Start Time</th><th>City</th></tr>
               </thead>
               <tbody>
-                {filtered.map(r => {
-                  const resolved = !r.home.startsWith('Winner') && !r.home.startsWith('Loser')
-                                 && !r.away.startsWith('Winner') && !r.away.startsWith('Loser');
-                  const live = resolved ? matchLiveToSlot(liveKnockout, { name: r.home }, { name: r.away }) : null;
-                  const finished = resolved ? matchCompletedToSlot(completedKnockout, { name: r.home }, { name: r.away }) : null;
-                  const today = !live && !finished && isMatchToday(r.date);
-                  return (
-                    <tr key={r.num} className={live ? 'mt-row--live' : today ? 'mt-row--today' : ''}>
-                      <td className="mt-num">M{r.num}</td>
-                      <td className="mt-matchup">{r.home} <span className="mt-vs">vs</span> {r.away}</td>
-                      <td className="mt-date">
-                        {r.date}
-                        {live && <span className="mt-tag mt-tag--live">LIVE</span>}
-                        {today && <span className="mt-tag mt-tag--today">TODAY</span>}
-                      </td>
-                      <td className="mt-time">{r.time}</td>
-                      <td className="mt-city">{r.venue}</td>
-                    </tr>
-                  );
-                })}
+                {filtered.map(r => (
+                  <tr key={r.num} className={r.live ? 'mt-row--live' : r.today ? 'mt-row--today' : ''}>
+                    <td className="mt-num">M{r.num}</td>
+                    <td className="mt-matchup">{r.home} <span className="mt-vs">vs</span> {r.away}</td>
+                    <td className="mt-date">
+                      {r.date}
+                      {r.live && <span className="mt-tag mt-tag--live">LIVE</span>}
+                      {r.today && <span className="mt-tag mt-tag--today">TODAY</span>}
+                    </td>
+                    <td className="mt-time">{r.time}</td>
+                    <td className="mt-city">{r.venue}</td>
+                  </tr>
+                ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={5} className="mt-empty">No matches found.</td></tr>
+                  <tr><td colSpan={5} className="mt-empty">
+                    {upcoming.length === 0 ? 'All knockout matches have been played.' : 'No matches found.'}
+                  </td></tr>
                 )}
               </tbody>
             </table>
