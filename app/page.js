@@ -642,6 +642,15 @@ function matchCompletedToSlot(completedKnockout, home, away) {
   return null;
 }
 
+// Is this match's scheduled date today? Tournament is 2026; compares by local calendar day.
+function isMatchToday(dateStr) {
+  if (!dateStr) return false;
+  const d = new Date(`${dateStr} 2026 00:00:00`);
+  if (isNaN(d.getTime())) return false;
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+}
+
 // ─── Bracket components ────────────────────────────────────────────────────
 const LiveKnockoutContext = createContext([]);
 
@@ -663,6 +672,7 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
   const liveKnockout = useContext(LiveKnockoutContext);
   const live = bothKnown ? matchLiveToSlot(liveKnockout, home, away) : null;
   const info = matchNum ? MATCH_SCHEDULE[matchNum] : null;
+  const isToday = !live && info && isMatchToday(info.date);
   const title = info ? `M${matchNum} · ${info.date} · ${info.time} · ${info.venue}` : undefined;
 
   const handleScoreChange = (side, value) => {
@@ -683,7 +693,7 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
   return (
     <div className="slot-wrap" data-badgepos={badgePos}>
       {matchNum && <span className="slot-matchnum">M{matchNum}</span>}
-      <div className={`slot ${wide ? 'slot--wide' : ''} ${live ? 'slot--live' : ''}`} title={title} ref={slotRef}>
+      <div className={`slot ${wide ? 'slot--wide' : ''} ${live ? 'slot--live' : ''} ${isToday ? 'slot--today' : ''}`} title={title} ref={slotRef}>
       {[home, away].map((team, i) => {
         const isPicked = team.name !== null && picked === team.name;
         const isOther = picked && picked !== team.name;
@@ -725,7 +735,10 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
           <span className="slot-live-dot" />LIVE{live.clock ? ` · ${live.clock}` : ''}
         </div>
       )}
-      {info && !live && !wide && (
+      {isToday && !wide && (
+        <div className="slot-meta slot-meta--today">TODAY{info.time ? ` · ${info.time}` : ''}</div>
+      )}
+      {info && !live && !isToday && !wide && (
         <div className="slot-meta">{info.date.replace(/^\w+\s/, '')} · {VENUE_SHORT[info.venue] || info.venue}</div>
       )}
       </div>
