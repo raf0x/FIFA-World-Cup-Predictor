@@ -617,8 +617,8 @@ a { color: inherit; }
   font-weight: 800;
   letter-spacing: .03em;
   color: #ef4444;
-  background: rgba(239,68,68,.1);
-  border: 1px solid rgba(239,68,68,.35);
+  background: #1a0e0e;
+  border: 1px solid rgba(239,68,68,.45);
   border-radius: 4px;
   padding: 2px 6px;
   z-index: 3;
