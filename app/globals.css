@@ -712,12 +712,12 @@ a { color: inherit; }
 /* ── Live knockout match ── */
 .slot--live {
   border-color: var(--green) !important;
-  box-shadow: 0 0 0 1px var(--green), 0 0 14px rgba(74,222,128,.35);
+  box-shadow: 0 0 0 1px var(--green), 0 0 5px rgba(74,222,128,.35);
   animation: slotLivePulse 2s ease-in-out infinite;
 }
 @keyframes slotLivePulse {
-  0%,100% { box-shadow: 0 0 0 1px var(--green), 0 0 10px rgba(74,222,128,.25); }
-  50%     { box-shadow: 0 0 0 1px var(--green), 0 0 18px rgba(74,222,128,.5); }
+  0%,100% { box-shadow: 0 0 0 1px var(--green), 0 0 3px rgba(74,222,128,.25); }
+  50%     { box-shadow: 0 0 0 1px var(--green), 0 0 7px rgba(74,222,128,.5); }
 }
 .slot-meta--live {
   display: flex;
@@ -739,7 +739,7 @@ a { color: inherit; }
 /* ── Today's match (not yet live) ── */
 .slot--today {
   border-color: var(--gold) !important;
-  box-shadow: 0 0 0 1px var(--gold), 0 0 10px rgba(245,193,66,.25);
+  box-shadow: 0 0 0 1px var(--gold), 0 0 4px rgba(245,193,66,.3);
 }
 .slot-meta--today {
   color: #2a1d02;
