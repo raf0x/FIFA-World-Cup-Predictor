@@ -1718,6 +1718,27 @@ export default function Home() {
     const interval = setInterval(fetchLive, 60 * 1000); // 60s — tracks live matches
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+
+  // New-version banner: compares the SHA baked into this loaded bundle against
+  // whatever Vercel deployment is currently live. Checks periodically and
+  // whenever the tab regains focus, since that's when a stale tab matters most.
+  useEffect(() => {
+    const myVersion = process.env.NEXT_PUBLIC_BUILD_SHA;
+    if (!myVersion || myVersion === 'dev') return; // skip in local dev, nothing to compare against
+    const checkVersion = () => {
+      fetch('/api/version', { cache: 'no-store' })
+        .then(r => r.json())
+        .then(data => { if (data.sha && data.sha !== myVersion) setUpdateAvailable(true); })
+        .catch(() => {});
+    };
+    checkVersion();
+    const interval = setInterval(checkVersion, 5 * 60 * 1000); // 5 min
+    const onFocus = () => { if (document.visibilityState === 'visible') checkVersion(); };
+    document.addEventListener('visibilitychange', onFocus);
+    return () => { clearInterval(interval); document.removeEventListener('visibilitychange', onFocus); };
+  }, []);
+
   const setGroupScore = (groupId, matchIdx, side, value) => {
     setGroupScores(prev => ({
       ...prev,
@@ -2414,6 +2435,12 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
 
   return (
     <main className="page">
+      {updateAvailable && (
+        <div className="update-banner">
+          <span>🔄 A new version of this site is available.</span>
+          <button onClick={() => window.location.reload()}>Refresh now</button>
+        </div>
+      )}
       <AuthModal show={showAuthModal} onClose={() => setShowAuthModal(false)} />
       <ChampionCelebration
         show={showChampionReveal}
