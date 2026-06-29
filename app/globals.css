@@ -760,7 +760,12 @@ a { color: inherit; }
 }
 
 /* ── Full match schedule table ── */
-.match-table-wrap { margin-top: 20px; }
+.match-table-wrap {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 .match-table-toggle {
   display: inline-flex;
   align-items: center;
@@ -777,6 +782,7 @@ a { color: inherit; }
 .match-table-toggle:hover { background: var(--surface-3); }
 .match-table-scroll {
   margin-top: 12px;
+  width: 100%;
   max-height: 420px;
   overflow-y: auto;
   border: 1px solid var(--border);
