@@ -654,40 +654,84 @@ function isMatchToday(dateStr) {
 // ─── Bracket components ────────────────────────────────────────────────────
 function MatchScheduleTable({ rows, liveKnockout, completedKnockout }) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [roundFilter, setRoundFilter] = useState('All');
+  const [cityFilter, setCityFilter] = useState('All');
+
+  const ROUND_ORDER = ['Round of 32', 'Round of 16', 'Quarterfinals', 'Semifinals', '3rd Place', 'Final'];
+  const rounds = ROUND_ORDER.filter(r => rows.some(row => row.round === r));
+  const cities = Array.from(new Set(rows.map(r => r.venue).filter(Boolean))).sort();
+
+  const q = search.trim().toLowerCase();
+  const filtered = rows.filter(r => {
+    if (roundFilter !== 'All' && r.round !== roundFilter) return false;
+    if (cityFilter !== 'All' && r.venue !== cityFilter) return false;
+    if (q && !(`m${r.num}`.includes(q) || r.home.toLowerCase().includes(q) || r.away.toLowerCase().includes(q))) return false;
+    return true;
+  });
+
   return (
     <div className="match-table-wrap">
       <button className="match-table-toggle" onClick={() => setOpen(o => !o)}>
         <span>{open ? '▾' : '▸'}</span> Full match schedule (M73–M104)
       </button>
       {open && (
-        <div className="match-table-scroll">
-          <table className="match-table">
-            <thead>
-              <tr><th>Match</th><th>Matchup</th><th>Date</th><th>City</th></tr>
-            </thead>
-            <tbody>
-              {rows.map(r => {
-                const resolved = !r.home.startsWith('Winner') && !r.home.startsWith('Loser')
-                               && !r.away.startsWith('Winner') && !r.away.startsWith('Loser');
-                const live = resolved ? matchLiveToSlot(liveKnockout, { name: r.home }, { name: r.away }) : null;
-                const finished = resolved ? matchCompletedToSlot(completedKnockout, { name: r.home }, { name: r.away }) : null;
-                const today = !live && !finished && isMatchToday(r.date);
-                return (
-                  <tr key={r.num} className={live ? 'mt-row--live' : today ? 'mt-row--today' : ''}>
-                    <td className="mt-num">M{r.num}</td>
-                    <td className="mt-matchup">{r.home} <span className="mt-vs">vs</span> {r.away}</td>
-                    <td className="mt-date">
-                      {r.date}
-                      {live && <span className="mt-tag mt-tag--live">LIVE</span>}
-                      {today && <span className="mt-tag mt-tag--today">TODAY</span>}
-                    </td>
-                    <td className="mt-city">{r.venue}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="match-table-filters">
+            <input
+              className="mt-filter-input"
+              type="text"
+              placeholder="Search team or match #..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            <select className="mt-filter-select" value={roundFilter} onChange={e => setRoundFilter(e.target.value)}>
+              <option value="All">All rounds</option>
+              {rounds.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+            <select className="mt-filter-select" value={cityFilter} onChange={e => setCityFilter(e.target.value)}>
+              <option value="All">All cities</option>
+              {cities.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            {(search || roundFilter !== 'All' || cityFilter !== 'All') && (
+              <button className="mt-filter-clear" onClick={() => { setSearch(''); setRoundFilter('All'); setCityFilter('All'); }}>
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="match-table-scroll">
+            <table className="match-table">
+              <thead>
+                <tr><th>Match</th><th>Matchup</th><th>Date</th><th>Start Time</th><th>City</th></tr>
+              </thead>
+              <tbody>
+                {filtered.map(r => {
+                  const resolved = !r.home.startsWith('Winner') && !r.home.startsWith('Loser')
+                                 && !r.away.startsWith('Winner') && !r.away.startsWith('Loser');
+                  const live = resolved ? matchLiveToSlot(liveKnockout, { name: r.home }, { name: r.away }) : null;
+                  const finished = resolved ? matchCompletedToSlot(completedKnockout, { name: r.home }, { name: r.away }) : null;
+                  const today = !live && !finished && isMatchToday(r.date);
+                  return (
+                    <tr key={r.num} className={live ? 'mt-row--live' : today ? 'mt-row--today' : ''}>
+                      <td className="mt-num">M{r.num}</td>
+                      <td className="mt-matchup">{r.home} <span className="mt-vs">vs</span> {r.away}</td>
+                      <td className="mt-date">
+                        {r.date}
+                        {live && <span className="mt-tag mt-tag--live">LIVE</span>}
+                        {today && <span className="mt-tag mt-tag--today">TODAY</span>}
+                      </td>
+                      <td className="mt-time">{r.time}</td>
+                      <td className="mt-city">{r.venue}</td>
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={5} className="mt-empty">No matches found.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
@@ -1983,7 +2027,7 @@ export default function Home() {
     rows.push({ num: 104, round: 'Final',      home: labelW(finalMatchup?.home, 101), away: labelW(finalMatchup?.away, 102) });
     rows.push({ num: 103, round: '3rd Place',  home: labelL(thirdMatchup?.home, 101), away: labelL(thirdMatchup?.away, 102) });
     rows.sort((a, b) => a.num - b.num);
-    return rows.map(r => ({ ...r, date: MATCH_SCHEDULE[r.num]?.date || '', venue: MATCH_SCHEDULE[r.num]?.venue || '' }));
+    return rows.map(r => ({ ...r, date: MATCH_SCHEDULE[r.num]?.date || '', time: MATCH_SCHEDULE[r.num]?.time || '', venue: MATCH_SCHEDULE[r.num]?.venue || '' }));
   }, [r32Matchups, r16Matchups, qfMatchups, sfMatchups, finalMatchup, thirdMatchup]);
 
   // Auto-fill completed knockout matches: set the real score and advance the winner.
