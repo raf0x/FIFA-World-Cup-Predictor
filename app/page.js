@@ -736,7 +736,7 @@ function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreCh
         </div>
       )}
       {isToday && !wide && (
-        <div className="slot-meta slot-meta--today">TODAY{info.time ? ` · ${info.time}` : ''}</div>
+        <div className="slot-meta slot-meta--today">TODAY{info.time ? ` · ${info.time}` : ''} · {VENUE_SHORT[info.venue] || info.venue}</div>
       )}
       {info && !live && !isToday && !wide && (
         <div className="slot-meta">{info.date.replace(/^\w+\s/, '')} · {VENUE_SHORT[info.venue] || info.venue}</div>
