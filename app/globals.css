@@ -780,6 +780,41 @@ a { color: inherit; }
   cursor: pointer;
 }
 .match-table-toggle:hover { background: var(--surface-3); }
+.match-table-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  width: 100%;
+}
+.mt-filter-input, .mt-filter-select {
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 10px;
+  border-radius: 7px;
+}
+.mt-filter-input { width: 200px; }
+.mt-filter-input::placeholder { color: var(--dim-2); }
+.mt-filter-select { cursor: pointer; }
+.mt-filter-clear {
+  background: transparent;
+  border: 1px solid var(--border-2);
+  color: var(--dim);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.mt-filter-clear:hover { color: var(--text); border-color: var(--text); }
+.mt-time { color: var(--dim); }
+.mt-empty { text-align: center; color: var(--dim-2); padding: 24px 14px; }
+
 .match-table-scroll {
   margin-top: 12px;
   width: fit-content;
