@@ -876,6 +876,34 @@ a { color: inherit; }
 .mt-row--live td  { background: rgba(74,222,128,.06); }
 .mt-row--today td { background: rgba(245,193,66,.06); }
 
+/* ── New-version banner ── */
+.update-banner {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 10px 16px;
+  background: #1d3a5f;
+  border-bottom: 1px solid #2d5a8f;
+  color: #cfe3ff;
+  font-size: 13px;
+  font-weight: 600;
+}
+.update-banner button {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.update-banner button:hover { background: #2563eb; }
+
 /* Group box */
 .gbox {
   width: 58px;
