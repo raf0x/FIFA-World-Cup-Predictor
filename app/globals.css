@@ -759,6 +759,71 @@ a { color: inherit; }
   background: rgba(74,222,128,.12);
 }
 
+/* ── Full match schedule table ── */
+.match-table-wrap { margin-top: 20px; }
+.match-table-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.match-table-toggle:hover { background: var(--surface-3); }
+.match-table-scroll {
+  margin-top: 12px;
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.match-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.match-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-2);
+  color: var(--dim);
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border-2);
+}
+.match-table tbody td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+}
+.match-table tbody tr:last-child td { border-bottom: none; }
+.match-table tbody tr:hover td { background: var(--surface-2); }
+.mt-num { color: #ef4444; font-weight: 800; font-size: 12px; }
+.mt-matchup { font-weight: 600; }
+.mt-vs { color: var(--dim-2); font-weight: 500; font-size: 11px; }
+.mt-date { color: var(--dim); }
+.mt-city { color: var(--dim); }
+.mt-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  vertical-align: middle;
+}
+.mt-tag--live { background: var(--green); color: #06210f; }
+.mt-tag--today { background: var(--gold); color: #2a1d02; }
+.mt-row--live td  { background: rgba(74,222,128,.06); }
+.mt-row--today td { background: rgba(245,193,66,.06); }
+
 /* Group box */
 .gbox {
   width: 58px;
