@@ -652,7 +652,7 @@ function isMatchToday(dateStr) {
 }
 
 // ─── Bracket components ────────────────────────────────────────────────────
-const LiveKnockoutContext = createContext([]);
+const LiveKnockoutContext = createContext({ live: [], completed: [] });
 
 // Orient a live knockout match to a slot's home/away by team name, or null.
 function matchLiveToSlot(liveKnockout, home, away) {
@@ -669,10 +669,11 @@ function matchLiveToSlot(liveKnockout, home, away) {
 function BracketSlot({ matchup, picked, onPick, matchNum, wide, score, onScoreChange, badgePos = 'top', allGroupsDone = false, slotRef }) {
   const { home, away } = matchup;
   const bothKnown = home.name && away.name;
-  const liveKnockout = useContext(LiveKnockoutContext);
+  const { live: liveKnockout, completed: completedKnockout } = useContext(LiveKnockoutContext);
   const live = bothKnown ? matchLiveToSlot(liveKnockout, home, away) : null;
+  const finished = bothKnown ? matchCompletedToSlot(completedKnockout, home, away) : null;
   const info = matchNum ? MATCH_SCHEDULE[matchNum] : null;
-  const isToday = !live && info && isMatchToday(info.date);
+  const isToday = !live && !finished && info && isMatchToday(info.date);
   const title = info ? `M${matchNum} · ${info.date} · ${info.time} · ${info.venue}` : undefined;
 
   const handleScoreChange = (side, value) => {
@@ -1198,7 +1199,7 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
                    finalMatchup, thirdMatchup, bracketPicks, pickBracket,
                    champion, championObj, r32Done, r16Done, qfDone, sfDone,
                    finalScore, onFinalScoreChange,
-                   bracketScores, setBracketScore, allGroupsDone, liveKnockout }) {
+                   bracketScores, setBracketScore, allGroupsDone, liveKnockout, completedKnockout }) {
   const treeRef = useRef(null);
   const slotRefs = useRef({});
   const refCache = useRef({});
@@ -1212,7 +1213,7 @@ function Bracket({ thirdPlaceDone, r32Matchups, r16Matchups, qfMatchups, sfMatch
     return refCache.current[key];
   }, []);
   return (
-    <LiveKnockoutContext.Provider value={liveKnockout || []}>
+    <LiveKnockoutContext.Provider value={{ live: liveKnockout || [], completed: completedKnockout || [] }}>
       <div className="tree-scroll">
         <div className="tree" style={{ minWidth:1492 }} ref={treeRef}>
           <BracketConnectors treeRef={treeRef} slotRefs={slotRefs} />
@@ -2437,7 +2438,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
           r32Done={r32Done} r16Done={r16Done} qfDone={qfDone} sfDone={sfDone}
           finalScore={finalScore} onFinalScoreChange={setFinalScore}
           bracketScores={bracketScores} setBracketScore={setBracketScore}
-          liveKnockout={liveKnockout}
+          liveKnockout={liveKnockout} completedKnockout={completedKnockout}
           allGroupsDone={allGroupsDone} />
       </section>
 
