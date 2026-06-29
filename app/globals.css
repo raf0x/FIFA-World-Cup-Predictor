@@ -770,16 +770,25 @@ a { color: inherit; }
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 16px;
+  padding: 10px 18px;
   border-radius: 8px;
-  background: var(--surface-2);
-  border: 1px solid var(--border-2);
-  color: var(--text);
+  background: linear-gradient(135deg, rgba(245,193,66,.16), var(--surface-2));
+  border: 1px solid var(--gold);
+  color: var(--gold);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: .01em;
   cursor: pointer;
+  animation: scheduleBtnGlow 2.4s ease-in-out infinite;
 }
-.match-table-toggle:hover { background: var(--surface-3); }
+.match-table-toggle:hover {
+  background: linear-gradient(135deg, rgba(245,193,66,.28), var(--surface-3));
+  transform: translateY(-1px);
+}
+@keyframes scheduleBtnGlow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(245,193,66,.25), 0 0 8px rgba(245,193,66,.2); }
+  50%      { box-shadow: 0 0 0 1px rgba(245,193,66,.55), 0 0 20px rgba(245,193,66,.5); }
+}
 .match-table-filters {
   display: flex;
   flex-wrap: wrap;
