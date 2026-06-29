@@ -782,13 +782,14 @@ a { color: inherit; }
 .match-table-toggle:hover { background: var(--surface-3); }
 .match-table-scroll {
   margin-top: 12px;
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   max-height: 420px;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 10px;
 }
-.match-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.match-table { width: auto; border-collapse: collapse; font-size: 13px; }
 .match-table thead th {
   position: sticky;
   top: 0;
@@ -799,11 +800,11 @@ a { color: inherit; }
   font-weight: 800;
   letter-spacing: .04em;
   text-transform: uppercase;
-  padding: 9px 14px;
+  padding: 9px 12px;
   border-bottom: 1px solid var(--border-2);
 }
 .match-table tbody td {
-  padding: 9px 14px;
+  padding: 9px 12px;
   border-bottom: 1px solid var(--border);
   color: var(--text);
   white-space: nowrap;
