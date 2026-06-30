@@ -119,6 +119,21 @@ function processMatches(rawMatches) {
     const hRaw = normalize(m.homeTeam);
     const aRaw = normalize(m.awayTeam);
 
+    // ── Scorer tally: run for EVERY completed match (group AND knockout) ──
+    const rawHomeName = m.homeTeam;
+    const rawAwayName = m.awayTeam;
+    for (const d of (m.homeScorerDetails || [])) {
+      if (d.isOwnGoal) continue;
+      if (!scorerTally[d.id]) scorerTally[d.id] = { name: d.name, team: rawHomeName, goals: 0 };
+      scorerTally[d.id].goals++;
+    }
+    for (const d of (m.awayScorerDetails || [])) {
+      if (d.isOwnGoal) continue;
+      if (!scorerTally[d.id]) scorerTally[d.id] = { name: d.name, team: rawAwayName, goals: 0 };
+      scorerTally[d.id].goals++;
+    }
+
+    // ── Group-stage scoring: only applies to group matches ──
     const group = GROUPS.find(g =>
       findTeamIdx(g, hRaw) !== -1 && findTeamIdx(g, aRaw) !== -1
     );
@@ -148,20 +163,6 @@ function processMatches(rawMatches) {
 
     cardScores[homeTeamName] = (cardScores[homeTeamName] || 0) + homeCardPts;
     cardScores[awayTeamName] = (cardScores[awayTeamName] || 0) + awayCardPts;
-
-    // Tally goals per player across every match — own goals don't count toward the scorer's tally.
-    const homeDetails = flipped ? (m.awayScorerDetails || []) : (m.homeScorerDetails || []);
-    const awayDetails = flipped ? (m.homeScorerDetails || []) : (m.awayScorerDetails || []);
-    for (const d of homeDetails) {
-      if (d.isOwnGoal) continue;
-      if (!scorerTally[d.id]) scorerTally[d.id] = { name: d.name, team: homeTeamName, goals: 0 };
-      scorerTally[d.id].goals++;
-    }
-    for (const d of awayDetails) {
-      if (d.isOwnGoal) continue;
-      if (!scorerTally[d.id]) scorerTally[d.id] = { name: d.name, team: awayTeamName, goals: 0 };
-      scorerTally[d.id].goals++;
-    }
 
     recentMatches.push({
       group: group.id,
