@@ -361,6 +361,7 @@ export async function GET() {
         homeTeam: m.homeTeam, awayTeam: m.awayTeam,
         homeScore: m.homeScore, awayScore: m.awayScore,
         homeScorers: m.homeScorers || [], awayScorers: m.awayScorers || [],
+        winner, // normalized name of the team that advanced (correct after pens)
       });
     }
 
