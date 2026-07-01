@@ -1022,7 +1022,7 @@ function TickerMatchCard({ m }) {
     <div className={`ticker-card ${m.isLive ? 'ticker-card--live' : ''}`}>
       <div className="ticker-card-group">
         {m.isLive && <span className="ticker-live-dot" />}
-        Group {m.group}
+        {m.round || m.group || ''}
         {m.isLive && <span className="ticker-clock">{m.clock}</span>}
       </div>
       <div className="ticker-card-match">
@@ -1630,6 +1630,7 @@ export default function Home() {
   const [liveGroupScores, setLiveGroupScores] = useState({}); // provisional, in-progress match scores
   const [bracketScores, setBracketScores] = useState({});
   const [recentMatches, setRecentMatches] = useState([]);
+  const [recentKnockout, setRecentKnockout] = useState([]);
   const [cardScores, setCardScores] = useState({}); // teamName -> conduct points (negative)
   const [topScorers, setTopScorers] = useState([]); // [{ id, name, team, goals }] — top 5, own goals excluded
   const [finalScore, setFinalScore] = useState({ home: '', away: '' });
@@ -1705,6 +1706,7 @@ export default function Home() {
           }
           if (data.recentMatches?.length > 0)
             setRecentMatches(data.recentMatches.map(enrich).slice(-6));
+          setRecentKnockout((data.recentKnockout || []).map(enrich));
           setLiveMatches((data.liveMatches || []).map(enrich));
           setLiveKnockout(data.liveKnockout || []);
           setCompletedKnockout(data.completedKnockout || []);
@@ -2606,7 +2608,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
       )}
 
       {/* ── Score Carousel ── */}
-      <ScoreCarousel matches={recentMatches} liveMatches={liveMatches} />
+      <ScoreCarousel matches={recentKnockout} liveMatches={liveMatches} />
 
       {/* ── Group Stage ── */}
       <section className="section">
