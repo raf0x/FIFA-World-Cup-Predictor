@@ -329,9 +329,16 @@ export async function GET() {
         ? processMatches(rawMatches)
         : { groupScores: {}, recentMatches: [], cardScores: {}, topScorers: [], count: 0 };
 
-    // Completed knockout matches: any finished match that isn't a group pairing.
-    // Winner comes from ESPN's winner flag (correct even after penalties); if that's
-    // missing we fall back to the full-time score, and leave winner null on a draw.
+    // Completed knockout matches for carousel: non-group matches with full scorer data.
+    // Round label is derived from how many knockout matches have been played so far.
+    const KNOCKOUT_ROUNDS = ['Round of 32','Round of 32','Round of 32','Round of 32',
+      'Round of 32','Round of 32','Round of 32','Round of 32','Round of 32','Round of 32',
+      'Round of 32','Round of 32','Round of 32','Round of 32','Round of 32','Round of 32',
+      'Round of 16','Round of 16','Round of 16','Round of 16',
+      'Round of 16','Round of 16','Round of 16','Round of 16',
+      'Quarterfinals','Quarterfinals','Quarterfinals','Quarterfinals',
+      'Semifinals','Semifinals','3rd Place','Final'];
+    const recentKnockout = [];
     const completedKnockout = [];
     for (const m of rawMatches) {
       const hNorm = normalize(m.homeTeam);
@@ -339,18 +346,21 @@ export async function GET() {
       const group = GROUPS.find(g =>
         findTeamIdx(g, hNorm) !== -1 && findTeamIdx(g, aNorm) !== -1
       );
-      if (group) continue; // group match, already handled
+      if (group) continue;
       let winner = null;
       if (m.homeWinner) winner = hNorm;
       else if (m.awayWinner) winner = aNorm;
       else if (m.homeScore > m.awayScore) winner = hNorm;
       else if (m.awayScore > m.homeScore) winner = aNorm;
       completedKnockout.push({
-        homeTeam: hNorm,
-        awayTeam: aNorm,
-        homeScore: m.homeScore,
-        awayScore: m.awayScore,
-        winner, // null only if a draw with no winner flag (shouldn't happen in knockouts)
+        homeTeam: hNorm, awayTeam: aNorm,
+        homeScore: m.homeScore, awayScore: m.awayScore, winner,
+      });
+      recentKnockout.push({
+        round: KNOCKOUT_ROUNDS[recentKnockout.length] || 'Knockout',
+        homeTeam: m.homeTeam, awayTeam: m.awayTeam,
+        homeScore: m.homeScore, awayScore: m.awayScore,
+        homeScorers: m.homeScorers || [], awayScorers: m.awayScorers || [],
       });
     }
 
@@ -407,8 +417,8 @@ export async function GET() {
       .filter(Boolean);
 
     const active = count > 0 || liveMatches.length > 0 || liveKnockout.length > 0;
-    return Response.json({ groupScores, recentMatches, liveMatches, liveKnockout, completedKnockout, liveGroupScores, cardScores, topScorers, count, active });
+    return Response.json({ groupScores, recentMatches, recentKnockout, liveMatches, liveKnockout, completedKnockout, liveGroupScores, cardScores, topScorers, count, active });
   } catch (err) {
-    return Response.json({ groupScores: {}, recentMatches: [], liveMatches: [], liveKnockout: [], completedKnockout: [], liveGroupScores: {}, cardScores: {}, topScorers: [], count: 0, active: false, error: err.message });
+    return Response.json({ groupScores: {}, recentMatches: [], recentKnockout: [], liveMatches: [], liveKnockout: [], completedKnockout: [], liveGroupScores: {}, cardScores: {}, topScorers: [], count: 0, active: false, error: err.message });
   }
 }
