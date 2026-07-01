@@ -1009,9 +1009,16 @@ const TICKER_SHORT = {
 const tickerName = name => TICKER_SHORT[name] || name;
 
 function TickerMatchCard({ m }) {
-  const hWin = m.homeScore > m.awayScore;
-  const aWin = m.awayScore > m.homeScore;
-  const draw = m.homeScore === m.awayScore;
+  const scoreDrawn = m.homeScore === m.awayScore;
+  const wentToPens = scoreDrawn && m.winner;
+  const hNorm = (m.homeTeamObj?.name || m.homeTeam || '').toLowerCase();
+  const aNorm = (m.awayTeamObj?.name || m.awayTeam || '').toLowerCase();
+  const winnerNorm = (m.winner || '').toLowerCase();
+  const hPensWin = wentToPens && winnerNorm === hNorm;
+  const aPensWin = wentToPens && winnerNorm === aNorm;
+  const hWin = m.homeScore > m.awayScore || hPensWin;
+  const aWin = m.awayScore > m.homeScore || aPensWin;
+  const draw = !hWin && !aWin;
   const hasScorers = !m.isLive && ((m.homeScorers?.length || 0) + (m.awayScorers?.length || 0) > 0);
   const hRank = m.homeTeamObj?.rank || 999;
   const aRank = m.awayTeamObj?.rank || 999;
@@ -1029,6 +1036,7 @@ function TickerMatchCard({ m }) {
         <div className={`ticker-team ${hWin?'ticker-team--win':!draw?'ticker-team--loss':''}`}>
           <Flag team={m.homeTeamObj} size={13}/>
           <span className="ticker-name">{tickerName(m.homeTeam)}</span>
+          {hPensWin && <span className="ticker-pens">W (pens)</span>}
         </div>
         <div className="ticker-score">
           <span className={hWin?'ticker-score--win':draw?'ticker-score--draw':'ticker-score--loss'}>{m.homeScore}</span>
@@ -1036,6 +1044,7 @@ function TickerMatchCard({ m }) {
           <span className={aWin?'ticker-score--win':draw?'ticker-score--draw':'ticker-score--loss'}>{m.awayScore}</span>
         </div>
         <div className={`ticker-team ticker-team--r ${aWin?'ticker-team--win':!draw?'ticker-team--loss':''}`}>
+          {aPensWin && <span className="ticker-pens">W (pens)</span>}
           <span className="ticker-name">{tickerName(m.awayTeam)}</span>
           <Flag team={m.awayTeamObj} size={13}/>
         </div>
@@ -1052,7 +1061,7 @@ function TickerMatchCard({ m }) {
       )}
       <div className="ticker-badges">
         {upset && <span className="ticker-upset">⚡ UPSET</span>}
-        {draw && !m.isLive && <span className="ticker-draw">Draw</span>}
+        {wentToPens && <span className="ticker-pens-badge">Pens</span>}
       </div>
     </div>
   );
