@@ -859,6 +859,14 @@ a { color: inherit; }
 .mt-num { color: #ef4444; font-weight: 800; font-size: 12px; }
 .mt-matchup { font-weight: 600; }
 .mt-vs { color: var(--dim-2); font-weight: 500; font-size: 11px; }
+.mt-score {
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface-3);
+  border-radius: 5px;
+  padding: 2px 10px;
+}
 .mt-date { color: var(--dim); }
 .mt-city { color: var(--dim); }
 .mt-tag {
