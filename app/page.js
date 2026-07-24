@@ -712,16 +712,14 @@ function MatchScheduleTable({ rows, liveKnockout, completedKnockout }) {
           <div className="match-table-scroll">
             <table className="match-table">
               <thead>
-                <tr><th>Match</th><th>Matchup</th><th>Date</th><th>Start Time</th><th>City</th></tr>
+                <tr><th>Match</th><th>Matchup</th><th>Score</th><th>Date</th><th>Start Time</th><th>City</th></tr>
               </thead>
               <tbody>
                 {filtered.map(r => (
                   <tr key={r.num} className={r.live ? 'mt-row--live' : r.today ? 'mt-row--today' : ''}>
                     <td className="mt-num">M{r.num}</td>
-                    <td className="mt-matchup">
-                      {r.home} <span className="mt-vs">vs</span> {r.away}
-                      {r.result && <span className="mt-result">{r.result}</span>}
-                    </td>
+                    <td className="mt-matchup">{r.home} <span className="mt-vs">vs</span> {r.away}</td>
+                    <td className="mt-score">{r.result || '–'}</td>
                     <td className="mt-date">
                       {r.date}
                       {r.live && <span className="mt-tag mt-tag--live">LIVE</span>}
@@ -732,7 +730,7 @@ function MatchScheduleTable({ rows, liveKnockout, completedKnockout }) {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={5} className="mt-empty">No matches found.</td></tr>
+                  <tr><td colSpan={6} className="mt-empty">No matches found.</td></tr>
                 )}
               </tbody>
             </table>
