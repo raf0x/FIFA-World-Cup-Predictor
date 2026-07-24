@@ -2055,7 +2055,7 @@ export default function Home() {
     const rows = [];
     GROUP_SCHEDULE.forEach(g => rows.push({
       num: g.num, round: 'Group Stage',
-      home: g.home, away: g.away, result: g.result, venue: g.venue,
+      home: g.home, away: g.away, result: g.result, venue: g.venue, date: g.date,
     }));
     for (let i = 0; i < 16; i++) {
       rows.push({ num: 73 + i, round: 'Round of 32', home: r32Matchups[i]?.home?.name || 'TBD', away: r32Matchups[i]?.away?.name || 'TBD' });
