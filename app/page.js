@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useLayoutEffect, useCallback, createContext, useContext } from 'react';
 import { GROUPS } from '../lib/groups';
 import { ANNEX_C } from '../lib/annex_c';
-import { MATCH_SCHEDULE, VENUE_SHORT } from '../lib/schedule';
+import { MATCH_SCHEDULE, VENUE_SHORT, GROUP_SCHEDULE } from '../lib/schedule';
 import { supabase } from '../lib/supabase';
 
 // ─── Design tokens ────────────────────────────────────────────────────────
@@ -666,14 +666,14 @@ function MatchScheduleTable({ rows, liveKnockout, completedKnockout }) {
     const today = !live && !finished && isMatchToday(r.date);
     return { ...r, live, finished, today };
   });
-  const upcoming = decorated.filter(r => !r.finished); // played matches drop off the list automatically
+  const allRows = decorated; // full historical record — nothing drops off once played
 
-  const ROUND_ORDER = ['Round of 32', 'Round of 16', 'Quarterfinals', 'Semifinals', '3rd Place', 'Final'];
-  const rounds = ROUND_ORDER.filter(r => upcoming.some(row => row.round === r));
-  const cities = Array.from(new Set(upcoming.map(r => r.venue).filter(Boolean))).sort();
+  const ROUND_ORDER = ['Group Stage', 'Round of 32', 'Round of 16', 'Quarterfinals', 'Semifinals', '3rd Place', 'Final'];
+  const rounds = ROUND_ORDER.filter(r => allRows.some(row => row.round === r));
+  const cities = Array.from(new Set(allRows.map(r => r.venue).filter(Boolean))).sort();
 
   const q = search.trim().toLowerCase();
-  const filtered = upcoming.filter(r => {
+  const filtered = allRows.filter(r => {
     if (roundFilter !== 'All' && r.round !== roundFilter) return false;
     if (cityFilter !== 'All' && r.venue !== cityFilter) return false;
     if (q && !(`m${r.num}`.includes(q) || r.home.toLowerCase().includes(q) || r.away.toLowerCase().includes(q))) return false;
@@ -683,7 +683,7 @@ function MatchScheduleTable({ rows, liveKnockout, completedKnockout }) {
   return (
     <div className="match-table-wrap">
       <button className="match-table-toggle" onClick={() => setOpen(o => !o)}>
-        <span>{open ? '▾' : '▸'}</span> 📅 Upcoming match schedule ({upcoming.length} remaining)
+        <span>{open ? '▾' : '▸'}</span> 📅 Full match schedule ({allRows.length} matches)
       </button>
       {open && (
         <>
@@ -718,20 +718,21 @@ function MatchScheduleTable({ rows, liveKnockout, completedKnockout }) {
                 {filtered.map(r => (
                   <tr key={r.num} className={r.live ? 'mt-row--live' : r.today ? 'mt-row--today' : ''}>
                     <td className="mt-num">M{r.num}</td>
-                    <td className="mt-matchup">{r.home} <span className="mt-vs">vs</span> {r.away}</td>
+                    <td className="mt-matchup">
+                      {r.home} <span className="mt-vs">vs</span> {r.away}
+                      {r.result && <span className="mt-result">{r.result}</span>}
+                    </td>
                     <td className="mt-date">
                       {r.date}
                       {r.live && <span className="mt-tag mt-tag--live">LIVE</span>}
                       {r.today && <span className="mt-tag mt-tag--today">TODAY</span>}
                     </td>
-                    <td className="mt-time">{r.time}</td>
-                    <td className="mt-city">{r.venue}</td>
+                    <td className="mt-time">{r.time || '–'}</td>
+                    <td className="mt-city">{r.venue || '–'}</td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={5} className="mt-empty">
-                    {upcoming.length === 0 ? 'All knockout matches have been played.' : 'No matches found.'}
-                  </td></tr>
+                  <tr><td colSpan={5} className="mt-empty">No matches found.</td></tr>
                 )}
               </tbody>
             </table>
@@ -2055,6 +2056,10 @@ export default function Home() {
     const labelW = (team, num) => team?.name || `Winner M${num}`;
     const labelL = (team, num) => team?.name || `Loser M${num}`;
     const rows = [];
+    GROUP_SCHEDULE.forEach(g => rows.push({
+      num: g.num, round: 'Group Stage',
+      home: g.home, away: g.away, result: g.result, venue: g.venue,
+    }));
     for (let i = 0; i < 16; i++) {
       rows.push({ num: 73 + i, round: 'Round of 32', home: r32Matchups[i]?.home?.name || 'TBD', away: r32Matchups[i]?.away?.name || 'TBD' });
     }
@@ -2064,7 +2069,7 @@ export default function Home() {
     rows.push({ num: 104, round: 'Final',      home: labelW(finalMatchup?.home, 101), away: labelW(finalMatchup?.away, 102) });
     rows.push({ num: 103, round: '3rd Place',  home: labelL(thirdMatchup?.home, 101), away: labelL(thirdMatchup?.away, 102) });
     rows.sort((a, b) => a.num - b.num);
-    return rows.map(r => ({ ...r, date: MATCH_SCHEDULE[r.num]?.date || '', time: MATCH_SCHEDULE[r.num]?.time || '', venue: MATCH_SCHEDULE[r.num]?.venue || '' }));
+    return rows.map(r => ({ ...r, date: r.date || MATCH_SCHEDULE[r.num]?.date || '', time: MATCH_SCHEDULE[r.num]?.time || '', venue: r.venue || MATCH_SCHEDULE[r.num]?.venue || '' }));
   }, [r32Matchups, r16Matchups, qfMatchups, sfMatchups, finalMatchup, thirdMatchup]);
 
   // Auto-fill completed knockout matches: set the real score and advance the winner.
