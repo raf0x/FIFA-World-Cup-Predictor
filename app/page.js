@@ -712,7 +712,7 @@ function MatchScheduleTable({ rows, liveKnockout, completedKnockout }) {
           <div className="match-table-scroll">
             <table className="match-table">
               <thead>
-                <tr><th>Match</th><th>Matchup</th><th>Score</th><th>Date</th><th>Start Time</th><th>City</th></tr>
+                <tr><th>Match</th><th>Matchup</th><th>Score</th><th>Date</th><th>City</th></tr>
               </thead>
               <tbody>
                 {filtered.map(r => (
@@ -725,12 +725,11 @@ function MatchScheduleTable({ rows, liveKnockout, completedKnockout }) {
                       {r.live && <span className="mt-tag mt-tag--live">LIVE</span>}
                       {r.today && <span className="mt-tag mt-tag--today">TODAY</span>}
                     </td>
-                    <td className="mt-time">{r.time || '–'}</td>
                     <td className="mt-city">{r.venue || '–'}</td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={6} className="mt-empty">No matches found.</td></tr>
+                  <tr><td colSpan={5} className="mt-empty">No matches found.</td></tr>
                 )}
               </tbody>
             </table>
@@ -2067,7 +2066,7 @@ export default function Home() {
     rows.push({ num: 104, round: 'Final',      home: labelW(finalMatchup?.home, 101), away: labelW(finalMatchup?.away, 102) });
     rows.push({ num: 103, round: '3rd Place',  home: labelL(thirdMatchup?.home, 101), away: labelL(thirdMatchup?.away, 102) });
     rows.sort((a, b) => a.num - b.num);
-    return rows.map(r => ({ ...r, date: r.date || MATCH_SCHEDULE[r.num]?.date || '', time: MATCH_SCHEDULE[r.num]?.time || '', venue: r.venue || MATCH_SCHEDULE[r.num]?.venue || '' }));
+    return rows.map(r => ({ ...r, date: r.date || MATCH_SCHEDULE[r.num]?.date || '', result: r.result || MATCH_SCHEDULE[r.num]?.result || '', venue: r.venue || MATCH_SCHEDULE[r.num]?.venue || '' }));
   }, [r32Matchups, r16Matchups, qfMatchups, sfMatchups, finalMatchup, thirdMatchup]);
 
   // Auto-fill completed knockout matches: set the real score and advance the winner.
