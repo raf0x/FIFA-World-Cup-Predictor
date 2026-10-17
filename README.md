@@ -1,277 +1,57 @@
-# ⚽ World Cup Predictor
+# World Cup Tracker / Predictor
 
-<div align="center">
+**An independent 2026 World Cup tournament tracker and prediction project.**
 
-![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38BDF8?logo=tailwindcss)
-![License](https://img.shields.io/badge/License-MIT-green)
+I built this project to make the expanded 48-team World Cup format easier to follow, from group fixtures and standings to the knockout bracket. It combines my interest in football with my experience in major-event ticketing operations.
 
-### A modern FIFA World Cup 2026 prediction platform built for fans.
+[Explore the project](https://fifa-world-cup-predictor-jet.vercel.app/) · [Read the overview on rlemor.com](https://rlemor.com/projects#world-cup-tracker)
 
-**🌎 Live Demo:** https://fifa-world-cup-predictor-jet.vercel.app/
+![Historical screenshot of the World Cup Tracker interface](https://rlemor.com/projects/world-cup-tracker/historical-tournament.png)
 
-</div>
+*Historical interface capture from the independent project. Any tournament status shown in the image reflects the time of capture, not a claim that matches are still live.*
 
----
+## The challenge
 
-## Overview
+The 2026 tournament expanded to 48 teams and 104 matches. The goal was to bring a complex schedule, group-stage standings, and knockout progression into one interface that was useful to browse and experiment with.
 
-The **FIFA World Cup Predictor** is an interactive web application that allows fans to simulate the entire FIFA World Cup 2026 tournament—from the group stage all the way to the Final.
+## What the project explores
 
-Instead of simply filling out a static bracket, users can explore different tournament scenarios, predict match results, automatically generate knockout rounds, and visualize how every decision impacts the tournament.
+- **Tournament schedule:** fixtures and match information in a navigable interface.
+- **Group-stage standings:** tables that respond to match results and the applicable ranking logic.
+- **Knockout bracket:** progression through elimination rounds, with dependencies between outcomes.
+- **Prediction scenarios:** an opportunity to explore how changes to results affect later stages.
+- **Information density:** a responsive layout for a large tournament without requiring separate spreadsheets or static printable brackets.
 
-The project was built to combine a polished user experience with the complexity of FIFA's new 48-team tournament format.
+The 2026 tournament has concluded, so the project is now presented as a **historical reference and independent product experiment**, not a live-event service.
 
----
+## Implementation
 
-## Why I Built It
+This repository uses Next.js 15, React 19, JavaScript, and Tailwind CSS. Its application pages live under `app/`, with tournament and schedule logic under `lib/`.
 
-As both a lifelong football fan and someone working professionally on the FIFA World Cup 2026, I wanted to create the tournament predictor I always wished existed.
+## Run locally
 
-Most prediction tools are little more than printable brackets.
-
-I wanted something that felt like a modern web application:
-
-- Fast
-- Beautiful
-- Interactive
-- Responsive
-- Fun to explore
-
-This project became an opportunity to challenge myself with complex frontend state management while designing an interface that makes a tournament with over 100 matches feel intuitive.
-
----
-
-# Features
-
-### 🏆 Complete Tournament Simulation
-
-Predict every match from kickoff to the Final.
-
----
-
-### 🌍 Full FIFA World Cup 2026 Format
-
-Supports the expanded 48-team World Cup structure.
-
----
-
-### ⚽ Dynamic Knockout Bracket
-
-The knockout stage automatically updates based on your predictions.
-
----
-
-### 📊 Automatic Standings
-
-Group tables update instantly with:
-
-- Points
-- Goal Difference
-- Goals Scored
-- Qualification Positions
-
----
-
-### 🔄 Live Tournament Progression
-
-Every prediction affects the next stage of the competition.
-
-No manual bracket editing required.
-
----
-
-### 📱 Responsive Design
-
-Optimized for desktop, tablet and mobile devices.
-
----
-
-### ✨ Modern User Experience
-
-- Smooth animations
-- Clean layouts
-- Fast navigation
-- Accessible design
-- Mobile-first interface
-
----
-
-# Screenshots
-
-> Replace these placeholders with actual screenshots.
-
-| Home | Groups |
-|-------|--------|
-| ![](docs/home.png) | ![](docs/groups.png) |
-
-| Knockout | Prediction |
-|-----------|------------|
-| ![](docs/bracket.png) | ![](docs/prediction.png) |
-
----
-
-# Tech Stack
-
-## Frontend
-
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-
-## UI
-
-- shadcn/ui
-- Framer Motion
-- Lucide Icons
-
-## Development
-
-- ESLint
-- Vercel
-
----
-
-# Project Structure
-
-```
-src/
-│
-├── app/
-├── components/
-├── hooks/
-├── lib/
-├── data/
-├── types/
-├── utils/
-└── styles/
-```
-
----
-
-# Engineering Challenges
-
-Building a realistic World Cup predictor required solving several interesting frontend problems:
-
-### Tournament State Management
-
-Every match affects future fixtures.
-
-Updating one prediction can cascade through the entire knockout stage, requiring dependent matches to update automatically.
-
----
-
-### Expanded 48-Team Format
-
-The FIFA World Cup 2026 introduces a completely new tournament structure.
-
-Supporting this format meant modeling qualification rules, group standings, and knockout progression in a scalable way.
-
----
-
-### Dynamic Standings
-
-Group tables update instantly based on every score prediction while applying FIFA tiebreakers.
-
----
-
-### Responsive Information Density
-
-Displaying dozens of matches, standings, and brackets without overwhelming the user required careful layout and UI design.
-
----
-
-# Local Development
-
-Clone the repository
+Requires Node.js and npm.
 
 ```bash
-git clone https://github.com/raf0x/FIFA-World-Cup-Predictor.git
-```
-
-Install dependencies
-
-```bash
-npm install
-```
-
-Run locally
-
-```bash
+npm ci
 npm run dev
 ```
 
-Visit
+Open [http://localhost:3000](http://localhost:3000).
 
+For a production build:
+
+```bash
+npm run build
+npm run start
 ```
-http://localhost:3000
-```
 
----
+## About
 
-# Future Improvements
+Built by **Rafael Lemor**, a football fan with professional experience in global tournament ticketing and commercial-partner operations.
 
-Planned features include:
+[Explore more independent projects](https://rlemor.com/projects)
 
-- 🤖 AI-powered match predictions
-- 📈 Team strength and Elo ratings
-- 🌎 Multiple tournament presets
-- 👤 User accounts
-- ☁️ Cloud saved predictions
-- 🔗 Shareable brackets
-- 🏅 Community prediction leaderboard
-- 📊 Tournament statistics dashboard
-- 📱 Progressive Web App (PWA)
-- 🌙 Additional themes
+## Independence notice
 
----
-
-# Lessons Learned
-
-This project pushed me to improve in several areas, including:
-
-- Complex React state management
-- Component architecture
-- TypeScript modeling
-- Responsive UI design
-- Performance optimization
-- Large-scale frontend organization
-- Building intuitive user experiences for data-heavy applications
-
----
-
-# Contributing
-
-Contributions, ideas, and feature suggestions are always welcome.
-
-If you'd like to improve the project:
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Submit a Pull Request
-
----
-
-# License
-
-This project is released under the MIT License.
-
----
-
-# Author
-
-**Rafael Lemor**
-
-Frontend Developer • Product Designer • Football Enthusiast
-
-If you enjoyed this project, feel free to ⭐ the repository.
-
----
-
-> **Disclaimer**
->
-> This is an independent fan-made project and is **not affiliated with or endorsed by FIFA**. FIFA and FIFA World Cup are trademarks of the Fédération Internationale de Football Association.
+This is an independent, unofficial project. It is **not affiliated with or endorsed by FIFA**. FIFA and FIFA World Cup are trademarks of their respective owner.
