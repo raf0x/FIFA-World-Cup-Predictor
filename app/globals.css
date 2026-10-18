@@ -2136,3 +2136,12 @@ a { color: inherit; }
   align-items: center;
   justify-content: center;
 }
+
+/* Keep wide knockout diagrams horizontally scrollable within their own section,
+   without letting decorative glow or bracket content widen the document. */
+@media (max-width: 700px) {
+  html, body {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+}
