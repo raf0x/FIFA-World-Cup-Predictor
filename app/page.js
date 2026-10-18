@@ -1625,6 +1625,7 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false);
   const [days, setDays] = useState(null);
   const [daysRemaining, setDaysRemaining] = useState(null); // days left until the Final (July 19, 2026)
+  const [tournamentEnded, setTournamentEnded] = useState(false);
   const [showChampionReveal, setShowChampionReveal] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [user, setUser] = useState(null);
@@ -1651,6 +1652,7 @@ export default function Home() {
     setDays(d);
     const remaining = Math.ceil((new Date('2026-07-19') - new Date()) / 86400000);
     setDaysRemaining(Math.max(0, remaining));
+    setTournamentEnded(Date.now() >= new Date('2026-07-20T00:00:00-04:00').getTime());
     try {
       // URL share param takes priority over localStorage
       const params = new URLSearchParams(window.location.search);
@@ -2549,16 +2551,23 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
                     </span>
                   </>
                 ) : (
-                  <>
-                    <span className="cd-live">● LIVE</span>
-                    <span className="cd-label">The tournament is underway</span>
-                  </>
+                  tournamentEnded ? (
+                    <>
+                      <span className="cd-live">2026 ARCHIVE</span>
+                      <span className="cd-label">Tournament complete · explore results and predictions</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="cd-live">● LIVE</span>
+                      <span className="cd-label">The tournament is underway</span>
+                    </>
+                  )
                 )}
               </div>
             )}
           </div>
           <div className="hero-stats">
-            {[{ n:'48',label:'Teams'},{n:'12',label:'Groups'},{n:'104',label:'Matches'},{n:'16',label:'Venues'},{n:'3',label:'Host Nations'},{ n: daysRemaining !== null ? String(daysRemaining) : '–', label:'Days Left', accent:true }].map(s => (
+            {[{ n:'48',label:'Teams'},{n:'12',label:'Groups'},{n:'104',label:'Matches'},{n:'16',label:'Venues'},{n:'3',label:'Host Nations'},{ n: tournamentEnded ? '2026' : daysRemaining !== null ? String(daysRemaining) : '–', label: tournamentEnded ? 'Archive' : 'Days Left', accent:true }].map(s => (
               <div key={s.label} className={`stat-tile ${s.accent ? 'stat-tile--accent' : ''}`}>
                 <div className={`stat-n ${s.accent ? 'stat-n--accent' : ''}`}>{s.n}</div>
                 <div className={`stat-l ${s.accent ? 'stat-l--accent' : ''}`}>{s.label}</div>
@@ -2636,7 +2645,7 @@ body{background:#080814;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple
               </div>
               <h2 className="section-title">Group Stage</h2>
               <p className="section-desc">
-                Live scores update automatically as matches are played. Use <b>My picks</b> on each group to set your bracket predictions.
+                {tournamentEnded ? 'Review completed match results and use ' : 'Live scores update automatically as matches are played. Use '}<b>My picks</b> on each group to set your bracket predictions.
               </p>
             </div>
             <button
